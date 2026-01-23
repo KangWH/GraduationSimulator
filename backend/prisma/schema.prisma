@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 로그인을 위한 정보
+model User {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+  profile  Profile?
+}
+
+// 사용자의 세부 정보
+model Profile {
+  id                        String       @id @default(uuid())
+  userId                    String       @unique
+  user                      User         @relation(fields: [userId], references: [id])
+  studentId                 String       @unique
+  admissionYear             Int
+  isFallAdmission           Boolean
+  major                     String
+  doubleMajor               String?
+  minor                     String?
+  advancedMajor             Boolean      @default(false)
+  individuallyDesignedMajor Boolean      @default(false)
+  enrollments               Enrollment[]
+}
+
+// 과목 수강 내역
+model Enrollment {
+  id               String         @id @default(uuid())
+  grade            String?
+  profileId        String
+  profile          Profile        @relation(fields: [profileId], references: [id])
+  courseOfferingId String
+  course           CourseOffering @relation(fields: [courseOfferingId], references: [id])
+}
+
+// 과목 개설 내역
+model CourseOffering {
+  id          String @id @default(uuid())
+  code        String
+  year        Int
+  semester    Int // 1, 2, 3, 4
+  section     String
+  title       String
+  department  String
+  category    String // 인선, 자선, 전필 등
+  professor   String
+  credit      Int
+  enrollments Enrollment[]
+}
+
+// 교양과목 이수요건 데이터
+model GeneralEdRequirement {
+  id        String @id @default(uuid())
+  year      Int
+  logicTree Json
+}
+
+// 전공과목 이수요건 데이터
+model MajorRequirement {
+  id       String @id @default(uuid())
+  year       Int
+  department String
+  logicTree  Json
+}

@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  # 데이터베이스 서비스
+  db:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: user_id
+      POSTGRES_PASSWORD: user_pw
+      POSTGRES_DB: grad_db
+    ports:
+      - "5432:5432"
+
+  # 백엔드 서버 서비스
+  server:
+    build: ./backend
+    restart: always
+    ports:
+      - "4000:4000" # 외부포트:내부포트
+    env_file:
+      - ./backend/.env
+    environment:
+      # 중요: Docker 환경에서 호스트명은 'localhost'가 아니라 서비스명인 'db'입니다.
+      DATABASE_URL: "postgresql://user_id:user_pw@db:5432/grad_db?schema=public"
+    depends_on:
+      - db
