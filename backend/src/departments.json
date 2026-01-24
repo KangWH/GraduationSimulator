@@ -1,0 +1,162 @@
+[
+  {
+    "id": "MAS",
+    "name": "수리과학과",
+    "category": "자연과학대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "PH",
+    "name": "물리학과",
+    "category": "자연과학대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "CH",
+    "name": "화학과",
+    "category": "자연과학대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "BS",
+    "name": "생명과학과",
+    "category": "생명과학기술대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "BCS",
+    "name": "뇌인지과학과",
+    "category": "생명과학기술대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "ME",
+    "name": "기계공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "AE",
+    "name": "항공우주공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "EE",
+    "name": "전기및전자공학부",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "CS",
+    "name": "전산학부",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "CE",
+    "name": "건설및환경공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "BIS",
+    "name": "바이오및뇌공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "ID",
+    "name": "산업디자인학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "IE",
+    "name": "산업및시스템공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "CBE",
+    "name": "생명화학공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "MS",
+    "name": "신소재공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "NQE",
+    "name": "원자력및양자공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "SS",
+    "name": "반도체시스템공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "HSS",
+    "name": "디지털인문사회과학부",
+    "category": "인문사회융합과학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": true
+  },
+  {
+    "id": "BTM",
+    "name": "기술경영학부",
+    "category": "경영대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "TS",
+    "name": "융합인재학부",
+    "category": "융합인재학부",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  }
+]

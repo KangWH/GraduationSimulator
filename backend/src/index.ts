@@ -3,6 +3,8 @@ import cors from 'cors';
 import authRouter from './routes/auth.js';
 import profileRouter from './routes/profile.js';
 
+import departments from './departments.json' with { type: 'json' };
+
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 
@@ -15,6 +17,10 @@ app.use(express.json());
 app.get('/', (req: Request, res: Response) => {
   res.send('You\'ve accessed the backend server');
 });
+
+app.get('/departments', (req, res) => {
+  res.json(departments);
+})
 
 app.use('/auth', authRouter);
 app.use('/profile', profileRouter);

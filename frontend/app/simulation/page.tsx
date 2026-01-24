@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import DepartmentDropdown from '../components/DepartmentDropeown';
 
 export default function SimulationPage() {
   const router = useRouter();
@@ -161,91 +162,91 @@ export default function SimulationPage() {
         </div>
 
         {/* 상단 필터 바 */}
-        <div className="flex-1 flex flex-col overflow-hidden p-4 min-w-0">
-          <div className="px-4 flex-shrink-0">
-            <div className="flex flex-wrap gap-6">
+        <div className="py-4 flex-shrink-0 overflow-x-auto">
+          <div className="px-4 flex flex-wrap gap-6 min-w-max justify-center">
             <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              전공 이수 기준 연도
-            </label>
-            <input
-              type="number"
-              min="2000"
-              max="2030"
-              value={filters.requirementYear}
-              onChange={(e) => setFilters({ ...filters, requirementYear: parseInt(e.target.value) })}
-              className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              주전공 학과
-            </label>
-            <input
-              type="text"
-              value={filters.major}
-              onChange={(e) => setFilters({ ...filters, major: e.target.value })}
-              placeholder="주전공 학과"
-              className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              복수전공 학과
-            </label>
-            <input
-              type="text"
-              value={filters.doubleMajor}
-              onChange={(e) => setFilters({ ...filters, doubleMajor: e.target.value })}
-              placeholder="복수전공 학과"
-              className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              부전공 학과
-            </label>
-            <input
-              type="text"
-              value={filters.minor}
-              onChange={(e) => setFilters({ ...filters, minor: e.target.value })}
-              placeholder="부전공 학과"
-              className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-            />
-          </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="advancedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              심화전공 여부
-            </label>
-            <select
-              id="advancedMajor"
-              value={filters.advancedMajor ? 'true' : 'false'}
-              onChange={(e) => setFilters({ ...filters, advancedMajor: e.target.value === 'true' })}
-              className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-            >
-              <option value="false">아니오</option>
-              <option value="true">예</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="individuallyDesignedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-              자유융합전공 여부
-            </label>
-            <select
-              id="individuallyDesignedMajor"
-              value={filters.individuallyDesignedMajor ? 'true' : 'false'}
-              onChange={(e) => setFilters({ ...filters, individuallyDesignedMajor: e.target.value === 'true' })}
-              className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-            >
-              <option value="false">아니오</option>
-              <option value="true">예</option>
-            </select>
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                전공 이수 기준 연도
+              </label>
+              <input
+                type="number"
+                min="2000"
+                max="2030"
+                value={filters.requirementYear}
+                onChange={(e) => setFilters({ ...filters, requirementYear: parseInt(e.target.value) })}
+                className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                주전공 학과
+              </label>
+              {/* <input
+                type="text"
+                value={filters.major}
+                onChange={(e) => setFilters({ ...filters, major: e.target.value })}
+                placeholder="주전공 학과"
+                className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+              /> */}
+              <DepartmentDropdown value={filters.major} onChange={(newValue) => setFilters({ ...filters, major: newValue })} mode="major" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                복수전공 학과
+              </label>
+              <input
+                type="text"
+                value={filters.doubleMajor}
+                onChange={(e) => setFilters({ ...filters, doubleMajor: e.target.value })}
+                placeholder="복수전공 학과"
+                className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                부전공 학과
+              </label>
+              <input
+                type="text"
+                value={filters.minor}
+                onChange={(e) => setFilters({ ...filters, minor: e.target.value })}
+                placeholder="부전공 학과"
+                className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="advancedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                심화전공 여부
+              </label>
+              <select
+                id="advancedMajor"
+                value={filters.advancedMajor ? 'true' : 'false'}
+                onChange={(e) => setFilters({ ...filters, advancedMajor: e.target.value === 'true' })}
+                className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+              >
+                <option value="false">아니오</option>
+                <option value="true">예</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="individuallyDesignedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                자유융합전공 여부
+              </label>
+              <select
+                id="individuallyDesignedMajor"
+                value={filters.individuallyDesignedMajor ? 'true' : 'false'}
+                onChange={(e) => setFilters({ ...filters, individuallyDesignedMajor: e.target.value === 'true' })}
+                className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+              >
+                <option value="false">아니오</option>
+                <option value="true">예</option>
+              </select>
             </div>
           </div>
         </div>
-          
-        
-          {/* 3분할 카드 래퍼 */}
+
+        {/* 3분할 카드 래퍼 */}
+        <div className="flex-1 flex flex-col min-h-0 p-4">
           <div className="flex-1 flex flex-col min-h-0 rounded-xl shadow-lg overflow-hidden bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-700">
             {/* 3분할 메인 영역 - 빈 공간 없이 꽉 채움 */}
             <div className="flex-1 flex min-h-0">
@@ -254,33 +255,33 @@ export default function SimulationPage() {
                 <div className="p-4">
                   <h2 className="text-xl font-semibold mb-4">요건 카테고리별 인정된 과목</h2>
                   <div className="space-y-4">
-                  {Object.entries(categoryCourses).map(([category, courses]) => (
-                    <div key={category} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                      <h3 className="font-medium text-lg mb-3">{category}</h3>
-                      <div className="space-y-2">
-                        {courses.map((course) => (
-                          <div
-                            key={course.id}
-                            className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                          >
-                            <div>
-                              <p className="font-medium text-sm">{course.name}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {course.credit}학점 | {course.grade}
-                              </p>
+                    {Object.entries(categoryCourses).map(([category, courses]) => (
+                      <div key={category} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                        <h3 className="font-medium text-lg mb-3">{category}</h3>
+                        <div className="space-y-2">
+                          {courses.map((course) => (
+                            <div
+                              key={course.id}
+                              className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
+                            >
+                              <div>
+                                <p className="font-medium text-sm">{course.name}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {course.credit}학점 | {course.grade}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                   </div>
                 </div>
               </div>
 
               {/* 가운데: 졸업 요건 조회 */}
-              <div className="w-1/3 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
-                <div className="p-4">
+              <div className="w-1/3 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto relative">
+                <div className="p-4 pb-20">
                   <h2 className="text-xl font-semibold mb-4">졸업 요건 조회</h2>
                   <div className="space-y-4">
                     <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
@@ -301,6 +302,26 @@ export default function SimulationPage() {
                     </div>
                   </div>
                 </div>
+                
+                {/* Sticky 하단 박스 */}
+                <div className="sticky bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3 shadow-lg">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-6 flex-1">
+                      <div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">총 이수학점</span>
+                        <p className="text-lg font-semibold">0 / 130</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">평점</span>
+                        <p className="text-lg font-semibold">0.00</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">졸업 가능 여부</span>
+                      <p className="text-2xl font-bold text-red-600">불가능</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* 우측: 시뮬레이션에서 추가·삭제할 과목 선택 */}
@@ -312,39 +333,39 @@ export default function SimulationPage() {
                   </p>
                   <div className="space-y-3">
                     {/* 예시 과목 목록 */}
-                  {[
-                    { id: 1, name: '컴퓨터네트워크', credit: 3, category: '전공' },
-                    { id: 2, name: '운영체제', credit: 3, category: '전공' },
-                    { id: 3, name: '인문학개론', credit: 2, category: '교양' },
-                  ].map((course) => (
-                    <div
-                      key={course.id}
-                      className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700"
-                    >
-                      <div>
-                        <p className="font-medium">{course.name}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {course.credit}학점 | {course.category}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (simulationCourses.find((c) => c.id === course.id)) {
-                            setSimulationCourses(simulationCourses.filter((c) => c.id !== course.id));
-                          } else {
-                            setSimulationCourses([...simulationCourses, course]);
-                          }
-                        }}
-                        className={`px-4 py-2 rounded-md text-sm font-medium ${
-                          simulationCourses.find((c) => c.id === course.id)
-                            ? 'bg-red-600 text-white hover:bg-red-700'
-                            : 'bg-green-600 text-white hover:bg-green-700'
-                        }`}
+                    {[
+                      { id: 1, name: '컴퓨터네트워크', credit: 3, category: '전공' },
+                      { id: 2, name: '운영체제', credit: 3, category: '전공' },
+                      { id: 3, name: '인문학개론', credit: 2, category: '교양' },
+                    ].map((course) => (
+                      <div
+                        key={course.id}
+                        className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700"
                       >
-                        {simulationCourses.find((c) => c.id === course.id) ? '제거' : '추가'}
-                      </button>
-                    </div>
-                  ))}
+                        <div>
+                          <p className="font-medium">{course.name}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {course.credit}학점 | {course.category}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (simulationCourses.find((c) => c.id === course.id)) {
+                              setSimulationCourses(simulationCourses.filter((c) => c.id !== course.id));
+                            } else {
+                              setSimulationCourses([...simulationCourses, course]);
+                            }
+                          }}
+                          className={`px-4 py-2 rounded-md text-sm font-medium ${
+                            simulationCourses.find((c) => c.id === course.id)
+                              ? 'bg-red-600 text-white hover:bg-red-700'
+                              : 'bg-green-600 text-white hover:bg-green-700'
+                          }`}
+                        >
+                          {simulationCourses.find((c) => c.id === course.id) ? '제거' : '추가'}
+                        </button>
+                      </div>
+                    ))}
                   </div>
                   {simulationCourses.length > 0 && (
                     <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
