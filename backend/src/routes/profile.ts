@@ -42,6 +42,14 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
+    // 2016년 이전 입학생은 가입 제한
+    if (admissionYear < 2016) {
+      return res.status(400).json({ 
+        success: false,
+        message: '2016년 및 그 이후 입학생만 가입할 수 있습니다.' 
+      });
+    }
+
     // 학번 중복 체크
     const existingProfile = await prisma.profile.findUnique({
       where: { studentId },

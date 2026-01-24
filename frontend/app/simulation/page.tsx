@@ -6,15 +6,38 @@ import Link from 'next/link';
 
 export default function SimulationPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'basic' | 'courses' | 'result'>('basic');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [previousSimulations] = useState([
     { id: 1, name: '2024년 1학기 시뮬레이션', date: '2024-01-15' },
     { id: 2, name: '2023년 2학기 시뮬레이션', date: '2023-08-20' },
   ]);
 
+  // 필터 상태
+  const [filters, setFilters] = useState({
+    requirementYear: new Date().getFullYear(),
+    major: '',
+    doubleMajor: '',
+    minor: '',
+    advancedMajor: false,
+    individuallyDesignedMajor: false,
+  });
+
+  // 시뮬레이션에 추가된 과목들
+  const [simulationCourses, setSimulationCourses] = useState<any[]>([]);
+  
+  // 카테고리별 인정된 과목들 (예시 데이터)
+  const [categoryCourses] = useState({
+    전공: [
+      { id: 1, name: '데이터구조', credit: 3, grade: 'A+' },
+      { id: 2, name: '알고리즘', credit: 3, grade: 'A' },
+    ],
+    교양: [
+      { id: 3, name: '영어회화', credit: 2, grade: 'B+' },
+    ],
+  });
+
   return (
-    <div className="flex min-h-screen bg-zinc-50 dark:bg-black">
+    <div className="flex h-screen bg-zinc-50 dark:bg-black">
       {/* 사이드바 */}
       <aside
         className={`${
@@ -48,7 +71,7 @@ export default function SimulationPage() {
           <button
             onClick={() => {
               // 새로운 시뮬레이션 시작 로직
-              setActiveTab('result');
+              setSimulationCourses([]);
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
               sidebarOpen
@@ -75,7 +98,6 @@ export default function SimulationPage() {
                   key={sim.id}
                   onClick={() => {
                     // 시뮬레이션 로드 로직
-                    setActiveTab('result');
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left transition-colors ${
                     sidebarOpen
@@ -135,211 +157,220 @@ export default function SimulationPage() {
       {/* 메인 컨텐츠 */}
       <div className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-4 py-8">
-          <h1 className="mb-8 text-4xl font-bold text-center">졸업시뮬레이터</h1>
-        
-        {/* 탭 네비게이션 */}
-        <div className="mb-8 flex justify-center border-b border-gray-200 dark:border-gray-700">
-          <button
-            onClick={() => setActiveTab('basic')}
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'basic'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
-            }`}
-          >
-            기본 정보
-          </button>
-          <button
-            onClick={() => setActiveTab('courses')}
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'courses'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
-            }`}
-          >
-            들은 과목
-          </button>
-          <button
-            onClick={() => setActiveTab('result')}
-            className={`px-6 py-3 font-medium ${
-              activeTab === 'result'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200'
-            }`}
-          >
-            결과 조회
-          </button>
+          <h1 className="text-4xl font-bold text-center">졸업시뮬레이터</h1>
         </div>
 
-        {/* 기본 정보 입력 섹션 */}
-        {activeTab === 'basic' && (
-          <div className="mx-auto max-w-2xl rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900">
-            <h2 className="mb-6 text-2xl font-semibold">기본 정보 입력</h2>
-            <form className="space-y-6">
-              <div>
-                <label htmlFor="major" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  학과
-                </label>
-                <input
-                  id="major"
-                  name="major"
-                  type="text"
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                  placeholder="학과를 입력하세요"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="admissionYear" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  입학연도
-                </label>
-                <input
-                  id="admissionYear"
-                  name="admissionYear"
-                  type="number"
-                  min="2000"
-                  max="2030"
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                  placeholder="입학연도를 입력하세요"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="doubleMajor" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  복전 여부
-                </label>
-                <select
-                  id="doubleMajor"
-                  name="doubleMajor"
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                >
-                  <option value="">선택하세요</option>
-                  <option value="none">없음</option>
-                  <option value="double">복수전공</option>
-                  <option value="minor">부전공</option>
-                </select>
-              </div>
-
-              {false && (
-                <div>
-                  <label htmlFor="doubleMajorName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    복전 학과명
-                  </label>
-                  <input
-                    id="doubleMajorName"
-                    name="doubleMajorName"
-                    type="text"
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                    placeholder="복전 학과명을 입력하세요"
-                  />
-                </div>
-              )}
-
-              <button
-                type="submit"
-                className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                저장
-              </button>
-            </form>
+        {/* 상단 필터 바 */}
+        <div className="flex-1 flex flex-col overflow-hidden p-4 min-w-0">
+          <div className="px-4 flex-shrink-0">
+            <div className="flex flex-wrap gap-6">
+            <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              전공 이수 기준 연도
+            </label>
+            <input
+              type="number"
+              min="2000"
+              max="2030"
+              value={filters.requirementYear}
+              onChange={(e) => setFilters({ ...filters, requirementYear: parseInt(e.target.value) })}
+              className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+            />
           </div>
-        )}
-
-        {/* 들은 과목 입력 섹션 */}
-        {activeTab === 'courses' && (
-          <div className="mx-auto max-w-4xl rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900">
-            <h2 className="mb-6 text-2xl font-semibold">들은 과목 입력</h2>
-            <div className="space-y-4">
-              <div className="flex gap-4">
-                <input
-                  type="text"
-                  placeholder="과목명"
-                  className="flex-1 rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                />
-                <input
-                  type="text"
-                  placeholder="학점"
-                  className="w-24 rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                />
-                <input
-                  type="text"
-                  placeholder="성적"
-                  className="w-24 rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-                />
-                <button
-                  type="button"
-                  className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                >
-                  추가
-                </button>
-              </div>
-              
-              <div className="mt-6">
-                <h3 className="mb-4 text-lg font-medium">등록된 과목 목록</h3>
-                <div className="space-y-2">
-                  <p className="text-gray-500 dark:text-gray-400">등록된 과목이 없습니다.</p>
-                </div>
-              </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              주전공 학과
+            </label>
+            <input
+              type="text"
+              value={filters.major}
+              onChange={(e) => setFilters({ ...filters, major: e.target.value })}
+              placeholder="주전공 학과"
+              className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              복수전공 학과
+            </label>
+            <input
+              type="text"
+              value={filters.doubleMajor}
+              onChange={(e) => setFilters({ ...filters, doubleMajor: e.target.value })}
+              placeholder="복수전공 학과"
+              className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              부전공 학과
+            </label>
+            <input
+              type="text"
+              value={filters.minor}
+              onChange={(e) => setFilters({ ...filters, minor: e.target.value })}
+              placeholder="부전공 학과"
+              className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="advancedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              심화전공 여부
+            </label>
+            <select
+              id="advancedMajor"
+              value={filters.advancedMajor ? 'true' : 'false'}
+              onChange={(e) => setFilters({ ...filters, advancedMajor: e.target.value === 'true' })}
+              className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+            >
+              <option value="false">아니오</option>
+              <option value="true">예</option>
+            </select>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="individuallyDesignedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+              자유융합전공 여부
+            </label>
+            <select
+              id="individuallyDesignedMajor"
+              value={filters.individuallyDesignedMajor ? 'true' : 'false'}
+              onChange={(e) => setFilters({ ...filters, individuallyDesignedMajor: e.target.value === 'true' })}
+              className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+            >
+              <option value="false">아니오</option>
+              <option value="true">예</option>
+            </select>
             </div>
           </div>
-        )}
-
-        {/* 결과 조회 창 + 시뮬레이션 섹션 */}
-        {activeTab === 'result' && (
-          <div className="mx-auto max-w-6xl">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-              {/* 결과 조회 창 */}
-              <div className="rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900">
-                <h2 className="mb-6 text-2xl font-semibold">졸업 요건 조회</h2>
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                    <h3 className="font-medium">총 이수학점</h3>
-                    <p className="text-2xl font-bold">0 / 130</p>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                    <h3 className="font-medium">전공 이수학점</h3>
-                    <p className="text-2xl font-bold">0 / 60</p>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                    <h3 className="font-medium">교양 이수학점</h3>
-                    <p className="text-2xl font-bold">0 / 30</p>
-                  </div>
-                  <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                    <h3 className="font-medium">졸업 가능 여부</h3>
-                    <p className="text-2xl font-bold text-red-600">불가능</p>
+        </div>
+          
+        
+          {/* 3분할 카드 래퍼 */}
+          <div className="flex-1 flex flex-col min-h-0 rounded-xl shadow-lg overflow-hidden bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-700">
+            {/* 3분할 메인 영역 - 빈 공간 없이 꽉 채움 */}
+            <div className="flex-1 flex min-h-0">
+              {/* 좌측: 요건 카테고리별 인정된 과목 */}
+              <div className="w-1/3 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+                <div className="p-4">
+                  <h2 className="text-xl font-semibold mb-4">요건 카테고리별 인정된 과목</h2>
+                  <div className="space-y-4">
+                  {Object.entries(categoryCourses).map(([category, courses]) => (
+                    <div key={category} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                      <h3 className="font-medium text-lg mb-3">{category}</h3>
+                      <div className="space-y-2">
+                        {courses.map((course) => (
+                          <div
+                            key={course.id}
+                            className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
+                          >
+                            <div>
+                              <p className="font-medium text-sm">{course.name}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {course.credit}학점 | {course.grade}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                   </div>
                 </div>
               </div>
 
-              {/* 시뮬레이션 섹션 */}
-              <div className="rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900">
-                <h2 className="mb-6 text-2xl font-semibold">시뮬레이션</h2>
-                <p className="mb-4 text-gray-600 dark:text-gray-400">
-                  아직 듣지 않은 과목을 선택하면 결과 창에 즉시 반영됩니다.
-                </p>
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium">과목명 예시</h3>
-                        <p className="text-sm text-gray-500">3학점 | 전공</p>
-                      </div>
-                      <button
-                        type="button"
-                        className="rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
-                      >
-                        추가
-                      </button>
+              {/* 가운데: 졸업 요건 조회 */}
+              <div className="w-1/3 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+                <div className="p-4">
+                  <h2 className="text-xl font-semibold mb-4">졸업 요건 조회</h2>
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                      <h3 className="font-medium mb-2">총 이수학점</h3>
+                      <p className="text-3xl font-bold">0 / 130</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                      <h3 className="font-medium mb-2">전공 이수학점</h3>
+                      <p className="text-3xl font-bold">0 / 60</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                      <h3 className="font-medium mb-2">교양 이수학점</h3>
+                      <p className="text-3xl font-bold">0 / 30</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                      <h3 className="font-medium mb-2">졸업 가능 여부</h3>
+                      <p className="text-3xl font-bold text-red-600">불가능</p>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    시뮬레이션할 과목 목록이 여기에 표시됩니다.
+                </div>
+              </div>
+
+              {/* 우측: 시뮬레이션에서 추가·삭제할 과목 선택 */}
+              <div className="w-1/3 flex-shrink-0 overflow-y-auto">
+                <div className="p-4">
+                  <h2 className="text-xl font-semibold mb-4">시뮬레이션 과목 선택</h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    아직 듣지 않은 과목을 선택하면 결과 창에 즉시 반영됩니다.
                   </p>
+                  <div className="space-y-3">
+                    {/* 예시 과목 목록 */}
+                  {[
+                    { id: 1, name: '컴퓨터네트워크', credit: 3, category: '전공' },
+                    { id: 2, name: '운영체제', credit: 3, category: '전공' },
+                    { id: 3, name: '인문학개론', credit: 2, category: '교양' },
+                  ].map((course) => (
+                    <div
+                      key={course.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700"
+                    >
+                      <div>
+                        <p className="font-medium">{course.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {course.credit}학점 | {course.category}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (simulationCourses.find((c) => c.id === course.id)) {
+                            setSimulationCourses(simulationCourses.filter((c) => c.id !== course.id));
+                          } else {
+                            setSimulationCourses([...simulationCourses, course]);
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-md text-sm font-medium ${
+                          simulationCourses.find((c) => c.id === course.id)
+                            ? 'bg-red-600 text-white hover:bg-red-700'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                      >
+                        {simulationCourses.find((c) => c.id === course.id) ? '제거' : '추가'}
+                      </button>
+                    </div>
+                  ))}
+                  </div>
+                  {simulationCourses.length > 0 && (
+                    <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <h3 className="font-medium mb-3">추가된 과목 ({simulationCourses.length})</h3>
+                      <div className="space-y-2">
+                        {simulationCourses.map((course) => (
+                          <div
+                            key={course.id}
+                            className="flex items-center justify-between p-2 rounded bg-blue-50 dark:bg-blue-900/20"
+                          >
+                            <span className="text-sm">{course.name}</span>
+                            <button
+                              onClick={() => setSimulationCourses(simulationCourses.filter((c) => c.id !== course.id))}
+                              className="text-red-600 hover:text-red-700 text-sm"
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        )}
         </div>
       </div>
     </div>
