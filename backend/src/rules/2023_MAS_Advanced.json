@@ -1,8 +1,8 @@
 {
   "info": {
     "dept": "MAS",
-    "type": "Advanced_Major",
-    "year": "2016"
+    "type": "Advanced",
+    "year": "2023"
   },
   "requirements": {
     "type": "REQUIRE_MIN_CREDITS_AMONG", 
