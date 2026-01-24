@@ -15,8 +15,8 @@ datasource db {
 
 // 로그인을 위한 정보
 model User {
-  id       String @id @default(uuid())
-  email    String @unique
+  id       String   @id @default(uuid())
+  email    String   @unique
   password String
   profile  Profile?
 }
@@ -31,36 +31,40 @@ model Profile {
   admissionYear             Int
   isFallAdmission           Boolean
   major                     String
-  doubleMajor               String?
-  minor                     String?
+  doubleMajors              String[]
+  minors                    String[]
   advancedMajor             Boolean      @default(false)
   individuallyDesignedMajor Boolean      @default(false)
-  enrollments               Enrollment[]
+  simulations               Simulation[] @relation("ProfileToSimulation")
+  enrollments               Json
 }
 
-// 과목 수강 내역
-model Enrollment {
-  id               String         @id @default(uuid())
-  grade            String?
-  profileId        String
-  profile          Profile        @relation(fields: [profileId], references: [id])
-  courseOfferingId String
-  course           CourseOffering @relation(fields: [courseOfferingId], references: [id])
+// 시뮬레이션 내역
+model Simulation {
+  id            String   @id @default(uuid())
+  profileId     String
+  profile       Profile  @relation("ProfileToSimulation", fields: [profileId], references: [id])
+  title         String
+  updatedAt     DateTime
+  referenceYear Int
+  major         String
+  doubleMajors  String[]
+  minors        String[]
+  courses       Json
 }
 
 // 과목 개설 내역
 model CourseOffering {
-  id          String @id @default(uuid())
-  code        String
-  year        Int
-  semester    Int // 1, 2, 3, 4
-  section     String
-  title       String
-  department  String
-  category    String // 인선, 자선, 전필 등
-  professor   String
-  credit      Int
-  enrollments Enrollment[]
+  id         String @id @default(uuid())
+  code       String
+  year       Int
+  semester   Int // 1, 2, 3, 4
+  section    String
+  title      String
+  department String
+  category   String // 인선, 자선, 전필
+  credit     Int
+  au         Int
 }
 
 // 교양과목 이수요건 데이터
@@ -72,7 +76,7 @@ model GeneralEdRequirement {
 
 // 전공과목 이수요건 데이터
 model MajorRequirement {
-  id       String @id @default(uuid())
+  id         String @id @default(uuid())
   year       Int
   department String
   logicTree  Json
