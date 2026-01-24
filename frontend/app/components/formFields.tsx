@@ -34,7 +34,7 @@ export function Input({ id, name, value, onChange, type = 'text', required = fal
       placeholder={placeholder}
       className={
         "w-full bg-white dark:bg-black shadow-sm border border-gray-300 dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none "
-        + fieldSizeClassNames[size] + " " + className
+        + fieldSizeClassNames[size] + (className ? " " + className : "")
       }
     />
   )
@@ -59,7 +59,7 @@ export function NumberInput({ id, name, min = '0', max = '100', step = '1', valu
   return (
     <div
       className={
-        "flex flex-row w-full bg-white dark:bg-black shadow-sm border border-gray-300 dark:border-zinc-700 focus-within:border-violet-500 rounded-md overflow-hidden " + className
+        "flex flex-row w-full bg-white dark:bg-black shadow-sm border border-gray-300 dark:border-zinc-700 focus-within:border-violet-500 rounded-md overflow-hidden" + (className ? " " + className : "")
       }
     >
       <input
@@ -98,7 +98,7 @@ interface SelectProps {
 
 export function Select({ id, name, value, onChange, required, size = 'medium', className, children }: SelectProps) {
   return (
-    <div>
+    <div className="relative flex w-full items-center">
       <select
         id={id}
         name={name}
@@ -106,13 +106,26 @@ export function Select({ id, name, value, onChange, required, size = 'medium', c
         onChange={(e) => onChange(e.target.value)}
         required={required}
         className={
-          "w-full bg-white dark:bg-black shadow-sm border border-gray-300 dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none "
+          "w-full bg-white dark:bg-black shadow-sm border border-gray-300 dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none pr-8 "
           + fieldSizeClassNames[size]
-          + " " + className
+          + (className ? " " + className : "")
         }
       >
         {children}
       </select>
+      <svg
+        className="pointer-events-none absolute right-2 w-4 h-4 text-gray-500 dark:text-gray-400"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M19 9l-7 7-7-7"
+        />
+      </svg>
     </div>
   )
 }

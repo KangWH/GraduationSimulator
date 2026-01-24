@@ -136,4 +136,81 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/me', async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.query;
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ success: false, message: 'userId가 필요합니다.' });
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true },
+    });
+    if (!user) {
+      return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+    res.status(200).json({ success: true, user: { id: user.id, email: user.email } });
+  } catch (error) {
+    console.error('Me error:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+router.post('/change-password', async (req: Request, res: Response) => {
+  try {
+    const { userId, currentPassword, newPassword } = req.body;
+    if (!userId || !currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'userId, 현재 비밀번호, 새 비밀번호를 입력해주세요.' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: '새 비밀번호는 최소 6자 이상이어야 합니다.' });
+    }
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+    const valid = await bcrypt.compare(currentPassword, user.password);
+    if (!valid) {
+      return res.status(401).json({ success: false, message: '현재 비밀번호가 일치하지 않습니다.' });
+    }
+    const hashed = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({ where: { id: userId }, data: { password: hashed } });
+    res.status(200).json({ success: true, message: '비밀번호가 변경되었습니다.' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+router.post('/delete-account', async (req: Request, res: Response) => {
+  try {
+    const { userId, password } = req.body;
+    if (!userId || !password) {
+      return res.status(400).json({ success: false, message: 'userId와 비밀번호를 입력해주세요.' });
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: { include: { enrollments: true } } },
+    });
+    if (!user) {
+      return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
+    }
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
+    }
+    if (user.profile?.enrollments?.length) {
+      await prisma.enrollment.deleteMany({ where: { profileId: user.profile.id } });
+    }
+    if (user.profile) {
+      await prisma.profile.delete({ where: { userId: user.id } });
+    }
+    await prisma.user.delete({ where: { id: userId } });
+    res.status(200).json({ success: true, message: '회원 탈퇴가 완료되었습니다.' });
+  } catch (error) {
+    console.error('Delete account error:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 export default router;
