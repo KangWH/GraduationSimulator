@@ -37,6 +37,7 @@ export type ProfileSumAggregateOutputType = {
 export type ProfileMinAggregateOutputType = {
   id: string | null
   userId: string | null
+  name: string | null
   studentId: string | null
   admissionYear: number | null
   isFallAdmission: boolean | null
@@ -50,6 +51,7 @@ export type ProfileMinAggregateOutputType = {
 export type ProfileMaxAggregateOutputType = {
   id: string | null
   userId: string | null
+  name: string | null
   studentId: string | null
   admissionYear: number | null
   isFallAdmission: boolean | null
@@ -63,6 +65,7 @@ export type ProfileMaxAggregateOutputType = {
 export type ProfileCountAggregateOutputType = {
   id: number
   userId: number
+  name: number
   studentId: number
   admissionYear: number
   isFallAdmission: number
@@ -86,6 +89,7 @@ export type ProfileSumAggregateInputType = {
 export type ProfileMinAggregateInputType = {
   id?: true
   userId?: true
+  name?: true
   studentId?: true
   admissionYear?: true
   isFallAdmission?: true
@@ -99,6 +103,7 @@ export type ProfileMinAggregateInputType = {
 export type ProfileMaxAggregateInputType = {
   id?: true
   userId?: true
+  name?: true
   studentId?: true
   admissionYear?: true
   isFallAdmission?: true
@@ -112,6 +117,7 @@ export type ProfileMaxAggregateInputType = {
 export type ProfileCountAggregateInputType = {
   id?: true
   userId?: true
+  name?: true
   studentId?: true
   admissionYear?: true
   isFallAdmission?: true
@@ -212,6 +218,7 @@ export type ProfileGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
 export type ProfileGroupByOutputType = {
   id: string
   userId: string
+  name: string
   studentId: string
   admissionYear: number
   isFallAdmission: boolean
@@ -248,6 +255,7 @@ export type ProfileWhereInput = {
   NOT?: Prisma.ProfileWhereInput | Prisma.ProfileWhereInput[]
   id?: Prisma.StringFilter<"Profile"> | string
   userId?: Prisma.StringFilter<"Profile"> | string
+  name?: Prisma.StringFilter<"Profile"> | string
   studentId?: Prisma.StringFilter<"Profile"> | string
   admissionYear?: Prisma.IntFilter<"Profile"> | number
   isFallAdmission?: Prisma.BoolFilter<"Profile"> | boolean
@@ -263,6 +271,7 @@ export type ProfileWhereInput = {
 export type ProfileOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   studentId?: Prisma.SortOrder
   admissionYear?: Prisma.SortOrder
   isFallAdmission?: Prisma.SortOrder
@@ -282,6 +291,7 @@ export type ProfileWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ProfileWhereInput | Prisma.ProfileWhereInput[]
   OR?: Prisma.ProfileWhereInput[]
   NOT?: Prisma.ProfileWhereInput | Prisma.ProfileWhereInput[]
+  name?: Prisma.StringFilter<"Profile"> | string
   admissionYear?: Prisma.IntFilter<"Profile"> | number
   isFallAdmission?: Prisma.BoolFilter<"Profile"> | boolean
   major?: Prisma.StringFilter<"Profile"> | string
@@ -296,6 +306,7 @@ export type ProfileWhereUniqueInput = Prisma.AtLeast<{
 export type ProfileOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   studentId?: Prisma.SortOrder
   admissionYear?: Prisma.SortOrder
   isFallAdmission?: Prisma.SortOrder
@@ -317,6 +328,7 @@ export type ProfileScalarWhereWithAggregatesInput = {
   NOT?: Prisma.ProfileScalarWhereWithAggregatesInput | Prisma.ProfileScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Profile"> | string
   userId?: Prisma.StringWithAggregatesFilter<"Profile"> | string
+  name?: Prisma.StringWithAggregatesFilter<"Profile"> | string
   studentId?: Prisma.StringWithAggregatesFilter<"Profile"> | string
   admissionYear?: Prisma.IntWithAggregatesFilter<"Profile"> | number
   isFallAdmission?: Prisma.BoolWithAggregatesFilter<"Profile"> | boolean
@@ -329,6 +341,7 @@ export type ProfileScalarWhereWithAggregatesInput = {
 
 export type ProfileCreateInput = {
   id?: string
+  name: string
   studentId: string
   admissionYear: number
   isFallAdmission: boolean
@@ -344,6 +357,7 @@ export type ProfileCreateInput = {
 export type ProfileUncheckedCreateInput = {
   id?: string
   userId: string
+  name: string
   studentId: string
   admissionYear: number
   isFallAdmission: boolean
@@ -357,6 +371,7 @@ export type ProfileUncheckedCreateInput = {
 
 export type ProfileUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   admissionYear?: Prisma.IntFieldUpdateOperationsInput | number
   isFallAdmission?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -372,6 +387,7 @@ export type ProfileUpdateInput = {
 export type ProfileUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   admissionYear?: Prisma.IntFieldUpdateOperationsInput | number
   isFallAdmission?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -386,6 +402,7 @@ export type ProfileUncheckedUpdateInput = {
 export type ProfileCreateManyInput = {
   id?: string
   userId: string
+  name: string
   studentId: string
   admissionYear: number
   isFallAdmission: boolean
@@ -398,6 +415,7 @@ export type ProfileCreateManyInput = {
 
 export type ProfileUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   admissionYear?: Prisma.IntFieldUpdateOperationsInput | number
   isFallAdmission?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -411,6 +429,7 @@ export type ProfileUpdateManyMutationInput = {
 export type ProfileUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   admissionYear?: Prisma.IntFieldUpdateOperationsInput | number
   isFallAdmission?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -429,6 +448,7 @@ export type ProfileNullableScalarRelationFilter = {
 export type ProfileCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   studentId?: Prisma.SortOrder
   admissionYear?: Prisma.SortOrder
   isFallAdmission?: Prisma.SortOrder
@@ -446,6 +466,7 @@ export type ProfileAvgOrderByAggregateInput = {
 export type ProfileMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   studentId?: Prisma.SortOrder
   admissionYear?: Prisma.SortOrder
   isFallAdmission?: Prisma.SortOrder
@@ -459,6 +480,7 @@ export type ProfileMaxOrderByAggregateInput = {
 export type ProfileMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   studentId?: Prisma.SortOrder
   admissionYear?: Prisma.SortOrder
   isFallAdmission?: Prisma.SortOrder
@@ -542,6 +564,7 @@ export type ProfileUpdateOneRequiredWithoutEnrollmentsNestedInput = {
 
 export type ProfileCreateWithoutUserInput = {
   id?: string
+  name: string
   studentId: string
   admissionYear: number
   isFallAdmission: boolean
@@ -555,6 +578,7 @@ export type ProfileCreateWithoutUserInput = {
 
 export type ProfileUncheckedCreateWithoutUserInput = {
   id?: string
+  name: string
   studentId: string
   admissionYear: number
   isFallAdmission: boolean
@@ -584,6 +608,7 @@ export type ProfileUpdateToOneWithWhereWithoutUserInput = {
 
 export type ProfileUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   admissionYear?: Prisma.IntFieldUpdateOperationsInput | number
   isFallAdmission?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -597,6 +622,7 @@ export type ProfileUpdateWithoutUserInput = {
 
 export type ProfileUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   admissionYear?: Prisma.IntFieldUpdateOperationsInput | number
   isFallAdmission?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -610,6 +636,7 @@ export type ProfileUncheckedUpdateWithoutUserInput = {
 
 export type ProfileCreateWithoutEnrollmentsInput = {
   id?: string
+  name: string
   studentId: string
   admissionYear: number
   isFallAdmission: boolean
@@ -624,6 +651,7 @@ export type ProfileCreateWithoutEnrollmentsInput = {
 export type ProfileUncheckedCreateWithoutEnrollmentsInput = {
   id?: string
   userId: string
+  name: string
   studentId: string
   admissionYear: number
   isFallAdmission: boolean
@@ -652,6 +680,7 @@ export type ProfileUpdateToOneWithWhereWithoutEnrollmentsInput = {
 
 export type ProfileUpdateWithoutEnrollmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   admissionYear?: Prisma.IntFieldUpdateOperationsInput | number
   isFallAdmission?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -666,6 +695,7 @@ export type ProfileUpdateWithoutEnrollmentsInput = {
 export type ProfileUncheckedUpdateWithoutEnrollmentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   studentId?: Prisma.StringFieldUpdateOperationsInput | string
   admissionYear?: Prisma.IntFieldUpdateOperationsInput | number
   isFallAdmission?: Prisma.BoolFieldUpdateOperationsInput | boolean
@@ -710,6 +740,7 @@ export type ProfileCountOutputTypeCountEnrollmentsArgs<ExtArgs extends runtime.T
 export type ProfileSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
+  name?: boolean
   studentId?: boolean
   admissionYear?: boolean
   isFallAdmission?: boolean
@@ -726,6 +757,7 @@ export type ProfileSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
 export type ProfileSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
+  name?: boolean
   studentId?: boolean
   admissionYear?: boolean
   isFallAdmission?: boolean
@@ -740,6 +772,7 @@ export type ProfileSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
 export type ProfileSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   userId?: boolean
+  name?: boolean
   studentId?: boolean
   admissionYear?: boolean
   isFallAdmission?: boolean
@@ -754,6 +787,7 @@ export type ProfileSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
 export type ProfileSelectScalar = {
   id?: boolean
   userId?: boolean
+  name?: boolean
   studentId?: boolean
   admissionYear?: boolean
   isFallAdmission?: boolean
@@ -764,7 +798,7 @@ export type ProfileSelectScalar = {
   individuallyDesignedMajor?: boolean
 }
 
-export type ProfileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "studentId" | "admissionYear" | "isFallAdmission" | "major" | "doubleMajor" | "minor" | "advancedMajor" | "individuallyDesignedMajor", ExtArgs["result"]["profile"]>
+export type ProfileOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "name" | "studentId" | "admissionYear" | "isFallAdmission" | "major" | "doubleMajor" | "minor" | "advancedMajor" | "individuallyDesignedMajor", ExtArgs["result"]["profile"]>
 export type ProfileInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   enrollments?: boolean | Prisma.Profile$enrollmentsArgs<ExtArgs>
@@ -786,6 +820,7 @@ export type $ProfilePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     userId: string
+    name: string
     studentId: string
     admissionYear: number
     isFallAdmission: boolean
@@ -1221,6 +1256,7 @@ export interface Prisma__ProfileClient<T, Null = never, ExtArgs extends runtime.
 export interface ProfileFieldRefs {
   readonly id: Prisma.FieldRef<"Profile", 'String'>
   readonly userId: Prisma.FieldRef<"Profile", 'String'>
+  readonly name: Prisma.FieldRef<"Profile", 'String'>
   readonly studentId: Prisma.FieldRef<"Profile", 'String'>
   readonly admissionYear: Prisma.FieldRef<"Profile", 'Int'>
   readonly isFallAdmission: Prisma.FieldRef<"Profile", 'Boolean'>

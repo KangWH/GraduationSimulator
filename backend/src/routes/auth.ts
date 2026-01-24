@@ -112,6 +112,11 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
+    // Profile 존재 여부 확인
+    const profile = await prisma.profile.findUnique({
+      where: { userId: user.id },
+    });
+
     // 로그인 성공
     res.status(200).json({
       success: true,
@@ -120,6 +125,7 @@ router.post('/login', async (req: Request, res: Response) => {
         id: user.id,
         email: user.email,
       },
+      hasProfile: !!profile,
     });
   } catch (error) {
     console.error('Login error:', error);

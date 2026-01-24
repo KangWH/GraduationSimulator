@@ -23,8 +23,15 @@ export default function LoginPage() {
     .then(data => {
       console.log('서버 응답:', data);
       if (data.success) {
-        alert(data.message || '로그인이 완료되었습니다!');
-        router.push('/simulation');
+        // Profile이 없으면 기본 정보 입력 페이지로 이동
+        if (!data.hasProfile) {
+          // userId를 localStorage에 저장 (임시, 나중에 JWT로 변경)
+          localStorage.setItem('userId', data.user.id);
+          router.push('/profile/setup');
+        } else {
+          alert(data.message || '로그인이 완료되었습니다!');
+          router.push('/simulation');
+        }
       } else {
         alert(data.message || '로그인에 실패했습니다.');
       }

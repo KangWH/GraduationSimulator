@@ -87,6 +87,7 @@ export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof User
 export const ProfileScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
+  name: 'name',
   studentId: 'studentId',
   admissionYear: 'admissionYear',
   isFallAdmission: 'isFallAdmission',

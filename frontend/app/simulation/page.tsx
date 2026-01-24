@@ -1,14 +1,141 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function SimulationPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'basic' | 'courses' | 'result'>('basic');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [previousSimulations] = useState([
+    { id: 1, name: '2024년 1학기 시뮬레이션', date: '2024-01-15' },
+    { id: 2, name: '2023년 2학기 시뮬레이션', date: '2023-08-20' },
+  ]);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="mb-8 text-4xl font-bold text-center">졸업시뮬레이터</h1>
+    <div className="flex min-h-screen bg-zinc-50 dark:bg-black">
+      {/* 사이드바 */}
+      <aside
+        className={`${
+          sidebarOpen ? 'w-64' : 'w-16'
+        } transition-all duration-300 bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-gray-700 flex flex-col`}
+      >
+        {/* 사이드바 토글 버튼 */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          {sidebarOpen && (
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">메뉴</h2>
+          )}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400"
+          >
+            {sidebarOpen ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+        </div>
+
+        {/* 메인 메뉴 */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {/* 새로운 시뮬레이션 */}
+          <button
+            onClick={() => {
+              // 새로운 시뮬레이션 시작 로직
+              setActiveTab('result');
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+              sidebarOpen
+                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                : 'bg-blue-600 text-white hover:bg-blue-700 justify-center'
+            }`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            {sidebarOpen && <span>새로운 시뮬레이션</span>}
+          </button>
+
+          {/* 이전 시뮬레이션 조회 */}
+          <div className="mt-6">
+            {sidebarOpen && (
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 px-2">
+                이전 시뮬레이션
+              </h3>
+            )}
+            <div className="space-y-1">
+              {previousSimulations.map((sim) => (
+                <button
+                  key={sim.id}
+                  onClick={() => {
+                    // 시뮬레이션 로드 로직
+                    setActiveTab('result');
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-left transition-colors ${
+                    sidebarOpen
+                      ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                      : 'justify-center'
+                  }`}
+                  title={sidebarOpen ? undefined : sim.name}
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {sidebarOpen && (
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{sim.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{sim.date}</p>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* 하단 메뉴 */}
+        <div className="border-t border-gray-200 dark:border-gray-700 p-4 space-y-2">
+          <Link
+            href="/simulation?tab=courses"
+            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+              sidebarOpen
+                ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                : 'justify-center'
+            }`}
+            title={sidebarOpen ? undefined : '들은 과목 설정'}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            {sidebarOpen && <span>들은 과목 설정</span>}
+          </Link>
+          <Link
+            href="/profile/setup"
+            className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${
+              sidebarOpen
+                ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                : 'justify-center'
+            }`}
+            title={sidebarOpen ? undefined : '프로필 설정'}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            {sidebarOpen && <span>프로필 설정</span>}
+          </Link>
+        </div>
+      </aside>
+
+      {/* 메인 컨텐츠 */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-4 py-8">
+          <h1 className="mb-8 text-4xl font-bold text-center">졸업시뮬레이터</h1>
         
         {/* 탭 네비게이션 */}
         <div className="mb-8 flex justify-center border-b border-gray-200 dark:border-gray-700">
@@ -213,6 +340,7 @@ export default function SimulationPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
