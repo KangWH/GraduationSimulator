@@ -214,6 +214,22 @@ export default function SimulationPage() {
     return out;
   }, [filters, depts]);
 
+  // 섹션을 그룹화: 주전공/심화전공/연구를 하나의 그룹으로
+  const groupedSections = useMemo(() => {
+    const majorGroup: Section[] = [];
+    const otherSections: Section[] = [];
+    
+    sections.forEach((s) => {
+      if (s.id === 'major' || s.id === 'advanced' || s.id === 'research') {
+        majorGroup.push(s);
+      } else {
+        otherSections.push(s);
+      }
+    });
+    
+    return { majorGroup, otherSections };
+  }, [sections]);
+
   const handleLeftScroll = () => {
     if (syncingScrollRef.current || !leftScrollRef.current || !centerScrollRef.current) return;
     syncingScrollRef.current = true;
@@ -474,37 +490,79 @@ export default function SimulationPage() {
               >
                 <div className="p-4">
                   <h2 className="text-xl font-semibold mb-4">요건별 인정 과목</h2>
-                  <div className="space-y-4">
+                  <div>
                     {sections.length === 0 ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
                         주전공을 선택하면 섹션이 구성됩니다.
                       </p>
                     ) : (
-                      sections.map((s) => (
-                        <div
-                          key={s.id}
-                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
-                        >
-                          <h3 className="font-medium text-base mb-3">{s.title}</h3>
-                          <div className="space-y-2">
-                            {s.courses.length === 0 ? (
-                              <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
-                            ) : (
-                              s.courses.map((c) => (
-                                <div
-                                  key={c.id}
-                                  className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                >
-                                  <p className="font-medium text-sm">{c.name}</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    {c.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
-                                  </p>
+                      <>
+                        {/* 주전공/심화전공/연구 그룹 */}
+                        {groupedSections.majorGroup.length > 0 && (
+                          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                            {groupedSections.majorGroup.map((s, idx) => (
+                              <div key={s.id}>
+                                <div className="p-4">
+                                  <h3 className="font-medium text-base mb-3">{s.title}</h3>
+                                  <div className="space-y-2">
+                                    {s.courses.length === 0 ? (
+                                      <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                    ) : (
+                                      s.courses.map((c) => (
+                                        <div
+                                          key={c.id}
+                                          className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
+                                        >
+                                          <p className="font-medium text-sm">{c.name}</p>
+                                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            {c.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
+                                          </p>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
                                 </div>
-                              ))
-                            )}
+                                {idx < groupedSections.majorGroup.length - 1 && (
+                                  <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                                )}
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                      ))
+                        )}
+                        
+                        {/* 나머지 섹션들 */}
+                        {groupedSections.otherSections.length > 0 && (
+                          <>
+                            {groupedSections.majorGroup.length > 0 && (
+                              <div className="mt-4"></div>
+                            )}
+                            {groupedSections.otherSections.map((s) => (
+                              <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
+                                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                  <h3 className="font-medium text-base mb-3">{s.title}</h3>
+                                  <div className="space-y-2">
+                                    {s.courses.length === 0 ? (
+                                      <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                    ) : (
+                                      s.courses.map((c) => (
+                                        <div
+                                          key={c.id}
+                                          className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
+                                        >
+                                          <p className="font-medium text-sm">{c.name}</p>
+                                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            {c.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
+                                          </p>
+                                        </div>
+                                      ))
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -538,28 +596,61 @@ export default function SimulationPage() {
                         </button>
                       )}
                     </div>
-                    <div className="space-y-4">
+                    <div>
                       {sections.length === 0 ? (
                         <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
                           주전공을 선택하면 섹션이 구성됩니다.
                         </p>
                       ) : (
-                        sections.map((s) => (
-                          <div
-                            key={s.id}
-                            className="rounded-lg border border-gray-200 dark:border-gray-700 p-4"
-                          >
-                            <h3 className="font-medium text-base mb-2">{s.title}</h3>
-                            <p className="text-lg font-bold">{s.detail}</p>
-                            <p
-                              className={`mt-1 text-sm font-medium ${
-                                s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
-                              }`}
-                            >
-                              {s.fulfilled ? '달성' : '미달'}
-                            </p>
-                          </div>
-                        ))
+                        <>
+                          {/* 주전공/심화전공/연구 그룹 */}
+                          {groupedSections.majorGroup.length > 0 && (
+                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                              {groupedSections.majorGroup.map((s, idx) => (
+                                <div key={s.id}>
+                                  <div className="p-4">
+                                    <h3 className="font-medium text-base mb-2">{s.title}</h3>
+                                    <p className="text-lg font-bold">{s.detail}</p>
+                                    <p
+                                      className={`mt-1 text-sm font-medium ${
+                                        s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+                                      }`}
+                                    >
+                                      {s.fulfilled ? '달성' : '미달'}
+                                    </p>
+                                  </div>
+                                  {idx < groupedSections.majorGroup.length - 1 && (
+                                    <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* 나머지 섹션들 */}
+                          {groupedSections.otherSections.length > 0 && (
+                            <>
+                              {groupedSections.majorGroup.length > 0 && (
+                                <div className="mt-4"></div>
+                              )}
+                              {groupedSections.otherSections.map((s) => (
+                                <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
+                                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                                    <h3 className="font-medium text-base mb-2">{s.title}</h3>
+                                    <p className="text-lg font-bold">{s.detail}</p>
+                                    <p
+                                      className={`mt-1 text-sm font-medium ${
+                                        s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+                                      }`}
+                                    >
+                                      {s.fulfilled ? '달성' : '미달'}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
