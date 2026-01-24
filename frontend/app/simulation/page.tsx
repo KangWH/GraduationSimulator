@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import DepartmentDropdown from '../components/DepartmentDropeown';
-import { NumberInput } from '../components/formFields';
+import { DepartmentDropdown, MultipleDepartmentDropdown } from '../components/DepartmentDropeown';
+import { NumberInput, Select } from '../components/formFields';
 
 export default function SimulationPage() {
   const router = useRouter();
@@ -18,8 +18,8 @@ export default function SimulationPage() {
   const [filters, setFilters] = useState({
     requirementYear: new Date().getFullYear(),
     major: '',
-    doubleMajor: '',
-    minor: '',
+    doubleMajors: [] as string[],
+    minors: [] as string[],
     advancedMajor: false,
     individuallyDesignedMajor: false,
   });
@@ -169,14 +169,6 @@ export default function SimulationPage() {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                 전공 이수 기준 연도
               </label>
-              {/* <input
-                type="number"
-                min="2000"
-                max="2030"
-                value={filters.requirementYear}
-                onChange={(e) => setFilters({ ...filters, requirementYear: parseInt(e.target.value) })}
-                className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-              /> */}
               <NumberInput
                 min="2016"
                 max="2050"
@@ -187,7 +179,7 @@ export default function SimulationPage() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                주전공 학과
+                주전공
               </label>
               <DepartmentDropdown
                 value={filters.major}
@@ -198,55 +190,55 @@ export default function SimulationPage() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                복수전공 학과
+                복수전공
               </label>
-              <input
-                type="text"
-                value={filters.doubleMajor}
-                onChange={(e) => setFilters({ ...filters, doubleMajor: e.target.value })}
-                placeholder="복수전공 학과"
-                className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+              <MultipleDepartmentDropdown
+                value={filters.doubleMajors}
+                onChange={(newValues) => setFilters({ ...filters, doubleMajors: newValues })}
+                mode="doubleMajor"
+                size="small"
+                className="min-w-40"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                부전공 학과
+                부전공
               </label>
-              <input
-                type="text"
-                value={filters.minor}
-                onChange={(e) => setFilters({ ...filters, minor: e.target.value })}
-                placeholder="부전공 학과"
-                className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+              <MultipleDepartmentDropdown
+                value={filters.minors}
+                onChange={(newValues) => setFilters({ ...filters, minors: newValues })}
+                mode="minor"
+                size="small"
+                className="min-w-40"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label htmlFor="advancedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                심화전공 여부
+                심화전공
               </label>
-              <select
+              <Select
                 id="advancedMajor"
                 value={filters.advancedMajor ? 'true' : 'false'}
-                onChange={(e) => setFilters({ ...filters, advancedMajor: e.target.value === 'true' })}
-                className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+                onChange={(newValue) => setFilters({ ...filters, advancedMajor: newValue === 'true' })}
+                size="small"
               >
                 <option value="false">아니오</option>
                 <option value="true">예</option>
-              </select>
+              </Select>
             </div>
             <div className="flex flex-col gap-1">
               <label htmlFor="individuallyDesignedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                자유융합전공 여부
+                자유융합전공
               </label>
-              <select
+              <Select
                 id="individuallyDesignedMajor"
                 value={filters.individuallyDesignedMajor ? 'true' : 'false'}
-                onChange={(e) => setFilters({ ...filters, individuallyDesignedMajor: e.target.value === 'true' })}
-                className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+                onChange={(newValue) => setFilters({ ...filters, individuallyDesignedMajor: newValue === 'true' })}
+                size="small"
               >
                 <option value="false">아니오</option>
                 <option value="true">예</option>
-              </select>
+              </Select>
             </div>
           </div>
         </div>
