@@ -1,0 +1,13 @@
+{
+  "info": {
+    "dept": "MAS",
+    "type": "Research_Courses",
+    "year": "2016"
+  },
+  "requirements": {
+      "type": "REQUIRE_MIN_CREDITS_AMONG", 
+      "description": "Research_CREDITS",
+      "credits": 3,
+      "targets": ["MAS.91000", "MAS.40091", "MAS.91100"]
+  }
+}
