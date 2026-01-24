@@ -53,7 +53,7 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   User: 'User',
   Profile: 'Profile',
-  Enrollment: 'Enrollment',
+  Simulation: 'Simulation',
   CourseOffering: 'CourseOffering',
   GeneralEdRequirement: 'GeneralEdRequirement',
   MajorRequirement: 'MajorRequirement'
@@ -92,36 +92,40 @@ export const ProfileScalarFieldEnum = {
   admissionYear: 'admissionYear',
   isFallAdmission: 'isFallAdmission',
   major: 'major',
-  doubleMajor: 'doubleMajor',
-  minor: 'minor',
+  doubleMajors: 'doubleMajors',
+  minors: 'minors',
   advancedMajor: 'advancedMajor',
-  individuallyDesignedMajor: 'individuallyDesignedMajor'
+  individuallyDesignedMajor: 'individuallyDesignedMajor',
+  enrollments: 'enrollments'
 } as const
 
 export type ProfileScalarFieldEnum = (typeof ProfileScalarFieldEnum)[keyof typeof ProfileScalarFieldEnum]
 
 
-export const EnrollmentScalarFieldEnum = {
+export const SimulationScalarFieldEnum = {
   id: 'id',
-  grade: 'grade',
   profileId: 'profileId',
-  courseOfferingId: 'courseOfferingId'
+  title: 'title',
+  updatedAt: 'updatedAt',
+  referenceYear: 'referenceYear',
+  major: 'major',
+  doubleMajors: 'doubleMajors',
+  minors: 'minors',
+  courses: 'courses'
 } as const
 
-export type EnrollmentScalarFieldEnum = (typeof EnrollmentScalarFieldEnum)[keyof typeof EnrollmentScalarFieldEnum]
+export type SimulationScalarFieldEnum = (typeof SimulationScalarFieldEnum)[keyof typeof SimulationScalarFieldEnum]
 
 
 export const CourseOfferingScalarFieldEnum = {
   id: 'id',
   code: 'code',
-  year: 'year',
-  semester: 'semester',
-  section: 'section',
+  isSeasonalSemester: 'isSeasonalSemester',
   title: 'title',
   department: 'department',
   category: 'category',
-  professor: 'professor',
-  credit: 'credit'
+  credit: 'credit',
+  au: 'au'
 } as const
 
 export type CourseOfferingScalarFieldEnum = (typeof CourseOfferingScalarFieldEnum)[keyof typeof CourseOfferingScalarFieldEnum]
@@ -167,14 +171,6 @@ export const QueryMode = {
 } as const
 
 export type QueryMode = (typeof QueryMode)[keyof typeof QueryMode]
-
-
-export const NullsOrder = {
-  first: 'first',
-  last: 'last'
-} as const
-
-export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 export const JsonNullValueFilter = {

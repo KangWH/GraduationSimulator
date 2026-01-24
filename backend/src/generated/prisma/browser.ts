@@ -28,10 +28,10 @@ export type User = Prisma.UserModel
  */
 export type Profile = Prisma.ProfileModel
 /**
- * Model Enrollment
+ * Model Simulation
  * 
  */
-export type Enrollment = Prisma.EnrollmentModel
+export type Simulation = Prisma.SimulationModel
 /**
  * Model CourseOffering
  * 

@@ -55,16 +55,14 @@ model Simulation {
 
 // 과목 개설 내역
 model CourseOffering {
-  id         String @id @default(uuid())
-  code       String
-  year       Int
-  semester   Int // 1, 2, 3, 4
-  section    String
-  title      String
-  department String
-  category   String // 인선, 자선, 전필
-  credit     Int
-  au         Int
+  id                 String @id @default(uuid())
+  code               String
+  isSeasonalSemester Boolean
+  title              String
+  department         String
+  category           String // 인선, 자선, 전필
+  credit             Int
+  au                 Int
 }
 
 // 교양과목 이수요건 데이터

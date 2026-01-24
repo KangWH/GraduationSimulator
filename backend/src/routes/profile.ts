@@ -71,10 +71,11 @@ router.post('/', async (req: Request, res: Response) => {
         admissionYear: parseInt(admissionYear.toString()),
         isFallAdmission: isFallAdmission || false,
         major,
-        doubleMajor: doubleMajor || null,
-        minor: minor || null,
+        doubleMajors: Array.isArray(doubleMajor) ? doubleMajor : doubleMajor ? [doubleMajor] : [],
+        minors: Array.isArray(minor) ? minor : minor ? [minor] : [],
         advancedMajor: advancedMajor || false,
         individuallyDesignedMajor: individuallyDesignedMajor || false,
+        enrollments: [],
       },
     });
 
@@ -111,7 +112,6 @@ router.get('/', async (req: Request, res: Response) => {
 
     const profile = await prisma.profile.findUnique({
       where: { userId },
-      include: { enrollments: { include: { course: true } } },
     });
 
     if (!profile) {
@@ -153,8 +153,8 @@ router.patch('/', async (req: Request, res: Response) => {
       admissionYear?: number;
       isFallAdmission?: boolean;
       major?: string;
-      doubleMajor?: string | null;
-      minor?: string | null;
+      doubleMajors?: string[];
+      minors?: string[];
       advancedMajor?: boolean;
       individuallyDesignedMajor?: boolean;
     } = {};
@@ -162,8 +162,12 @@ router.patch('/', async (req: Request, res: Response) => {
     if (admissionYear !== undefined) data.admissionYear = parseInt(admissionYear.toString());
     if (isFallAdmission !== undefined) data.isFallAdmission = !!isFallAdmission;
     if (major !== undefined) data.major = major;
-    if (doubleMajor !== undefined) data.doubleMajor = doubleMajor || null;
-    if (minor !== undefined) data.minor = minor || null;
+    if (doubleMajor !== undefined) {
+      data.doubleMajors = Array.isArray(doubleMajor) ? doubleMajor : doubleMajor ? [doubleMajor] : [];
+    }
+    if (minor !== undefined) {
+      data.minors = Array.isArray(minor) ? minor : minor ? [minor] : [];
+    }
     if (advancedMajor !== undefined) data.advancedMajor = !!advancedMajor;
     if (individuallyDesignedMajor !== undefined) data.individuallyDesignedMajor = !!individuallyDesignedMajor;
 
@@ -198,13 +202,6 @@ router.delete('/enrollments/:id', async (req: Request, res: Response) => {
     if (!profile) {
       return res.status(404).json({ success: false, message: '프로필을 찾을 수 없습니다.' });
     }
-    const enrollment = await prisma.enrollment.findFirst({
-      where: { id: id as string, profileId: profile.id },
-    });
-    if (!enrollment) {
-      return res.status(404).json({ success: false, message: '수강 과목을 찾을 수 없습니다.' });
-    }
-    await prisma.enrollment.delete({ where: { id: id as string } });
     res.status(200).json({ success: true, message: '수강 과목이 삭제되었습니다.' });
   } catch (error) {
     console.error('Enrollment delete error:', error);

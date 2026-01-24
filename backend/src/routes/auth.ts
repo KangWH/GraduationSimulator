@@ -190,7 +190,7 @@ router.post('/delete-account', async (req: Request, res: Response) => {
     }
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { profile: { include: { enrollments: true } } },
+      include: { profile: true },
     });
     if (!user) {
       return res.status(404).json({ success: false, message: '사용자를 찾을 수 없습니다.' });
@@ -198,9 +198,6 @@ router.post('/delete-account', async (req: Request, res: Response) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
       return res.status(401).json({ success: false, message: '비밀번호가 일치하지 않습니다.' });
-    }
-    if (user.profile?.enrollments?.length) {
-      await prisma.enrollment.deleteMany({ where: { profileId: user.profile.id } });
     }
     if (user.profile) {
       await prisma.profile.delete({ where: { userId: user.id } });

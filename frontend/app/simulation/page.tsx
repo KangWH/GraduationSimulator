@@ -1,20 +1,30 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { DepartmentDropdown, MultipleDepartmentDropdown } from '../components/DepartmentDropeown';
 import { NumberInput, Select } from '../components/formFields';
 
+type Dept = { id: string; name: string };
+type Section = {
+  id: string;
+  title: string;
+  courses: { id: number; name: string; credit: number; grade?: string }[];
+  fulfilled: boolean;
+  detail: string; // e.g. "12 / 36 학점"
+};
+
 export default function SimulationPage() {
-  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [previousSimulations] = useState([
     { id: 1, name: '2024년 1학기 시뮬레이션', date: '2024-01-15' },
     { id: 2, name: '2023년 2학기 시뮬레이션', date: '2023-08-20' },
   ]);
+  const [depts, setDepts] = useState<Dept[]>([]);
+  const leftScrollRef = useRef<HTMLDivElement>(null);
+  const centerScrollRef = useRef<HTMLDivElement>(null);
+  const syncingScrollRef = useRef(false);
 
-  // 필터 상태
   const [filters, setFilters] = useState({
     requirementYear: new Date().getFullYear(),
     major: '',
@@ -23,20 +33,106 @@ export default function SimulationPage() {
     advancedMajor: false,
     individuallyDesignedMajor: false,
   });
-
-  // 시뮬레이션에 추가된 과목들
   const [simulationCourses, setSimulationCourses] = useState<any[]>([]);
-  
-  // 카테고리별 인정된 과목들 (예시 데이터)
-  const [categoryCourses] = useState({
-    전공: [
-      { id: 1, name: '데이터구조', credit: 3, grade: 'A+' },
-      { id: 2, name: '알고리즘', credit: 3, grade: 'A' },
-    ],
-    교양: [
-      { id: 3, name: '영어회화', credit: 2, grade: 'B+' },
-    ],
-  });
+
+  useEffect(() => {
+    fetch('http://localhost:4000/departments')
+      .then((r) => r.json())
+      .then((arr: Dept[]) => setDepts(arr))
+      .catch(() => {});
+  }, []);
+
+  const deptName = (id: string) => depts.find((d) => d.id === id)?.name ?? id;
+
+  const sections = useMemo((): Section[] => {
+    const out: Section[] = [];
+    const majorName = filters.major ? deptName(filters.major) : '';
+    if (filters.major) {
+      out.push({
+        id: 'major',
+        title: `${majorName} 주전공 이수 요건`,
+        courses: [
+          { id: 1, name: '데이터구조', credit: 3, grade: 'A+' },
+          { id: 2, name: '알고리즘', credit: 3, grade: 'A' },
+        ],
+        fulfilled: false,
+        detail: '12 / 36 학점',
+      });
+    }
+    if (filters.advancedMajor && filters.major) {
+      out.push({
+        id: 'advanced',
+        title: `${majorName} 심화전공 이수 요건`,
+        courses: [],
+        fulfilled: false,
+        detail: '0 / 12 학점',
+      });
+    }
+    (filters.doubleMajors || []).forEach((id, i) => {
+      out.push({
+        id: `double-${id}-${i}`,
+        title: `${deptName(id)} 복수전공 이수 요건`,
+        courses: [],
+        fulfilled: false,
+        detail: '0 / 36 학점',
+      });
+    });
+    (filters.minors || []).forEach((id, i) => {
+      out.push({
+        id: `minor-${id}-${i}`,
+        title: `${deptName(id)} 부전공 이수 요건`,
+        courses: [],
+        fulfilled: false,
+        detail: '0 / 21 학점',
+      });
+    });
+    if (filters.individuallyDesignedMajor) {
+      out.push({
+        id: 'individually',
+        title: '자유융합전공 이수 요건',
+        courses: [],
+        fulfilled: false,
+        detail: '0 / 36 학점',
+      });
+    }
+    if (filters.major) {
+      out.push({
+        id: 'research',
+        title: `${majorName} 연구 요건`,
+        courses: [],
+        fulfilled: false,
+        detail: '0 / 4 학점',
+      });
+    }
+    out.push({
+      id: 'humanities',
+      title: '인문사회선택 요건',
+      courses: [{ id: 10, name: '인문학개론', credit: 2, grade: 'B+' }],
+      fulfilled: false,
+      detail: '2 / 6 학점',
+    });
+    out.push({
+      id: 'generalEd',
+      title: '교양필수 요건',
+      courses: [{ id: 11, name: '영어회화', credit: 2, grade: 'B+' }],
+      fulfilled: false,
+      detail: '2 / 21 학점',
+    });
+    return out;
+  }, [filters, depts]);
+
+  const handleLeftScroll = () => {
+    if (syncingScrollRef.current || !leftScrollRef.current || !centerScrollRef.current) return;
+    syncingScrollRef.current = true;
+    centerScrollRef.current.scrollTop = leftScrollRef.current.scrollTop;
+    requestAnimationFrame(() => { syncingScrollRef.current = false; });
+  };
+  const handleCenterScroll = () => {
+    if (syncingScrollRef.current || !leftScrollRef.current || !centerScrollRef.current) return;
+    syncingScrollRef.current = true;
+    leftScrollRef.current.scrollTop = centerScrollRef.current.scrollTop;
+    requestAnimationFrame(() => { syncingScrollRef.current = false; });
+  };
 
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-black">
@@ -237,63 +333,87 @@ export default function SimulationPage() {
         {/* 3분할 카드 래퍼 */}
         <div className="flex-1 flex flex-col min-h-0 p-4">
           <div className="flex-1 flex flex-col min-h-0 rounded-xl shadow-lg overflow-hidden bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-700">
-            {/* 3분할 메인 영역 - 빈 공간 없이 꽉 채움 */}
             <div className="flex-1 flex min-h-0">
-              {/* 좌측: 요건 카테고리별 인정된 과목 */}
-              <div className="w-1/3 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+              {/* 좌측: 섹션별 요건 계산에 사용된 과목 (스크롤 동기화) */}
+              <div
+                ref={leftScrollRef}
+                onScroll={handleLeftScroll}
+                className="w-1/3 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto"
+              >
                 <div className="p-4">
-                  <h2 className="text-xl font-semibold mb-4">요건 카테고리별 인정된 과목</h2>
+                  <h2 className="text-xl font-semibold mb-4">요건별 인정 과목</h2>
                   <div className="space-y-4">
-                    {Object.entries(categoryCourses).map(([category, courses]) => (
-                      <div key={category} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                        <h3 className="font-medium text-lg mb-3">{category}</h3>
-                        <div className="space-y-2">
-                          {courses.map((course) => (
-                            <div
-                              key={course.id}
-                              className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                            >
-                              <div>
-                                <p className="font-medium text-sm">{course.name}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {course.credit}학점 | {course.grade}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
+                    {sections.length === 0 ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
+                        주전공을 선택하면 섹션이 구성됩니다.
+                      </p>
+                    ) : (
+                      sections.map((s) => (
+                        <div
+                          key={s.id}
+                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                        >
+                          <h3 className="font-medium text-base mb-3">{s.title}</h3>
+                          <div className="space-y-2">
+                            {s.courses.length === 0 ? (
+                              <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                            ) : (
+                              s.courses.map((c) => (
+                                <div
+                                  key={c.id}
+                                  className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
+                                >
+                                  <p className="font-medium text-sm">{c.name}</p>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    {c.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
+                                  </p>
+                                </div>
+                              ))
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* 가운데: 졸업 요건 조회 */}
-              <div className="w-1/3 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto relative">
-                <div className="p-4 pb-20">
-                  <h2 className="text-xl font-semibold mb-4">졸업 요건 조회</h2>
-                  <div className="space-y-4">
-                    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                      <h3 className="font-medium mb-2">총 이수학점</h3>
-                      <p className="text-3xl font-bold">0 / 130</p>
-                    </div>
-                    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                      <h3 className="font-medium mb-2">전공 이수학점</h3>
-                      <p className="text-3xl font-bold">0 / 60</p>
-                    </div>
-                    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                      <h3 className="font-medium mb-2">교양 이수학점</h3>
-                      <p className="text-3xl font-bold">0 / 30</p>
-                    </div>
-                    <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                      <h3 className="font-medium mb-2">졸업 가능 여부</h3>
-                      <p className="text-3xl font-bold text-red-600">불가능</p>
+              {/* 가운데: 섹션별 세부 요건 달성 여부 (스크롤 동기화) */}
+              <div className="w-1/3 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 flex flex-col min-h-0">
+                <div
+                  ref={centerScrollRef}
+                  onScroll={handleCenterScroll}
+                  className="flex-1 min-h-0 overflow-y-auto"
+                >
+                  <div className="p-4">
+                    <h2 className="text-xl font-semibold mb-4">졸업 요건 조회</h2>
+                    <div className="space-y-4">
+                      {sections.length === 0 ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
+                          주전공을 선택하면 섹션이 구성됩니다.
+                        </p>
+                      ) : (
+                        sections.map((s) => (
+                          <div
+                            key={s.id}
+                            className="rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+                          >
+                            <h3 className="font-medium text-base mb-2">{s.title}</h3>
+                            <p className="text-lg font-bold">{s.detail}</p>
+                            <p
+                              className={`mt-1 text-sm font-medium ${
+                                s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+                              }`}
+                            >
+                              {s.fulfilled ? '달성' : '미달'}
+                            </p>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
-                
-                {/* Sticky 하단 박스 */}
-                <div className="sticky bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3 shadow-lg">
+                <div className="flex-shrink-0 bg-white dark:bg-zinc-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-6 flex-1">
                       <div>
