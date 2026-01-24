@@ -9,51 +9,36 @@ const router = express.Router();
 // 개설 과목 검색
 router.get('/', async (req, res) => {
   try {
-    const { query, title, code, category, department } = req.query
+    const { query, title, code, category, department } = req.query;
 
+    const conditions: any[] = [];
+
+    // 검색어 필터 (query가 있으면 제목 또는 코드로 검색)
     if (query && typeof query === 'string') {
-      const courses = await prisma.courseOffering.findMany({
-        where: {
-          OR: [
-            { title: { contains: query } },
-            { code: query }
-          ]
-        },
-        orderBy: { code: 'asc' }
+      conditions.push({
+        OR: [
+          { title: { contains: query } },
+          { code: { contains: query } }
+        ]
       });
-      res.json(courses);
-      return;
     }
 
-    const titleExists = title && typeof title === 'string';
-    const codeExists = code && typeof code === 'string';
-    const categoryExists = category && typeof category === 'string';
-    const departmentExists = department && typeof department === 'string';
-    if (titleExists || codeExists || categoryExists || departmentExists) {
-      const query = [];
-      if (titleExists) {
-        query.push({ title: { contains: title } });
-      }
-      if (codeExists) {
-        query.push({ code });
-      }
-      if (categoryExists) {
-        query.push({ category });
-      }
-      if (departmentExists) {
-        query.push({ department });
-      }
-      const courses = await prisma.courseOffering.findMany({
-        where: {
-          AND: query
-        },
-        orderBy: { code: 'asc' }
-      })
-      res.json(courses);
-      return;
+    // 개별 필터
+    if (title && typeof title === 'string') {
+      conditions.push({ title: { contains: title } });
+    }
+    if (code && typeof code === 'string') {
+      conditions.push({ code });
+    }
+    if (category && typeof category === 'string') {
+      conditions.push({ category });
+    }
+    if (department && typeof department === 'string') {
+      conditions.push({ department });
     }
 
     const courses = await prisma.courseOffering.findMany({
+      where: conditions.length > 0 ? { AND: conditions } : {},
       orderBy: { code: 'asc' }
     });
     

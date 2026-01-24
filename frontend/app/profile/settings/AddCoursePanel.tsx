@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { DepartmentDropdown } from '@/app/components/DepartmentDropdown';
 import { Input, NumberInput, Select } from '../../components/formFields';
 import type { Semester, Grade } from './types';
@@ -17,7 +18,7 @@ const SEMESTER_OPTIONS: { value: Semester; label: string }[] = [
 interface AddCoursePanelProps {
   searchQuery: string;
   onSearchQueryChange: (v: string) => void;
-  searchResults: { id: string; code?: string; title?: string; name?: string; department?: string; category?: string; credit?: number }[];
+  searchResults: { id: string; code?: string; title?: string; name?: string; department?: string; category?: string; credit?: number; au?: number }[];
   selectedCourseIds: Set<string>;
   onSelectionChange: (ids: Set<string>) => void;
   addYear: number;
@@ -28,6 +29,10 @@ interface AddCoursePanelProps {
   onAddGradeChange: (grade: Grade) => void;
   onAddSelected: () => void;
   onDragStart: (course: any) => void;
+  filterDepartment: string;
+  onFilterDepartmentChange: (dept: string) => void;
+  filterCategory: string;
+  onFilterCategoryChange: (cat: string) => void;
 }
 
 export default function AddCoursePanel({
@@ -44,7 +49,12 @@ export default function AddCoursePanel({
   onAddGradeChange,
   onAddSelected,
   onDragStart,
+  filterDepartment,
+  onFilterDepartmentChange,
+  filterCategory,
+  onFilterCategoryChange,
 }: AddCoursePanelProps) {
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const toggleSelection = (courseId: string) => {
     const newSet = new Set(selectedCourseIds);
     if (newSet.has(courseId)) {
@@ -77,42 +87,90 @@ export default function AddCoursePanel({
   return (
     <div className="space-y-4">
       {/* 검색 창 */}
-      <div className="sticky top-4 flex flex-col gap-4">
-        <div className="relative grow">
-          <Input
-            type="text"
-            value={searchQuery}
-            onChange={onSearchQueryChange}
-            placeholder="과목명 또는 과목코드로 검색"
-            size="medium"
-            className="pr-10"
-          />
-          <button
-            type="button"
-            className="absolute right-1 top-1 bottom-1 flex items-center justify-center px-1.5 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 active:bg-gray-200 dark:active:bg-zinc-800 transition-colors"
-            title="검색"
-            aria-label="검색"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </button>
-        </div>
-        <div class="flex flex-row gap-2">
-          <div className="flex-1 flex flex-col gap-1">
-            <p className="text-sm">학과</p>
-            <DepartmentDropdown
-              allowNone
-              size="small"
-            />
+      <div className="sticky top-0 z-10 -mx-6 px-6 pt-4 pb-4 bg-gradient-to-b from-white via-white/95 to-transparent dark:from-zinc-900 dark:via-zinc-900/95 backdrop-blur-sm">
+        <div className="space-y-2">
+          <div className="relative flex items-center gap-2">
+            <div className="relative flex-1">
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={onSearchQueryChange}
+                placeholder="과목명 또는 과목코드로 검색"
+                size="medium"
+                className="pr-10"
+              />
+              <button
+                type="button"
+                className="absolute right-1 top-1 bottom-1 flex items-center justify-center px-1.5 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-zinc-800 dark:text-gray-400 dark:hover:text-gray-200 active:bg-gray-200 dark:active:bg-zinc-700 transition-colors"
+                title="검색"
+                aria-label="검색"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* {(filterDepartment !== 'none' && filterDepartment) || (filterCategory && filterCategory !== 'none') ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onFilterDepartmentChange('none');
+                    onFilterCategoryChange('');
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline transition-colors"
+                  title="필터 초기화"
+                >
+                  초기화
+                </button>
+              ) : null} */}
+              <button
+                type="button"
+                onClick={() => setFiltersExpanded(!filtersExpanded)}
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-sm transition-colors ${
+                  (filterDepartment !== 'none' && filterDepartment) || (filterCategory && filterCategory !== 'none')
+                    ? 'text-violet-600 bg-violet-50 hover:bg-violet-100 dark:text-violet-400 dark:bg-violet-900/20 dark:hover:bg-violet-900/30'
+                    : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-zinc-800'
+                }`}
+                title="필터"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                {/* <svg
+                  className={`h-3.5 w-3.5 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg> */}
+              </button>
+            </div>
           </div>
-          <div className="flex-1 flex flex-col gap-1">
-            <p className="text-sm">과목 구분</p>
-            <CourseCategoryDropdown
-              allowNone
-              size="small"
-            />
-          </div>
+          {filtersExpanded && (
+            <div className="flex flex-row gap-3 pt-2 animate-in slide-in-from-top-2 duration-200">
+              <div className="flex-1 flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">학과</label>
+                <DepartmentDropdown
+                  value={filterDepartment}
+                  onChange={onFilterDepartmentChange}
+                  mode="course"
+                  allowNone
+                  size="small"
+                />
+              </div>
+              <div className="flex-1 flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">과목 구분</label>
+                <CourseCategoryDropdown
+                  value={filterCategory}
+                  onChange={onFilterCategoryChange}
+                  allowNone
+                  size="small"
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -120,13 +178,13 @@ export default function AddCoursePanel({
       {searchResults.length > 0 && (
         <>
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              검색 결과 ({searchResults.length})
+            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              검색 결과 <span className="text-gray-500 dark:text-gray-400 font-normal">{searchResults.length}</span>
             </h3>
             <button
               type="button"
               onClick={toggleSelectAll}
-              className="text-xs text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
+              className="text-xs font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 transition-colors"
             >
               {selectedCourseIds.size === searchResults.length ? '전체 해제' : '전체 선택'}
             </button>
@@ -146,8 +204,8 @@ export default function AddCoursePanel({
                   onClick={() => toggleSelection(courseId)}
                   className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
                     isSelected
-                      ? 'border-violet-500 bg-violet-50 dark:border-violet-400 dark:bg-violet-900/20'
-                      : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-zinc-800'
+                      ? 'border-violet-500 bg-violet-50 shadow-sm dark:border-violet-400 dark:bg-violet-900/20'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-zinc-800'
                   }`}
                 >
                   <input
@@ -158,14 +216,17 @@ export default function AddCoursePanel({
                       e.stopPropagation();
                       toggleSelection(courseId);
                     }}
-                    className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                    className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-offset-0"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{course.title || course.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {course.code && `${course.code}`}
-                      {course.department && ` · ${course.department}`}
+                    <p className="truncate font-medium text-gray-900 dark:text-white">
+                      {course.title || course.name}
+                      {course.code && <span className="ml-2 text-sm text-gray-500 dark:text-gray-400 font-normal">{course.code}</span>}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                      {course.department && course.department}
                       {course.category && ` · ${course.category}`}
+                      {course.au !== undefined && course.au > 0 ? ` · ${course.au}AU` : course.credit ? ` · ${course.credit}학점` : ''}
                     </p>
                   </div>
                 </div>

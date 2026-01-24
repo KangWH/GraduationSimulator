@@ -109,6 +109,8 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   const [addYear, setAddYear] = useState(new Date().getFullYear());
   const [addSemester, setAddSemester] = useState<Semester>('SPRING');
   const [addGrade, setAddGrade] = useState<Grade>('A+');
+  const [filterDepartment, setFilterDepartment] = useState<string>('none');
+  const [filterCategory, setFilterCategory] = useState<string>('');
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [draggedEnrollment, setDraggedEnrollment] = useState<Enrollment | null>(null);
   const [draggedFromSemester, setDraggedFromSemester] = useState<string | null>(null);
@@ -181,7 +183,16 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
     }
 
     const timeoutId = setTimeout(() => {
-      fetch(`${API}/courses?query=${encodeURIComponent(courseSearchQuery)}`)
+      const params = new URLSearchParams();
+      params.append('query', courseSearchQuery);
+      if (filterDepartment && filterDepartment !== 'none') {
+        params.append('department', filterDepartment);
+      }
+      if (filterCategory && filterCategory !== '') {
+        params.append('category', filterCategory);
+      }
+
+      fetch(`${API}/courses?${params.toString()}`)
         .then((r) => {
           if (!r.ok) {
             throw new Error(`HTTP error! status: ${r.status}`);
@@ -198,7 +209,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
     }, 300); // 디바운스
 
     return () => clearTimeout(timeoutId);
-  }, [courseSearchQuery]);
+  }, [courseSearchQuery, filterDepartment, filterCategory]);
 
   // 서버에 저장
   const saveEnrollments = useCallback(
@@ -488,6 +499,10 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                 onAddGradeChange={setAddGrade}
                 onAddSelected={handleAddSelected}
                 onDragStart={(course) => setDraggedCourse(course)}
+                filterDepartment={filterDepartment}
+                onFilterDepartmentChange={setFilterDepartment}
+                filterCategory={filterCategory}
+                onFilterCategoryChange={setFilterCategory}
               />
             ) : (
               <EnrollmentsList
@@ -513,7 +528,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             <div className="flex-shrink-0 space-y-4 p-6 pb-0">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">과목 추가</h2>
             </div>
-            <div className="space-y-4 p-6 pt-4">
+            <div className="space-y-4 p-6 pt-0">
               <AddCoursePanel
                 searchQuery={courseSearchQuery}
                 onSearchQueryChange={setCourseSearchQuery}
@@ -528,6 +543,10 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                 onAddGradeChange={setAddGrade}
                 onAddSelected={handleAddSelected}
                 onDragStart={(course) => setDraggedCourse(course)}
+                filterDepartment={filterDepartment}
+                onFilterDepartmentChange={setFilterDepartment}
+                filterCategory={filterCategory}
+                onFilterCategoryChange={setFilterCategory}
               />
             </div>
           </div>
