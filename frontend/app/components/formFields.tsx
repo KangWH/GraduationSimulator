@@ -260,12 +260,12 @@ export function MultipleSelect({
         }
       >
         <div className="flex-1 flex flex-wrap items-center min-w-8">
-          {value.length === 0 ? (
+          {selectedOptions.length === 0 ? (
             <span className="text-gray-400 dark:text-gray-500">{placeholder}</span>
-          ) : value.length === 1 ? (
-            <span>{selectedOptions[0].label}</span>
+          ) : selectedOptions.length === 1 ? (
+            <span>{selectedOptions[0]?.label || value[0] || placeholder}</span>
           ) : (
-            <span>{selectedOptions[0].label} 외 {selectedOptions.length}개</span>
+            <span>{selectedOptions[0]?.label || value[0] || ''} 외 {selectedOptions.length}개</span>
           )}
         </div>
         <svg

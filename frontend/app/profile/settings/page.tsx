@@ -8,7 +8,7 @@ import {
   NumberInput,
   Select,
 } from '../../components/formFields';
-import { DepartmentDropdown } from '../../components/DepartmentDropeown';
+import { DepartmentDropdown, MultipleDepartmentDropdown } from '../../components/DepartmentDropeown';
 
 type Tab = 'account' | 'profile' | 'courses';
 
@@ -36,8 +36,8 @@ interface Profile {
   admissionYear: number;
   isFallAdmission: boolean;
   major: string;
-  doubleMajor: string | null;
-  minor: string | null;
+  doubleMajors: string[];
+  minors: string[];
   advancedMajor: boolean;
   individuallyDesignedMajor: boolean;
   enrollments?: { id: string; grade: string | null; course: Course }[];
@@ -67,8 +67,8 @@ export default function ProfileSettingsPage() {
     admissionYear: new Date().getFullYear(),
     isFallAdmission: false,
     major: '',
-    doubleMajor: '',
-    minor: '',
+    doubleMajors: [] as string[],
+    minors: [] as string[],
     advancedMajor: false,
     individuallyDesignedMajor: false,
   });
@@ -104,8 +104,8 @@ export default function ProfileSettingsPage() {
           admissionYear: p.admissionYear,
           isFallAdmission: p.isFallAdmission,
           major: p.major,
-          doubleMajor: p.doubleMajor || 'none',
-          minor: p.minor || 'none',
+          doubleMajors: p.doubleMajors || [],
+          minors: p.minors || [],
           advancedMajor: p.advancedMajor,
           individuallyDesignedMajor: p.individuallyDesignedMajor,
         });
@@ -200,8 +200,14 @@ export default function ProfileSettingsPage() {
           admissionYear: form.admissionYear,
           isFallAdmission: form.isFallAdmission,
           major: form.major,
-          doubleMajor: (form.doubleMajor && form.doubleMajor !== 'none') ? form.doubleMajor : null,
-          minor: (form.minor && form.minor !== 'none') ? form.minor : null,
+          doubleMajor: (() => {
+            const valid = form.doubleMajors.filter((v) => v && v !== 'none' && v.trim() !== '');
+            return valid.length > 0 ? valid : null;
+          })(),
+          minor: (() => {
+            const valid = form.minors.filter((v) => v && v !== 'none' && v.trim() !== '');
+            return valid.length > 0 ? valid : null;
+          })(),
           advancedMajor: form.advancedMajor,
           individuallyDesignedMajor: form.individuallyDesignedMajor,
         }),
@@ -446,22 +452,22 @@ export default function ProfileSettingsPage() {
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">복수전공</label>
-                  <DepartmentDropdown
-                    value={form.doubleMajor}
-                    onChange={(v) => setForm((f) => ({ ...f, doubleMajor: v }))}
+                  <MultipleDepartmentDropdown
+                    value={form.doubleMajors}
+                    onChange={(v) => setForm((f) => ({ ...f, doubleMajors: v }))}
                     mode="doubleMajor"
-                    allowNone
                     size="medium"
+                    className="min-w-40"
                   />
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">부전공</label>
-                  <DepartmentDropdown
-                    value={form.minor}
-                    onChange={(v) => setForm((f) => ({ ...f, minor: v }))}
+                  <MultipleDepartmentDropdown
+                    value={form.minors}
+                    onChange={(v) => setForm((f) => ({ ...f, minors: v }))}
                     mode="minor"
-                    allowNone
                     size="medium"
+                    className="min-w-40"
                   />
                 </div>
                 <div className="flex items-center gap-2">

@@ -63,6 +63,12 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     // Profile 생성
+    const doubleMajorsArray = Array.isArray(doubleMajor) ? doubleMajor : doubleMajor ? [doubleMajor] : [];
+    const minorsArray = Array.isArray(minor) ? minor : minor ? [minor] : [];
+    // 유효한 값만 필터링 (빈 문자열, null, undefined, "none" 제거)
+    const validDoubleMajors = doubleMajorsArray.filter((v) => v && typeof v === 'string' && v.trim() !== '' && v !== 'none');
+    const validMinors = minorsArray.filter((v) => v && typeof v === 'string' && v.trim() !== '' && v !== 'none');
+
     const profile = await prisma.profile.create({
       data: {
         userId,
@@ -71,8 +77,8 @@ router.post('/', async (req: Request, res: Response) => {
         admissionYear: parseInt(admissionYear.toString()),
         isFallAdmission: isFallAdmission || false,
         major,
-        doubleMajors: Array.isArray(doubleMajor) ? doubleMajor : doubleMajor ? [doubleMajor] : [],
-        minors: Array.isArray(minor) ? minor : minor ? [minor] : [],
+        doubleMajors: validDoubleMajors,
+        minors: validMinors,
         advancedMajor: advancedMajor || false,
         individuallyDesignedMajor: individuallyDesignedMajor || false,
         enrollments: [],
@@ -137,7 +143,7 @@ router.get('/', async (req: Request, res: Response) => {
 // Profile 수정
 router.patch('/', async (req: Request, res: Response) => {
   try {
-    const { userId, name, admissionYear, isFallAdmission, major, doubleMajor, minor, advancedMajor, individuallyDesignedMajor } = req.body;
+    const { userId, name, admissionYear, isFallAdmission, major, doubleMajor, minor, advancedMajor, individuallyDesignedMajor, enrollments } = req.body;
 
     if (!userId || typeof userId !== 'string') {
       return res.status(400).json({ success: false, message: '사용자 ID가 필요합니다.' });
@@ -157,19 +163,23 @@ router.patch('/', async (req: Request, res: Response) => {
       minors?: string[];
       advancedMajor?: boolean;
       individuallyDesignedMajor?: boolean;
+      enrollments?: any;
     } = {};
     if (name !== undefined) data.name = name;
     if (admissionYear !== undefined) data.admissionYear = parseInt(admissionYear.toString());
     if (isFallAdmission !== undefined) data.isFallAdmission = !!isFallAdmission;
     if (major !== undefined) data.major = major;
     if (doubleMajor !== undefined) {
-      data.doubleMajors = Array.isArray(doubleMajor) ? doubleMajor : doubleMajor ? [doubleMajor] : [];
+      const doubleMajorsArray = Array.isArray(doubleMajor) ? doubleMajor : doubleMajor ? [doubleMajor] : [];
+      data.doubleMajors = doubleMajorsArray.filter((v) => v && typeof v === 'string' && v.trim() !== '' && v !== 'none');
     }
     if (minor !== undefined) {
-      data.minors = Array.isArray(minor) ? minor : minor ? [minor] : [];
+      const minorsArray = Array.isArray(minor) ? minor : minor ? [minor] : [];
+      data.minors = minorsArray.filter((v) => v && typeof v === 'string' && v.trim() !== '' && v !== 'none');
     }
     if (advancedMajor !== undefined) data.advancedMajor = !!advancedMajor;
     if (individuallyDesignedMajor !== undefined) data.individuallyDesignedMajor = !!individuallyDesignedMajor;
+    if (enrollments !== undefined) data.enrollments = enrollments;
 
     const updated = await prisma.profile.update({
       where: { userId },

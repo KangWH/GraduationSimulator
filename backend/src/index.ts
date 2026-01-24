@@ -2,6 +2,7 @@ import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import authRouter from './routes/auth.js';
 import profileRouter from './routes/profile.js';
+import simulationRouter from './routes/simulation.js';
 
 import departments from './departments.json' with { type: 'json' };
 
@@ -24,6 +25,7 @@ app.get('/departments', (req, res) => {
 
 app.use('/auth', authRouter);
 app.use('/profile', profileRouter);
+app.use('/simulation', simulationRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

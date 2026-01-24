@@ -142,6 +142,7 @@ export function MultipleDepartmentDropdown({ id, name, value, onChange, required
       options={options}
       onChange={(newValues) => onChange(newValues)}
       size={size}
+      allowNone={allowNone}
       className={className}
     />
   )

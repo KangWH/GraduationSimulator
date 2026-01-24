@@ -2,8 +2,11 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { DepartmentDropdown, MultipleDepartmentDropdown } from '../components/DepartmentDropeown';
-import { NumberInput, Select } from '../components/formFields';
+import { NumberInput, Select, Input } from '../components/formFields';
+
+const API = 'http://localhost:4000';
 
 type Dept = { id: string; name: string };
 type Section = {
@@ -15,6 +18,7 @@ type Section = {
 };
 
 export default function SimulationPage() {
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [previousSimulations] = useState([
     { id: 1, name: '2024년 1학기 시뮬레이션', date: '2024-01-15' },
@@ -34,6 +38,11 @@ export default function SimulationPage() {
     individuallyDesignedMajor: false,
   });
   const [simulationCourses, setSimulationCourses] = useState<any[]>([]);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [userName, setUserName] = useState<string>('');
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [addToEnrollments, setAddToEnrollments] = useState(false);
 
   useEffect(() => {
     fetch('http://localhost:4000/departments')
@@ -41,6 +50,42 @@ export default function SimulationPage() {
       .then((arr: Dept[]) => setDepts(arr))
       .catch(() => {});
   }, []);
+
+  // 프로필 정보 로드 및 필터 초기화
+  useEffect(() => {
+    if (profileLoaded) return;
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    if (!userId) return;
+
+    const loadProfile = () =>
+      fetch(`${API}/profile?userId=${encodeURIComponent(userId!)}`, { credentials: 'include' })
+        .then((r) => r.json());
+
+    const loadMe = () =>
+      fetch(`${API}/auth/me?userId=${encodeURIComponent(userId!)}`, { credentials: 'include' })
+        .then((r) => r.json());
+
+    Promise.all([loadProfile(), loadMe()])
+      .then(([profileRes, meRes]) => {
+        if (profileRes.success && profileRes.profile) {
+          const p = profileRes.profile;
+          setFilters({
+            requirementYear: p.admissionYear || new Date().getFullYear(),
+            major: p.major || '',
+            doubleMajors: Array.isArray(p.doubleMajors) ? p.doubleMajors : [],
+            minors: Array.isArray(p.minors) ? p.minors : [],
+            advancedMajor: p.advancedMajor || false,
+            individuallyDesignedMajor: p.individuallyDesignedMajor || false,
+          });
+          setUserName(p.name || '');
+        }
+        if (meRes.success && meRes.user) {
+          setUserName((prev) => prev || meRes.user.email || '');
+        }
+        setProfileLoaded(true);
+      })
+      .catch(() => setProfileLoaded(true));
+  }, [profileLoaded]);
 
   const deptName = (id: string) => depts.find((d) => d.id === id)?.name ?? id;
 
@@ -144,7 +189,7 @@ export default function SimulationPage() {
       >
         {/* 사이드바 토글 버튼 - 좌상단 햄버거 */}
         <div
-          className={`flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 overflow-hidden ${
+          className={`flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 overflow-hidden transition-all ${
             sidebarOpen ? 'p-4' : 'px-2 py-3'
           }`}
         >
@@ -222,110 +267,149 @@ export default function SimulationPage() {
           </div>
         </div>
 
-        {/* 하단 메뉴 */}
+        {/* 하단 메뉴: 계정 이름 + 로그아웃 */}
         <div
-          className={`border-t border-gray-200 dark:border-gray-700 space-y-2 overflow-hidden ${
-            sidebarOpen ? 'p-4' : 'px-2 py-3'
+          className={`border-t border-gray-200 dark:border-gray-700 overflow-hidden ${
+            sidebarOpen ? 'p-4 space-y-2' : 'px-2 py-3 space-y-2'
           }`}
         >
-          <Link
-            href="/profile/settings"
-            className={`w-full flex items-center gap-3 rounded-lg transition-colors ${
-              sidebarOpen
-                ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 px-4 py-2'
-                : 'justify-center p-2'
+          <div
+            className={`flex items-center gap-3 rounded-lg transition-colors ${
+              sidebarOpen ? 'w-full' : 'justify-center'
             }`}
-            title={sidebarOpen ? undefined : '프로필 설정'}
           >
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            {sidebarOpen && <span className="whitespace-nowrap min-w-0 truncate">프로필 설정</span>}
-          </Link>
+            <Link
+              href="/profile/settings"
+              className={`flex items-center gap-3 rounded-lg transition-colors flex-1 min-w-0 ${
+                sidebarOpen
+                  ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 px-4 py-2'
+                  : 'justify-center p-2'
+              }`}
+              title={sidebarOpen ? undefined : userName || '프로필 설정'}
+            >
+              <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              {sidebarOpen && (
+                <span className="whitespace-nowrap min-w-0 truncate">
+                  {userName || '프로필 설정'}
+                </span>
+              )}
+            </Link>
+            {sidebarOpen && (
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem('userId');
+                  router.push('/login');
+                }}
+                className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-950/30 transition-colors"
+                title="로그아웃"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </aside>
 
       {/* 메인 컨텐츠 */}
       <div className="flex-1 overflow-y-auto">
-        {/* 상단 필터 바 */}
-        <div className="py-4 flex-shrink-0 overflow-x-auto">
-          <div className="px-8 flex items-center gap-4 min-w-max">
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                전공 이수 기준
-              </label>
-              <NumberInput
-                min="2016"
-                max="2050"
-                value={filters.requirementYear}
-                onChange={(newValue) => setFilters({ ...filters, requirementYear: parseInt(newValue) })}
-                size="small"
-              />
+        {/* 상단 필터 바 (sticky) */}
+        <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-gray-700 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 overflow-x-auto">
+              <div className="px-6 flex items-center gap-4 min-w-max">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    전공 이수 기준
+                  </label>
+                  <NumberInput
+                    min="2016"
+                    max="2050"
+                    value={filters.requirementYear}
+                    onChange={(newValue) => setFilters({ ...filters, requirementYear: parseInt(newValue) })}
+                    size="small"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    주전공
+                  </label>
+                  <DepartmentDropdown
+                    value={filters.major}
+                    onChange={(newValue) => setFilters({ ...filters, major: newValue })}
+                    mode="major"
+                    size="small"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    복수전공
+                  </label>
+                  <MultipleDepartmentDropdown
+                    value={filters.doubleMajors}
+                    onChange={(newValues) => setFilters({ ...filters, doubleMajors: newValues })}
+                    mode="doubleMajor"
+                    size="small"
+                    className="min-w-40"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    부전공
+                  </label>
+                  <MultipleDepartmentDropdown
+                    value={filters.minors}
+                    onChange={(newValues) => setFilters({ ...filters, minors: newValues })}
+                    mode="minor"
+                    size="small"
+                    className="min-w-40"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="advancedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    심화전공
+                  </label>
+                  <Select
+                    id="advancedMajor"
+                    value={filters.advancedMajor ? 'true' : 'false'}
+                    onChange={(newValue) => setFilters({ ...filters, advancedMajor: newValue === 'true' })}
+                    size="small"
+                    className="min-w-16"
+                  >
+                    <option value="false">아니오</option>
+                    <option value="true">예</option>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="individuallyDesignedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                    자유융합전공
+                  </label>
+                  <Select
+                    id="individuallyDesignedMajor"
+                    value={filters.individuallyDesignedMajor ? 'true' : 'false'}
+                    onChange={(newValue) => setFilters({ ...filters, individuallyDesignedMajor: newValue === 'true' })}
+                    size="small"
+                    className="min-w-16"
+                  >
+                    <option value="false">아니오</option>
+                    <option value="true">예</option>
+                  </Select>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                주전공
-              </label>
-              <DepartmentDropdown
-                value={filters.major}
-                onChange={(newValue) => setFilters({ ...filters, major: newValue })}
-                mode="major"
-                size="small"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                복수전공
-              </label>
-              <MultipleDepartmentDropdown
-                value={filters.doubleMajors}
-                onChange={(newValues) => setFilters({ ...filters, doubleMajors: newValues })}
-                mode="doubleMajor"
-                size="small"
-                className="min-w-40"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                부전공
-              </label>
-              <MultipleDepartmentDropdown
-                value={filters.minors}
-                onChange={(newValues) => setFilters({ ...filters, minors: newValues })}
-                mode="minor"
-                size="small"
-                className="min-w-40"
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="advancedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                심화전공
-              </label>
-              <Select
-                id="advancedMajor"
-                value={filters.advancedMajor ? 'true' : 'false'}
-                onChange={(newValue) => setFilters({ ...filters, advancedMajor: newValue === 'true' })}
-                size="small"
-                className="min-w-16"
+            {/* 저장 버튼 */}
+            <div className="flex-shrink-0 pr-6">
+              <button
+                type="button"
+                onClick={() => setIsSaveModalOpen(true)}
+                className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
               >
-                <option value="false">아니오</option>
-                <option value="true">예</option>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label htmlFor="individuallyDesignedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
-                자유융합전공
-              </label>
-              <Select
-                id="individuallyDesignedMajor"
-                value={filters.individuallyDesignedMajor ? 'true' : 'false'}
-                onChange={(newValue) => setFilters({ ...filters, individuallyDesignedMajor: newValue === 'true' })}
-                size="small"
-                className="min-w-16"
-              >
-                <option value="false">아니오</option>
-                <option value="true">예</option>
-              </Select>
+                저장
+              </button>
             </div>
           </div>
         </div>
@@ -503,6 +587,163 @@ export default function SimulationPage() {
           </div>
         </div>
       </div>
+
+      {/* 저장 모달 */}
+      {isSaveModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsSaveModalOpen(false);
+          }}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-md mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">시뮬레이션 저장</h2>
+              
+              <div className="space-y-4">
+                {/* 이름 입력 */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    시뮬레이션 이름
+                  </label>
+                  <Input
+                    type="text"
+                    value={saveName}
+                    onChange={setSaveName}
+                    placeholder="예: 2024년 1학기 시뮬레이션"
+                    size="medium"
+                  />
+                </div>
+
+                {/* 과목 추가 체크박스 */}
+                {simulationCourses.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      id="addToEnrollments"
+                      checked={addToEnrollments}
+                      onChange={(e) => setAddToEnrollments(e.target.checked)}
+                      className="mt-1 w-4 h-4 text-violet-600 border-gray-300 rounded focus:ring-violet-500 dark:bg-zinc-800 dark:border-zinc-600"
+                    />
+                    <label
+                      htmlFor="addToEnrollments"
+                      className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                    >
+                      시뮬레이션에 사용한 과목들을 프로필의 수강한 과목에 추가하기
+                      <span className="text-gray-500 dark:text-gray-400 ml-1">
+                        ({simulationCourses.length}개 과목)
+                      </span>
+                    </label>
+                  </div>
+                )}
+
+                {/* 버튼 */}
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSaveModalOpen(false);
+                      setSaveName('');
+                      setAddToEnrollments(false);
+                    }}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-zinc-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!saveName.trim()) {
+                        alert('시뮬레이션 이름을 입력해주세요.');
+                        return;
+                      }
+
+                      const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+                      if (!userId) {
+                        alert('로그인이 필요합니다.');
+                        router.push('/login');
+                        return;
+                      }
+
+                      try {
+                        // 시뮬레이션 저장 API 호출
+                        const response = await fetch(`${API}/simulation`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({
+                            userId,
+                            title: saveName.trim(),
+                            referenceYear: filters.requirementYear,
+                            major: filters.major,
+                            doubleMajors: filters.doubleMajors,
+                            minors: filters.minors,
+                            courses: simulationCourses,
+                          }),
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                          // 과목 추가 옵션이 체크되어 있으면 프로필의 enrollments에 추가
+                          if (addToEnrollments && simulationCourses.length > 0) {
+                            const profileResponse = await fetch(`${API}/profile?userId=${encodeURIComponent(userId)}`, {
+                              credentials: 'include',
+                            });
+                            const profileData = await profileResponse.json();
+
+                            if (profileData.success && profileData.profile) {
+                              const currentEnrollments = Array.isArray(profileData.profile.enrollments)
+                                ? profileData.profile.enrollments
+                                : [];
+
+                              const newEnrollments = [
+                                ...currentEnrollments,
+                                ...simulationCourses.map((course) => ({
+                                  courseId: course.id,
+                                  courseName: course.name,
+                                  credit: course.credit,
+                                  grade: course.grade || null,
+                                })),
+                              ];
+
+                              await fetch(`${API}/profile`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({
+                                  userId,
+                                  enrollments: newEnrollments,
+                                }),
+                              });
+                            }
+                          }
+
+                          alert('시뮬레이션이 저장되었습니다.');
+                          setIsSaveModalOpen(false);
+                          setSaveName('');
+                          setAddToEnrollments(false);
+                        } else {
+                          alert(data.message || '저장에 실패했습니다.');
+                        }
+                      } catch (error) {
+                        console.error('저장 오류:', error);
+                        alert('저장 중 오류가 발생했습니다.');
+                      }
+                    }}
+                    className="flex-1 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg transition-colors"
+                  >
+                    저장
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -28,7 +28,7 @@ export default function LoginPage() {
         if (!data.hasProfile) {
           router.push('/profile/setup');
         } else {
-          alert(data.message || '로그인이 완료되었습니다!');
+          // alert(data.message || '로그인이 완료되었습니다!');
           router.push('/simulation');
         }
       } else {
@@ -86,7 +86,7 @@ export default function LoginPage() {
           <div>
             <button
               type="submit"
-              className="w-full rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="w-full rounded-md bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
             >
               로그인
             </button>
@@ -95,7 +95,7 @@ export default function LoginPage() {
           <div className="text-center">
             <Link
               href="/signup"
-              className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+              className="text-sm text-violet-600 hover:text-violet-500 dark:text-violet-400"
             >
               계정이 없으신가요? 회원가입
             </Link>
