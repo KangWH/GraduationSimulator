@@ -21,7 +21,26 @@ app.get('/', (req: Request, res: Response) => {
 
 app.get('/departments', (req, res) => {
   res.json(departments);
-})
+});
+
+// 과목 목록 조회 (임시로 빈 배열 반환, 나중에 DB에서 가져오도록 수정)
+app.get('/courses', async (req, res) => {
+  try {
+    const { PrismaPg } = await import('@prisma/adapter-pg');
+    const { PrismaClient } = await import('./generated/prisma/client.js');
+    const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"] ?? '' });
+    const prisma = new PrismaClient({ adapter });
+    
+    const courses = await prisma.courseOffering.findMany({
+      orderBy: { title: 'asc' },
+    });
+    
+    res.json(courses);
+  } catch (error: any) {
+    console.error('과목 목록 조회 오류:', error);
+    res.status(500).json({ error: '과목 목록을 가져오는 중 오류가 발생했습니다.' });
+  }
+});
 
 app.use('/auth', authRouter);
 app.use('/profile', profileRouter);
