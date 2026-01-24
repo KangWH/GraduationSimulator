@@ -193,28 +193,127 @@ router.patch('/', async (req: Request, res: Response) => {
   }
 });
 
-// 수강 과목 삭제 (들은 과목 변경용)
-router.delete('/enrollments/:id', async (req: Request, res: Response) => {
+// 수강 내역 저장 (POST/PUT/PATCH 모두 지원)
+// 수강 내역 조회
+router.get('/enrollments', async (req: Request, res: Response) => {
   try {
-    const idParam = req.params.id;
-    const userIdParam = req.query.userId;
-    const id = typeof idParam === 'string' ? idParam : Array.isArray(idParam) ? idParam[0] : undefined;
-    let userId: string | undefined;
-    if (typeof userIdParam === 'string') {
-      userId = userIdParam;
-    } else if (Array.isArray(userIdParam) && userIdParam.length > 0 && typeof userIdParam[0] === 'string') {
-      userId = userIdParam[0];
+    const { userId } = req.query;
+
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ success: false, message: '사용자 ID가 필요합니다.' });
     }
-    if (!userId || !id) {
-      return res.status(400).json({ success: false, message: 'userId와 enrollment id가 필요합니다.' });
-    }
+
     const profile = await prisma.profile.findUnique({ where: { userId } });
     if (!profile) {
       return res.status(404).json({ success: false, message: '프로필을 찾을 수 없습니다.' });
     }
-    res.status(200).json({ success: true, message: '수강 과목이 삭제되었습니다.' });
+
+    let enrollments: unknown = profile.enrollments;
+    if (enrollments == null) {
+      enrollments = [];
+    } else if (typeof enrollments === 'string') {
+      try {
+        enrollments = JSON.parse(enrollments);
+      } catch {
+        enrollments = [];
+      }
+    }
+    if (!Array.isArray(enrollments)) {
+      enrollments = [];
+    }
+
+    res.status(200).json({ success: true, enrollments });
   } catch (error) {
-    console.error('Enrollment delete error:', error);
+    console.error('Enrollment fetch error:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 수강 내역 저장
+router.post('/enrollments', async (req: Request, res: Response) => {
+  try {
+    const { userId, enrollments } = req.body;
+
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ success: false, message: '사용자 ID가 필요합니다.' });
+    }
+
+    if (!Array.isArray(enrollments)) {
+      return res.status(400).json({ success: false, message: 'enrollments는 배열이어야 합니다.' });
+    }
+
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+    if (!profile) {
+      return res.status(404).json({ success: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    const payload = JSON.stringify(enrollments);
+    const updated = await prisma.profile.update({
+      where: { userId },
+      data: { enrollments: payload as any },
+    });
+
+    res.status(200).json({ success: true, message: '수강 내역이 저장되었습니다.', profile: updated });
+  } catch (error) {
+    console.error('Enrollment save error:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+router.put('/enrollments', async (req: Request, res: Response) => {
+  try {
+    const { userId, enrollments } = req.body;
+
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ success: false, message: '사용자 ID가 필요합니다.' });
+    }
+
+    if (!Array.isArray(enrollments)) {
+      return res.status(400).json({ success: false, message: 'enrollments는 배열이어야 합니다.' });
+    }
+
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+    if (!profile) {
+      return res.status(404).json({ success: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    const updated = await prisma.profile.update({
+      where: { userId },
+      data: { enrollments },
+    });
+
+    res.status(200).json({ success: true, message: '수강 내역이 저장되었습니다.', profile: updated });
+  } catch (error) {
+    console.error('Enrollment save error:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+router.patch('/enrollments', async (req: Request, res: Response) => {
+  try {
+    const { userId, enrollments } = req.body;
+
+    if (!userId || typeof userId !== 'string') {
+      return res.status(400).json({ success: false, message: '사용자 ID가 필요합니다.' });
+    }
+
+    if (!Array.isArray(enrollments)) {
+      return res.status(400).json({ success: false, message: 'enrollments는 배열이어야 합니다.' });
+    }
+
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+    if (!profile) {
+      return res.status(404).json({ success: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    const updated = await prisma.profile.update({
+      where: { userId },
+      data: { enrollments },
+    });
+
+    res.status(200).json({ success: true, message: '수강 내역이 저장되었습니다.', profile: updated });
+  } catch (error) {
+    console.error('Enrollment save error:', error);
     res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });

@@ -1,159 +1,83 @@
 'use client';
 
+import { DepartmentDropdown } from '@/app/components/DepartmentDropdown';
 import { Input, NumberInput, Select } from '../../components/formFields';
-import { DepartmentDropdown } from '../../components/DepartmentDropdown';
-import type { Profile } from './types';
+import type { Semester, Grade } from './types';
 import { CourseCategoryDropdown } from '@/app/components/CourseCategoryDropdown';
 
-interface NewCourse {
-  name: string;
-  code: string;
-  department: string;
-  category: string;
-  credit: number;
-  year: number;
-  semester: string;
-  grade: string;
-}
+const VALID_GRADES: Grade[] = ['A+', 'A0', 'A-', 'B+', 'B0', 'B-', 'C+', 'C0', 'C-', 'D+', 'D0', 'D-', 'F', 'S', 'U', 'P', 'NR', 'W'];
+
+const SEMESTER_OPTIONS: { value: Semester; label: string }[] = [
+  { value: 'SPRING', label: '봄' },
+  { value: 'SUMMER', label: '여름' },
+  { value: 'FALL', label: '가을' },
+  { value: 'WINTER', label: '겨울' },
+];
 
 interface AddCoursePanelProps {
-  isExpanded: boolean;
-  setIsExpanded: (b: boolean) => void;
-  newCourse: NewCourse;
-  setNewCourse: React.Dispatch<React.SetStateAction<NewCourse>>;
-  filteredCourses: { id: string; code?: string; title?: string; name?: string; department?: string; category?: string; credit?: number }[];
-  profile: Profile | null;
-  deptName: (id: string) => string;
-  validGrades: string[];
-  semesters: string[];
   searchQuery: string;
   onSearchQueryChange: (v: string) => void;
-  onAdd: () => void;
+  searchResults: { id: string; code?: string; title?: string; name?: string; department?: string; category?: string; credit?: number }[];
+  selectedCourseIds: Set<string>;
+  onSelectionChange: (ids: Set<string>) => void;
+  addYear: number;
+  onAddYearChange: (year: number) => void;
+  addSemester: Semester;
+  onAddSemesterChange: (semester: Semester) => void;
+  addGrade: Grade;
+  onAddGradeChange: (grade: Grade) => void;
+  onAddSelected: () => void;
+  onDragStart: (course: any) => void;
 }
 
 export default function AddCoursePanel({
-  isExpanded,
-  setIsExpanded,
-  newCourse,
-  setNewCourse,
-  filteredCourses,
-  profile,
-  deptName,
-  validGrades,
-  semesters,
   searchQuery,
   onSearchQueryChange,
-  onAdd,
+  searchResults,
+  selectedCourseIds,
+  onSelectionChange,
+  addYear,
+  onAddYearChange,
+  addSemester,
+  onAddSemesterChange,
+  addGrade,
+  onAddGradeChange,
+  onAddSelected,
+  onDragStart,
 }: AddCoursePanelProps) {
-  if (isExpanded) {
-    return (
-      <div className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-zinc-800/50">
-        <div className="relative">
-          <div className="flex flex-col gap-2 grow">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목명</label>
-            <Input
-              type="text"
-              value={newCourse.name}
-              onChange={(value) => setNewCourse((c) => ({ ...c, name: value }))}
-              placeholder="예: 운영체제및실험"
-              size="medium"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsExpanded(false)}
-            className="absolute -right-4 -top-4 rounded-lg p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-zinc-800 dark:text-gray-400 dark:hover:text-gray-200"
-            title="폼 접기"
-          >
-            <svg className="h-5 w-5 rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목코드</label>
-            <Input
-              type="text"
-              value={newCourse.code}
-              onChange={(value) => setNewCourse((c) => ({ ...c, code: value }))}
-              placeholder="예: CS.30300"
-              size="small"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">개설학과</label>
-            <DepartmentDropdown
-              value={newCourse.department}
-              onChange={(value) => setNewCourse((c) => ({ ...c, department: value === 'none' ? '' : value }))}
-              mode="course"
-              size="small"
-              allowNone={true}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목구분</label>
-            <CourseCategoryDropdown
-              value={newCourse.category}
-              onChange={(newValue) => setNewCourse((c) => ({ ...c, category: newValue }))}
-              size="small"
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-3">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">학점</label>
-            <NumberInput
-              min="1"
-              max="10"
-              value={String(newCourse.credit)}
-              onChange={(value) => setNewCourse((c) => ({ ...c, credit: parseInt(value) || 3 }))}
-              size="small"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">연도</label>
-            <NumberInput
-              min="2000"
-              max="2050"
-              value={String(newCourse.year)}
-              onChange={(value) => setNewCourse((c) => ({ ...c, year: parseInt(value) || new Date().getFullYear() }))}
-              size="small"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">학기</label>
-            <Select value={newCourse.semester} onChange={(value) => setNewCourse((c) => ({ ...c, semester: value }))} size="small">
-              {semesters.map((sem) => (
-                <option key={sem} value={sem}>{sem}</option>
-              ))}
-            </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">성적</label>
-            <Select value={newCourse.grade} onChange={(value) => setNewCourse((c) => ({ ...c, grade: value }))} size="small">
-              <option value="">선택</option>
-              {validGrades.map((grade) => (
-                <option key={grade} value={grade}>{grade}</option>
-              ))}
-            </Select>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="w-full rounded-lg border border-gray-300 bg-gray-100 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:border-gray-600 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700"
-        >
-          과목 추가
-        </button>
-      </div>
-    );
-  }
+  const toggleSelection = (courseId: string) => {
+    const newSet = new Set(selectedCourseIds);
+    if (newSet.has(courseId)) {
+      newSet.delete(courseId);
+    } else {
+      newSet.add(courseId);
+    }
+    onSelectionChange(newSet);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedCourseIds.size === searchResults.length) {
+      onSelectionChange(new Set());
+    } else {
+      onSelectionChange(
+        new Set(
+          searchResults.map((c) => {
+            const id = c.id || c.code;
+            if (!id) {
+              console.warn('Course without id or code:', c);
+              return '';
+            }
+            return id;
+          }).filter((id) => id !== '')
+        )
+      );
+    }
+  };
 
   return (
     <div className="space-y-4">
       {/* 검색 창 */}
-      <div className="flex gap-2">
+      <div className="sticky top-4 flex flex-col gap-4">
         <div className="relative grow">
           <Input
             type="text"
@@ -174,77 +98,143 @@ export default function AddCoursePanel({
             </svg>
           </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsExpanded(true)}
-          className="shrink-0 rounded p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-zinc-800 dark:hover:text-gray-200"
-          title="상세 검색"
-        >
-          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+        <div class="flex flex-row gap-2">
+          <div className="flex-1 flex flex-col gap-1">
+            <p className="text-sm">학과</p>
+            <DepartmentDropdown
+              allowNone
+              size="small"
+            />
+          </div>
+          <div className="flex-1 flex flex-col gap-1">
+            <p className="text-sm">과목 구분</p>
+            <CourseCategoryDropdown
+              allowNone
+              size="small"
+            />
+          </div>
+        </div>
       </div>
 
-      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">검색 결과 ({filteredCourses.length})</h3>
-      <div className="space-y-2 overflow-y-auto">
-        {filteredCourses.length === 0 ? (
-          <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-            {searchQuery ? '검색 결과가 없습니다.' : '검색어를 입력하거나 과목을 직접 추가하세요.'}
-          </p>
-        ) : (
-          filteredCourses.map((course) => {
-            const isAlreadyAdded = profile?.enrollments?.some(
-              (e: any) =>
-                (e.course?.code || e.code) === course.code ||
-                (e.course?.title || e.course?.name || e.courseName) === (course.title || course.name)
-            );
-            return (
-              <div
-                key={course.id}
-                className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-zinc-800"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{course.title || course.name}</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {course.code && `${course.code} | `}
-                    {course.department && `${deptName(course.department)} | `}
-                    {course.category || '구분 없음'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isAlreadyAdded) {
-                      alert('이미 추가된 과목입니다.');
-                      return;
-                    }
-                    setNewCourse({
-                      name: course.title || course.name || '',
-                      code: course.code || '',
-                      department: course.department || '',
-                      category: course.category || '',
-                      credit: course.credit || 3,
-                      year: new Date().getFullYear(),
-                      semester: '봄',
-                      grade: '',
-                    });
-                    setIsExpanded(true);
+      {/* 검색 결과 */}
+      {searchResults.length > 0 && (
+        <>
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              검색 결과 ({searchResults.length})
+            </h3>
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              className="text-xs text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
+            >
+              {selectedCourseIds.size === searchResults.length ? '전체 해제' : '전체 선택'}
+            </button>
+          </div>
+          <div className="space-y-2 overflow-y-auto">
+            {searchResults.map((course) => {
+              const courseId = course.id || course.code || String(course.id || course.code || Math.random());
+              const isSelected = selectedCourseIds.has(courseId);
+              return (
+                <div
+                  key={courseId}
+                  draggable
+                  onDragStart={(e) => {
+                    onDragStart(course);
+                    e.dataTransfer.effectAllowed = 'copy';
                   }}
-                  disabled={isAlreadyAdded}
-                  className={`ml-3 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium ${
-                    isAlreadyAdded
-                      ? 'cursor-not-allowed bg-gray-300 text-gray-500 dark:bg-zinc-700 dark:text-gray-400'
-                      : 'border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 dark:border-gray-600 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700'
+                  onClick={() => toggleSelection(courseId)}
+                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'border-violet-500 bg-violet-50 dark:border-violet-400 dark:bg-violet-900/20'
+                      : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-zinc-800'
                   }`}
                 >
-                  {isAlreadyAdded ? '추가됨' : '추가'}
-                </button>
-              </div>
-            );
-          })
-        )}
-      </div>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => toggleSelection(courseId)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelection(courseId);
+                    }}
+                    className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">{course.title || course.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {course.code && `${course.code}`}
+                      {course.department && ` · ${course.department}`}
+                      {course.category && ` · ${course.category}`}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {searchResults.length === 0 && searchQuery && (
+        <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">검색 결과가 없습니다.</p>
+      )}
+
+      {searchResults.length === 0 && !searchQuery && (
+        <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">검색어를 입력하세요.</p>
+      )}
+
+      {/* 추가 옵션 및 버튼 */}
+      {selectedCourseIds.size > 0 && (
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-zinc-800/50">
+          <div className="flex items-end gap-3">
+            <div className="flex flex-col gap-2 flex-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">수강 연도</label>
+              <NumberInput
+                min="2000"
+                max="2050"
+                value={String(addYear)}
+                onChange={(v) => onAddYearChange(parseInt(v) || new Date().getFullYear())}
+                size="small"
+              />
+            </div>
+            <div className="flex flex-col gap-2 flex-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">수강 학기</label>
+              <Select
+                value={addSemester}
+                onChange={(v) => onAddSemesterChange(v as Semester)}
+                size="small"
+              >
+                {SEMESTER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2 flex-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">성적</label>
+              <Select
+                value={addGrade}
+                onChange={(v) => onAddGradeChange(v as Grade)}
+                size="small"
+              >
+                {VALID_GRADES.map((grade) => (
+                  <option key={grade} value={grade}>
+                    {grade}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            <button
+              type="button"
+              onClick={onAddSelected}
+              className="shrink-0 rounded-lg bg-violet-600 px-4 py-2 font-medium text-white transition-colors hover:bg-violet-700"
+            >
+              {selectedCourseIds.size}과목 추가
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,24 +1,18 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { API } from '../../lib/api';
-import type { Profile } from './types';
+import type { Profile, Enrollment, RawEnrollment, Semester, Grade } from './types';
 import AddCoursePanel from './AddCoursePanel';
 import EnrollmentsList from './EnrollmentsList';
 
-const VALID_GRADES = ['A+', 'A0', 'A-', 'B+', 'B0', 'B-', 'C+', 'C0', 'C-', 'D+', 'D0', 'D-', 'F', 'S', 'U', 'P', 'NR', 'W'];
-const SEMESTERS = ['봄', '여름', '가을', '겨울'];
-
-interface NewCourse {
-  name: string;
-  code: string;
-  department: string;
-  category: string;
-  credit: number;
-  year: number;
-  semester: string;
-  grade: string;
-}
+const VALID_GRADES: Grade[] = ['A+', 'A0', 'A-', 'B+', 'B0', 'B-', 'C+', 'C0', 'C-', 'D+', 'D0', 'D-', 'F', 'S', 'U', 'P', 'NR', 'W'];
+const SEMESTER_OPTIONS: { value: Semester; label: string }[] = [
+  { value: 'SPRING', label: '봄' },
+  { value: 'SUMMER', label: '여름' },
+  { value: 'FALL', label: '가을' },
+  { value: 'WINTER', label: '겨울' },
+];
 
 interface CoursesTabProps {
   profile: Profile | null;
@@ -26,175 +20,426 @@ interface CoursesTabProps {
   onProfileUpdate: (p: Profile) => void;
 }
 
-function normalizeSearchText(text: string): string {
-  if (!text) return '';
-  return text.replace(/\s+/g, '').replace(/[^\w가-힣]/g, '').toLowerCase();
+// RawEnrollment[]를 Enrollment[]로 변환
+async function convertToEnrollments(rawEnrollments: RawEnrollment[]): Promise<Enrollment[]> {
+  const enrollments: Enrollment[] = [];
+  for (const raw of rawEnrollments) {
+    try {
+      const courseRes = await fetch(`${API}/courses?code=${encodeURIComponent(raw.courseId)}`);
+      const courses = await courseRes.json();
+      const course = Array.isArray(courses) && courses.length > 0 ? courses[0] : null;
+      if (course) {
+        enrollments.push({
+          courseId: raw.courseId,
+          course: {
+            id: course.id || raw.courseId,
+            code: course.code || raw.courseId,
+            title: course.title || '',
+            department: course.department || '',
+            category: course.category || '',
+            credit: course.credit || 3,
+            au: course.au || 0,
+          },
+          enrolledYear: raw.enrolledYear,
+          enrolledSemester: raw.enrolledSemester,
+          grade: raw.grade,
+        });
+      }
+    } catch (error) {
+      console.error(`Failed to fetch course ${raw.courseId}:`, error);
+    }
+  }
+  return enrollments;
+}
+
+// Enrollment[]를 RawEnrollment[]로 변환
+function convertToRawEnrollments(enrollments: Enrollment[]): RawEnrollment[] {
+  return enrollments.map((e) => ({
+    courseId: e.courseId,
+    enrolledYear: e.enrolledYear,
+    enrolledSemester: e.enrolledSemester,
+    grade: e.grade,
+  }));
+}
+
+// 학기별로 그룹화
+function groupBySemester(enrollments: Enrollment[]): Map<string, Enrollment[]> {
+  const map = new Map<string, Enrollment[]>();
+  enrollments.forEach((e) => {
+    const key = `${e.enrolledYear}-${e.enrolledSemester}`;
+    if (!map.has(key)) {
+      map.set(key, []);
+    }
+    map.get(key)!.push(e);
+  });
+  return map;
+}
+
+// 오늘보다 이른 학기 중 가장 가까운 학기 찾기
+function findNearestPastSemester(): { year: number; semester: Semester } {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0-11
+
+  // 학기 판단: 봄(3-5), 여름(6-7), 가을(9-11), 겨울(12-2)
+  let currentSemester: Semester = 'SPRING';
+  if (currentMonth >= 2 && currentMonth <= 4) currentSemester = 'SPRING';
+  else if (currentMonth >= 5 && currentMonth <= 6) currentSemester = 'SUMMER';
+  else if (currentMonth >= 8 && currentMonth <= 10) currentSemester = 'FALL';
+  else currentSemester = 'WINTER';
+
+  // 현재 학기보다 이전 학기 찾기
+  const semesterOrder: Semester[] = ['SPRING', 'SUMMER', 'FALL', 'WINTER'];
+  let year = currentYear;
+  let semesterIndex = semesterOrder.indexOf(currentSemester) - 1;
+
+  if (semesterIndex < 0) {
+    year--;
+    semesterIndex = semesterOrder.length - 1;
+  }
+
+  return { year, semester: semesterOrder[semesterIndex] };
 }
 
 export default function CoursesTab({ profile, userId, onProfileUpdate }: CoursesTabProps) {
   const [courseMode, setCourseMode] = useState<'add' | 'view'>('add');
-  const [isAddFormExpanded, setIsAddFormExpanded] = useState(false);
   const [courseSearchQuery, setCourseSearchQuery] = useState('');
-  const [newCourse, setNewCourse] = useState<NewCourse>({
-    name: '',
-    code: '',
-    department: '',
-    category: '',
-    credit: 3,
-    year: new Date().getFullYear(),
-    semester: '봄',
-    grade: '',
-  });
-  const [depts, setDepts] = useState<{ id: string; name: string }[]>([]);
-  const [availableCourses, setAvailableCourses] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
+  const [addYear, setAddYear] = useState(new Date().getFullYear());
+  const [addSemester, setAddSemester] = useState<Semester>('SPRING');
+  const [addGrade, setAddGrade] = useState<Grade>('A+');
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [draggedEnrollment, setDraggedEnrollment] = useState<Enrollment | null>(null);
+  const [draggedFromSemester, setDraggedFromSemester] = useState<string | null>(null);
+  const [draggedCourse, setDraggedCourse] = useState<any | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-  const deptName = (id: string) => depts.find((d) => d.id === id)?.name ?? id;
-
-  const filteredCourses = useMemo(() => {
-    if (!courseSearchQuery.trim()) return availableCourses;
-    const q = normalizeSearchText(courseSearchQuery);
-    return availableCourses.filter((course) => {
-      const name = normalizeSearchText(course.title || course.name || '');
-      const dept = course.department ? normalizeSearchText(deptName(course.department)) : '';
-      const code = normalizeSearchText(course.code || '');
-      return name.includes(q) || dept.includes(q) || code.includes(q);
-    });
-  }, [availableCourses, courseSearchQuery, depts]);
-
+  // 수강 내역 로드 및 변환
   useEffect(() => {
-    fetch(`${API}/departments`)
-      .then((r) => r.json())
-      .then((arr: { id: string; name: string }[]) => setDepts(arr))
-      .catch(() => {});
-    fetch(`${API}/courses`)
-      .then((r) => r.json())
-      .then((arr: any[]) => setAvailableCourses(arr))
-      .catch(() => {});
-  }, []);
+    if (!userId) return;
+    if (initialLoadDone) return;
 
-  const removeEnrollment = async (enrollmentId: number) => {
-    if (!userId || !profile) return;
-    try {
-      // const res = await fetch(
-      //   `${API}/profile/enrollments/${enrollmentId}?userId=${encodeURIComponent(userId)}`,
-      //   { method: 'DELETE', credentials: 'include' }
-      // );
-      // const data = await res.json();
-      // if (data.success) {
-      //   onProfileUpdate({
-      //     ...profile,
-      //     enrollments: (profile.enrollments || []).filter((e) => e.id !== enrollmentId),
-      //   });
-      // } else {
-      //   alert(data.message || '삭제에 실패했습니다.');
-      // }
-    } catch {
-      alert('서버 오류가 발생했습니다.');
-    }
-  };
+    let cancelled = false;
 
-  const addEnrollment = async () => {
-    if (!userId || !profile) return;
-    if (!newCourse.name.trim()) {
-      alert('과목명을 입력해주세요.');
-      return;
-    }
-    if (newCourse.grade && !VALID_GRADES.includes(newCourse.grade.toUpperCase())) {
-      alert(`올바른 성적을 입력해주세요. 허용된 성적: ${VALID_GRADES.join(', ')}`);
-      return;
-    }
-    try {
-      const currentEnrollments = Array.isArray(profile.enrollments)
-        ? profile.enrollments.map((e: any) => ({
-            courseId: e.course?.id || e.courseId || '',
-            courseName: e.course?.title || e.course?.name || e.courseName || '',
-            code: e.course?.code || e.code || newCourse.code,
-            department: e.course?.department || e.department || newCourse.department,
-            category: e.course?.category || e.category || newCourse.category,
-            credit: e.course?.credit || e.credit || newCourse.credit,
-            year: e.course?.year || e.year || newCourse.year,
-            semester: e.course?.semester || e.semester || newCourse.semester,
-            grade: e.grade || (newCourse.grade ? newCourse.grade.toUpperCase() : null),
-          }))
-        : [];
-      const newEnrollment = {
-        courseId: newCourse.code || `temp-${Date.now()}`,
-        courseName: newCourse.name,
-        code: newCourse.code,
-        department: newCourse.department,
-        category: newCourse.category,
-        credit: newCourse.credit,
-        year: newCourse.year,
-        semester: newCourse.semester,
-        grade: newCourse.grade ? newCourse.grade.toUpperCase() : null,
-      };
-      const updated = [...currentEnrollments, newEnrollment];
-      const res = await fetch(`${API}/profile`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ userId, enrollments: updated }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        const profileRes = await fetch(`${API}/profile?userId=${encodeURIComponent(userId)}`, {
+    const loadEnrollments = async () => {
+      try {
+        const res = await fetch(`${API}/profile/enrollments?userId=${encodeURIComponent(userId)}`, {
           credentials: 'include',
         });
-        const profileData = await profileRes.json();
-        if (profileData.success) {
-          onProfileUpdate(profileData.profile);
+
+        if (cancelled) return;
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
         }
-        setNewCourse({
-          name: '',
-          code: '',
-          department: '',
-          category: '',
-          credit: 3,
-          year: new Date().getFullYear(),
-          semester: '봄',
-          grade: '',
-        });
-        setIsAddFormExpanded(false);
-        alert('과목이 추가되었습니다.');
-      } else {
-        alert(data.message || '과목 추가에 실패했습니다.');
+
+        const data = await res.json();
+        if (!data.success) {
+          setEnrollments([]);
+          setInitialLoadDone(true);
+          return;
+        }
+
+        let rawEnrollments: RawEnrollment[] = [];
+        const raw = data.enrollments;
+        if (Array.isArray(raw)) {
+          rawEnrollments = raw as RawEnrollment[];
+        } else if (typeof raw === 'string') {
+          try {
+            const parsed = JSON.parse(raw);
+            rawEnrollments = Array.isArray(parsed) ? (parsed as RawEnrollment[]) : [];
+          } catch {
+            rawEnrollments = [];
+          }
+        }
+
+        if (cancelled) return;
+        const converted = await convertToEnrollments(rawEnrollments);
+        if (cancelled) return;
+        setEnrollments(converted);
+        setInitialLoadDone(true);
+      } catch (e) {
+        if (!cancelled) {
+          setEnrollments([]);
+          setInitialLoadDone(true);
+        }
       }
-    } catch {
-      alert('서버 오류가 발생했습니다.');
+    };
+
+    loadEnrollments();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, initialLoadDone]);
+
+  // 서버 검색
+  useEffect(() => {
+    if (!courseSearchQuery.trim()) {
+      setSearchResults([]);
+      return;
     }
+
+    const timeoutId = setTimeout(() => {
+      fetch(`${API}/courses?query=${encodeURIComponent(courseSearchQuery)}`)
+        .then((r) => {
+          if (!r.ok) {
+            throw new Error(`HTTP error! status: ${r.status}`);
+          }
+          return r.json();
+        })
+        .then((courses) => {
+          setSearchResults(Array.isArray(courses) ? courses : []);
+        })
+        .catch((error) => {
+          console.error('Error fetching courses:', error);
+          setSearchResults([]);
+        });
+    }, 300); // 디바운스
+
+    return () => clearTimeout(timeoutId);
+  }, [courseSearchQuery]);
+
+  // 서버에 저장
+  const saveEnrollments = useCallback(
+    async (newEnrollments: Enrollment[]) => {
+      if (!userId) return;
+
+      setIsSaving(true);
+      try {
+        const rawEnrollments = convertToRawEnrollments(newEnrollments);
+        const res = await fetch(`${API}/profile/enrollments`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ userId, enrollments: rawEnrollments }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        if (!data.success) {
+          alert(data.message || '저장에 실패했습니다.');
+        }
+      } catch (error) {
+        alert('서버 오류가 발생했습니다.');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [userId]
+  );
+
+  // 선택된 과목 추가
+  const handleAddSelected = useCallback(() => {
+    if (selectedCourseIds.size === 0) {
+      alert('추가할 과목을 선택해주세요.');
+      return;
+    }
+
+    const newEnrollments = [...enrollments];
+    // 클릭으로 추가할 때는 항상 폼에 지정한 학기 사용
+    const targetSemester = { year: addYear, semester: addSemester };
+
+    let addedCount = 0;
+    selectedCourseIds.forEach((courseId) => {
+      if (!courseId) return; // 빈 문자열 체크
+      
+      const course = searchResults.find((c) => {
+        const cId = c.id || c.code || '';
+        return cId === courseId || c.id === courseId || c.code === courseId;
+      });
+      
+      if (!course) {
+        console.warn(`Course not found for courseId: ${courseId}`, { searchResults, selectedCourseIds });
+        return;
+      }
+
+      // 로드 시 /courses?code= 로 조회하므로 항상 code 사용
+      const finalCourseId = course.code || course.id || courseId;
+      
+      // 중복 체크 (같은 과목이 같은 학기에 이미 있는지)
+      const isDuplicate = newEnrollments.some(
+        (e) =>
+          e.courseId === finalCourseId &&
+          e.enrolledYear === targetSemester.year &&
+          e.enrolledSemester === targetSemester.semester
+      );
+
+      if (isDuplicate) {
+        console.warn(`Duplicate course: ${finalCourseId} already exists in ${targetSemester.year}-${targetSemester.semester}`);
+        return;
+      }
+
+      newEnrollments.push({
+        courseId: finalCourseId,
+        course: {
+          id: course.id || finalCourseId,
+          code: course.code || finalCourseId,
+          title: course.title || '',
+          department: course.department || '',
+          category: course.category || '',
+          credit: course.credit || 3,
+          au: course.au || 0,
+        },
+        enrolledYear: targetSemester.year,
+        enrolledSemester: targetSemester.semester,
+        grade: addGrade,
+      });
+      addedCount++;
+    });
+
+    if (addedCount === 0) {
+      alert('추가할 수 있는 과목이 없습니다. 이미 추가된 과목이거나 검색 결과에서 찾을 수 없습니다.');
+      return;
+    }
+
+    setEnrollments(newEnrollments);
+    setSelectedCourseIds(new Set());
+    saveEnrollments(newEnrollments);
+  }, [selectedCourseIds, searchResults, enrollments, addYear, addSemester, addGrade, saveEnrollments]);
+
+  // 성적 변경
+  const handleGradeChange = useCallback(
+    (enrollment: Enrollment, newGrade: Grade) => {
+      const newEnrollments = enrollments.map((e) =>
+        e.courseId === enrollment.courseId &&
+        e.enrolledYear === enrollment.enrolledYear &&
+        e.enrolledSemester === enrollment.enrolledSemester
+          ? { ...e, grade: newGrade }
+          : e
+      );
+      setEnrollments(newEnrollments);
+      saveEnrollments(newEnrollments);
+    },
+    [enrollments, saveEnrollments]
+  );
+
+  // 삭제
+  const handleRemove = useCallback(
+    (enrollment: Enrollment) => {
+      const newEnrollments = enrollments.filter(
+        (e) =>
+          !(
+            e.courseId === enrollment.courseId &&
+            e.enrolledYear === enrollment.enrolledYear &&
+            e.enrolledSemester === enrollment.enrolledSemester
+          )
+      );
+      setEnrollments(newEnrollments);
+      saveEnrollments(newEnrollments);
+    },
+    [enrollments, saveEnrollments]
+  );
+
+  // 드래그 시작
+  const handleDragStart = (e: React.DragEvent, enrollment: Enrollment, semesterKey: string) => {
+    setDraggedEnrollment(enrollment);
+    setDraggedFromSemester(semesterKey);
+    e.dataTransfer.effectAllowed = 'move';
   };
 
-  const enrollments = profile?.enrollments ?? [];
-  const addPanel = (
-    <AddCoursePanel
-      isExpanded={isAddFormExpanded}
-      setIsExpanded={setIsAddFormExpanded}
-      newCourse={newCourse}
-      setNewCourse={setNewCourse}
-      filteredCourses={filteredCourses}
-      profile={profile}
-      deptName={deptName}
-      validGrades={VALID_GRADES}
-      semesters={SEMESTERS}
-      searchQuery={courseSearchQuery}
-      onSearchQueryChange={setCourseSearchQuery}
-      onAdd={addEnrollment}
-    />
+  // 드롭 (학기 섹션에)
+  const handleDrop = useCallback(
+    (e: React.DragEvent, targetSemesterKey: string) => {
+      e.preventDefault();
+      const [targetYear, targetSemester] = targetSemesterKey.split('-');
+
+      if (draggedEnrollment) {
+        // 기존 수강 내역을 다른 학기로 이동
+        const newEnrollments = enrollments
+          .filter(
+            (e) =>
+              !(
+                e.courseId === draggedEnrollment.courseId &&
+                e.enrolledYear === draggedEnrollment.enrolledYear &&
+                e.enrolledSemester === draggedEnrollment.enrolledSemester
+              )
+          )
+          .map((e) => e);
+
+        newEnrollments.push({
+          ...draggedEnrollment,
+          enrolledYear: parseInt(targetYear),
+          enrolledSemester: targetSemester as Semester,
+        });
+
+        setEnrollments(newEnrollments);
+        setDraggedEnrollment(null);
+        setDraggedFromSemester(null);
+        saveEnrollments(newEnrollments);
+      } else if (draggedCourse) {
+        // 검색 결과에서 드래그한 과목을 수강 내역에 추가
+        const targetSemesterObj =
+          enrollments.length === 0
+            ? findNearestPastSemester()
+            : { year: parseInt(targetYear), semester: targetSemester as Semester };
+        const courseCode = draggedCourse.code || draggedCourse.id || '';
+        const newEnrollment: Enrollment = {
+          courseId: courseCode,
+          course: {
+            id: draggedCourse.id || courseCode,
+            code: draggedCourse.code || courseCode,
+            title: draggedCourse.title || '',
+            department: draggedCourse.department || '',
+            category: draggedCourse.category || '',
+            credit: draggedCourse.credit || 3,
+            au: draggedCourse.au || 0,
+          },
+          enrolledYear: targetSemesterObj.year,
+          enrolledSemester: targetSemesterObj.semester,
+          grade: 'A+',
+        };
+
+        // 중복 체크 (같은 과목이 같은 학기에 이미 있는지)
+        const isDuplicate = enrollments.some(
+          (e) =>
+            e.courseId === newEnrollment.courseId &&
+            e.enrolledYear === newEnrollment.enrolledYear &&
+            e.enrolledSemester === newEnrollment.enrolledSemester
+        );
+
+        if (isDuplicate) {
+          alert('이미 해당 학기에 추가된 과목입니다.');
+          setDraggedCourse(null);
+          return;
+        }
+
+        const newEnrollments = [...enrollments, newEnrollment];
+        setEnrollments(newEnrollments);
+        setDraggedCourse(null);
+        saveEnrollments(newEnrollments);
+      }
+    },
+    [draggedEnrollment, draggedCourse, enrollments, saveEnrollments]
   );
-  const takenList = (
-    <EnrollmentsList
-      enrollments={enrollments}
-      onRemove={removeEnrollment}
-      ulClassName="space-y-2"
-    />
+
+  // 목록 밖으로 드롭 (삭제)
+  const handleDropOutside = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (draggedEnrollment) {
+        handleRemove(draggedEnrollment);
+        setDraggedEnrollment(null);
+        setDraggedFromSemester(null);
+      }
+      if (draggedCourse) {
+        setDraggedCourse(null);
+      }
+    },
+    [draggedEnrollment, draggedCourse, handleRemove]
   );
-  const takenListScrollable = (
-    <EnrollmentsList
-      enrollments={enrollments}
-      onRemove={removeEnrollment}
-      ulClassName="space-y-2 max-h-[calc(100vh-300px)] overflow-y-auto"
-    />
-  );
+
+  const semesterGroups = useMemo(() => groupBySemester(enrollments), [enrollments]);
+  const sortedSemesterKeys = Array.from(semesterGroups.keys()).sort((a, b) => {
+    const [yearA, semA] = a.split('-');
+    const [yearB, semB] = b.split('-');
+    if (yearA !== yearB) return parseInt(yearA) - parseInt(yearB);
+    const order: Semester[] = ['SPRING', 'SUMMER', 'FALL', 'WINTER'];
+    return order.indexOf(semA as Semester) - order.indexOf(semB as Semester);
+  });
 
   return (
     <>
@@ -228,28 +473,91 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             </div>
           </div>
           <div className="p-6 pt-4">
-            {courseMode === 'add' ? addPanel : takenList}
+            {courseMode === 'add' ? (
+              <AddCoursePanel
+                searchQuery={courseSearchQuery}
+                onSearchQueryChange={setCourseSearchQuery}
+                searchResults={searchResults}
+                selectedCourseIds={selectedCourseIds}
+                onSelectionChange={setSelectedCourseIds}
+                addYear={addYear}
+                onAddYearChange={setAddYear}
+                addSemester={addSemester}
+                onAddSemesterChange={setAddSemester}
+                addGrade={addGrade}
+                onAddGradeChange={setAddGrade}
+                onAddSelected={handleAddSelected}
+                onDragStart={(course) => setDraggedCourse(course)}
+              />
+            ) : (
+              <EnrollmentsList
+                enrollments={enrollments}
+                semesterGroups={semesterGroups}
+                sortedSemesterKeys={sortedSemesterKeys}
+                onGradeChange={handleGradeChange}
+                onRemove={handleRemove}
+                onDragStart={handleDragStart}
+                onDrop={handleDrop}
+                onDropOutside={handleDropOutside}
+                findNearestPastSemester={findNearestPastSemester}
+              />
+            )}
           </div>
         </div>
       </div>
 
       {/* 2열: 넓은 화면 */}
-      <div className="hidden lg:grid lg:grid-cols-2 lg:gap-6">
-        <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-zinc-900">
+      <div className="hidden h-full lg:flex justify-center items-start lg:gap-6 overflow-hidden">
+        <div className="h-full flex-1 flex min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-zinc-900">
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="sticky top-0 z-10 flex-shrink-0 space-y-4 p-6 pb-0">
+            <div className="flex-shrink-0 space-y-4 p-6 pb-0">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">과목 추가</h2>
             </div>
             <div className="space-y-4 p-6 pt-4">
-              {addPanel}
+              <AddCoursePanel
+                searchQuery={courseSearchQuery}
+                onSearchQueryChange={setCourseSearchQuery}
+                searchResults={searchResults}
+                selectedCourseIds={selectedCourseIds}
+                onSelectionChange={setSelectedCourseIds}
+                addYear={addYear}
+                onAddYearChange={setAddYear}
+                addSemester={addSemester}
+                onAddSemesterChange={setAddSemester}
+                addGrade={addGrade}
+                onAddGradeChange={setAddGrade}
+                onAddSelected={handleAddSelected}
+                onDragStart={(course) => setDraggedCourse(course)}
+              />
             </div>
           </div>
         </div>
-        <div className="rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-zinc-900">
+        <div
+          className="flex-1 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-zinc-900 h-full overflow-y-auto"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDropOutside(e);
+          }}
+        >
           <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
             수강한 과목 ({enrollments.length})
           </h2>
-          {takenListScrollable}
+          <EnrollmentsList
+            enrollments={enrollments}
+            semesterGroups={semesterGroups}
+            sortedSemesterKeys={sortedSemesterKeys}
+            onGradeChange={handleGradeChange}
+            onRemove={handleRemove}
+            onDragStart={handleDragStart}
+            onDrop={handleDrop}
+            onDropOutside={handleDropOutside}
+            findNearestPastSemester={findNearestPastSemester}
+          />
         </div>
       </div>
     </>
