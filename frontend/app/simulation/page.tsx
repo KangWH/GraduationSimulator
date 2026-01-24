@@ -577,7 +577,7 @@ export default function SimulationPage() {
                 >
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-semibold">졸업 요건 조회</h2>
+                      <h2 className="text-xl font-semibold">졸업 요건</h2>
                       {!rightPanelOpen && (
                         <button
                           type="button"
