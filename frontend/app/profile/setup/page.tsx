@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input, NumberInput, Select } from '../../components/formFields';
-import { DepartmentDropdown, MultipleDepartmentDropdown } from '../../components/DepartmentDropeown';
+import { DepartmentDropdown, MultipleDepartmentDropdown } from '../../components/DepartmentDropdown';
 
 export default function ProfileSetupPage() {
   const router = useRouter();

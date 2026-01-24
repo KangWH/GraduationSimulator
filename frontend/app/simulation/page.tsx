@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { DepartmentDropdown, MultipleDepartmentDropdown } from '../components/DepartmentDropeown';
+import { DepartmentDropdown, MultipleDepartmentDropdown } from '../components/DepartmentDropdown';
 import { NumberInput, Select, Input } from '../components/formFields';
+import { CourseCategoryDropdown } from '../components/CourseCategoryDropdown';
 
 const API = 'http://localhost:4000';
 
@@ -52,7 +53,7 @@ export default function SimulationPage() {
     name: '',
     code: '',
     department: '',
-    category: '',
+    category: 'ME',
   });
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
@@ -853,7 +854,7 @@ export default function SimulationPage() {
                                       type="text"
                                       value={newCourse.code}
                                       onChange={(value) => setNewCourse({ ...newCourse, code: value })}
-                                      placeholder="예: CS330"
+                                      placeholder="예: CS.30300"
                                       size="small"
                                     />
                                   </div>
@@ -869,19 +870,11 @@ export default function SimulationPage() {
                                   </div>
                                   <div className="flex flex-col gap-2">
                                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목구분</label>
-                                    <Select
+                                    <CourseCategoryDropdown
                                       value={newCourse.category}
-                                      onChange={(value) => setNewCourse({ ...newCourse, category: value })}
+                                      onChange={(newValue) => setNewCourse({ ...newCourse, category: newValue })}
                                       size="small"
-                                    >
-                                      <option value="">선택</option>
-                                      <option value="전필">전필</option>
-                                      <option value="전선">전선</option>
-                                      <option value="인선">인선</option>
-                                      <option value="자선">자선</option>
-                                      <option value="교필">교필</option>
-                                      <option value="교선">교선</option>
-                                    </Select>
+                                    />
                                   </div>
                                 </div>
 

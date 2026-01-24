@@ -3,7 +3,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { API } from '../../lib/api';
 import type { Profile } from './types';
-import CourseSearchInput from './CourseSearchInput';
 import AddCoursePanel from './AddCoursePanel';
 import EnrollmentsList from './EnrollmentsList';
 
@@ -73,22 +72,22 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
       .catch(() => {});
   }, []);
 
-  const removeEnrollment = async (enrollmentId: string) => {
+  const removeEnrollment = async (enrollmentId: number) => {
     if (!userId || !profile) return;
     try {
-      const res = await fetch(
-        `${API}/profile/enrollments/${enrollmentId}?userId=${encodeURIComponent(userId)}`,
-        { method: 'DELETE', credentials: 'include' }
-      );
-      const data = await res.json();
-      if (data.success) {
-        onProfileUpdate({
-          ...profile,
-          enrollments: (profile.enrollments || []).filter((e) => e.id !== enrollmentId),
-        });
-      } else {
-        alert(data.message || '삭제에 실패했습니다.');
-      }
+      // const res = await fetch(
+      //   `${API}/profile/enrollments/${enrollmentId}?userId=${encodeURIComponent(userId)}`,
+      //   { method: 'DELETE', credentials: 'include' }
+      // );
+      // const data = await res.json();
+      // if (data.success) {
+      //   onProfileUpdate({
+      //     ...profile,
+      //     enrollments: (profile.enrollments || []).filter((e) => e.id !== enrollmentId),
+      //   });
+      // } else {
+      //   alert(data.message || '삭제에 실패했습니다.');
+      // }
     } catch {
       alert('서버 오류가 발생했습니다.');
     }
@@ -166,14 +165,6 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   };
 
   const enrollments = profile?.enrollments ?? [];
-  const searchInput = !isAddFormExpanded && (
-    <CourseSearchInput
-      value={courseSearchQuery}
-      onChange={setCourseSearchQuery}
-      onExpand={() => setIsAddFormExpanded(!isAddFormExpanded)}
-      isExpanded={isAddFormExpanded}
-    />
-  );
   const addPanel = (
     <AddCoursePanel
       isExpanded={isAddFormExpanded}
@@ -186,6 +177,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
       validGrades={VALID_GRADES}
       semesters={SEMESTERS}
       searchQuery={courseSearchQuery}
+      onSearchQueryChange={setCourseSearchQuery}
       onAdd={addEnrollment}
     />
   );
@@ -205,9 +197,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   );
 
   return (
-    <div className="flex flex-col space-y-8">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">들은 과목 변경</h1>
-
+    <>
       {/* 1열: 모바일/태블릿 탭 */}
       <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-zinc-900 lg:hidden">
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -236,7 +226,6 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                 수강한 과목 ({enrollments.length})
               </button>
             </div>
-            {courseMode === 'add' && searchInput}
           </div>
           <div className="p-6 pt-4">
             {courseMode === 'add' ? addPanel : takenList}
@@ -248,9 +237,8 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
       <div className="hidden lg:grid lg:grid-cols-2 lg:gap-6">
         <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-zinc-900">
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="sticky top-0 z-10 flex-shrink-0 space-y-4 border-b border-gray-200 bg-white p-6 pb-4 dark:border-gray-700 dark:bg-zinc-900">
+            <div className="sticky top-0 z-10 flex-shrink-0 space-y-4 p-6 pb-0">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">과목 추가</h2>
-              {searchInput}
             </div>
             <div className="space-y-4 p-6 pt-4">
               {addPanel}
@@ -264,6 +252,6 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
           {takenListScrollable}
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import { Input, NumberInput, Select } from '../../components/formFields';
-import { DepartmentDropdown } from '../../components/DepartmentDropeown';
+import { DepartmentDropdown } from '../../components/DepartmentDropdown';
 import type { Profile } from './types';
+import { CourseCategoryDropdown } from '@/app/components/CourseCategoryDropdown';
 
 interface NewCourse {
   name: string;
@@ -26,6 +27,7 @@ interface AddCoursePanelProps {
   validGrades: string[];
   semesters: string[];
   searchQuery: string;
+  onSearchQueryChange: (v: string) => void;
   onAdd: () => void;
 }
 
@@ -40,6 +42,7 @@ export default function AddCoursePanel({
   validGrades,
   semesters,
   searchQuery,
+  onSearchQueryChange,
   onAdd,
 }: AddCoursePanelProps) {
   if (isExpanded) {
@@ -52,7 +55,7 @@ export default function AddCoursePanel({
               type="text"
               value={newCourse.name}
               onChange={(value) => setNewCourse((c) => ({ ...c, name: value }))}
-              placeholder="예: 컴퓨터네트워크"
+              placeholder="예: 운영체제및실험"
               size="medium"
             />
           </div>
@@ -74,7 +77,7 @@ export default function AddCoursePanel({
               type="text"
               value={newCourse.code}
               onChange={(value) => setNewCourse((c) => ({ ...c, code: value }))}
-              placeholder="예: CS330"
+              placeholder="예: CS.30300"
               size="small"
             />
           </div>
@@ -90,15 +93,11 @@ export default function AddCoursePanel({
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목구분</label>
-            <Select value={newCourse.category} onChange={(value) => setNewCourse((c) => ({ ...c, category: value }))} size="small">
-              <option value="">선택</option>
-              <option value="전필">전필</option>
-              <option value="전선">전선</option>
-              <option value="인선">인선</option>
-              <option value="자선">자선</option>
-              <option value="교필">교필</option>
-              <option value="교선">교선</option>
-            </Select>
+            <CourseCategoryDropdown
+              value={newCourse.category}
+              onChange={(newValue) => setNewCourse((c) => ({ ...c, category: newValue }))}
+              size="small"
+            />
           </div>
         </div>
         <div className="grid grid-cols-4 gap-3">
@@ -152,7 +151,41 @@ export default function AddCoursePanel({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
+      {/* 검색 창 */}
+      <div className="flex gap-2">
+        <div className="relative grow">
+          <Input
+            type="text"
+            value={searchQuery}
+            onChange={onSearchQueryChange}
+            placeholder="과목명 또는 과목코드로 검색"
+            size="medium"
+            className="pr-10"
+          />
+          <button
+            type="button"
+            className="absolute right-1 top-1 bottom-1 flex items-center justify-center px-1.5 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-zinc-900 dark:text-gray-400 dark:hover:text-gray-200 active:bg-gray-200 dark:active:bg-zinc-800 transition-colors"
+            title="검색"
+            aria-label="검색"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsExpanded(true)}
+          className="shrink-0 rounded p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-zinc-800 dark:hover:text-gray-200"
+          title="상세 검색"
+        >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
       <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">검색 결과 ({filteredCourses.length})</h3>
       <div className="space-y-2 overflow-y-auto">
         {filteredCourses.length === 0 ? (
@@ -169,7 +202,7 @@ export default function AddCoursePanel({
             return (
               <div
                 key={course.id}
-                className="flex items-center justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-zinc-800"
+                className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-zinc-800"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{course.title || course.name}</p>
