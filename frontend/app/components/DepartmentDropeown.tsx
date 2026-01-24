@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { FieldSize, Select } from './formFields';
 
 interface DepartmentData {
   id: string;
@@ -12,14 +13,18 @@ interface DepartmentData {
 }
 
 interface DepartmentDropdownProps {
+  id?: string;
+  name?: string;
   value: string;
   onChange: (newValue: string) => void;
+  required?: boolean;
   mode: 'major' | 'doubleMajor' | 'minor' | 'course';
   allowNone?: boolean;
   multipleChoices?: boolean;
+  size?: FieldSize
 }
 
-export default function DepartmentDropdown({ value, onChange, mode, allowNone = false, multipleChoices = false }: DepartmentDropdownProps) {
+export default function DepartmentDropdown({ id, name, value, onChange, required = false, mode, allowNone = false, multipleChoices = false, size = 'medium' }: DepartmentDropdownProps) {
   const [data, setData] = useState<DepartmentData[]>([]);
 
   useEffect(() => {
@@ -55,10 +60,13 @@ export default function DepartmentDropdown({ value, onChange, mode, allowNone = 
   }, {});
 
   return (
-    <select
+    <Select
+      id={id}
+      name={name}
       value={value}
-      onChange={(e) => {onChange(e.target.value)}}
-      className="rounded-md border border-gray-300 dark:border-zinc-700 bg-white dark:bg-white rounded shadow-sm focus:border-violet-500 outline-none px-2 py-1 appearance-none text-sm"
+      onChange={(newValue) => onChange(newValue)}
+      required={required}
+      size={size}
     >
       {allowNone && (
         <option value="none">없음</option>
@@ -72,6 +80,6 @@ export default function DepartmentDropdown({ value, onChange, mode, allowNone = 
           ))}
         </optgroup>
       ))}
-    </select>
+    </Select>
   )
 }

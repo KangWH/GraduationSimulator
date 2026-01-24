@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DepartmentDropdown from '../components/DepartmentDropeown';
+import { NumberInput } from '../components/formFields';
 
 export default function SimulationPage() {
   const router = useRouter();
@@ -168,27 +169,32 @@ export default function SimulationPage() {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                 전공 이수 기준 연도
               </label>
-              <input
+              {/* <input
                 type="number"
                 min="2000"
                 max="2030"
                 value={filters.requirementYear}
                 onChange={(e) => setFilters({ ...filters, requirementYear: parseInt(e.target.value) })}
                 className="w-28 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
+              /> */}
+              <NumberInput
+                min="2016"
+                max="2050"
+                value={filters.requirementYear}
+                onChange={(newValue) => setFilters({ ...filters, requirementYear: parseInt(newValue) })}
+                size="small"
               />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                 주전공 학과
               </label>
-              {/* <input
-                type="text"
+              <DepartmentDropdown
                 value={filters.major}
-                onChange={(e) => setFilters({ ...filters, major: e.target.value })}
-                placeholder="주전공 학과"
-                className="w-36 rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
-              /> */}
-              <DepartmentDropdown value={filters.major} onChange={(newValue) => setFilters({ ...filters, major: newValue })} mode="major" />
+                onChange={(newValue) => setFilters({ ...filters, major: newValue })}
+                mode="major"
+                size="small"
+              />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">

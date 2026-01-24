@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Input } from "../components/formFields";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -57,14 +58,13 @@ export default function LoginPage() {
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 이메일
               </label>
-              <input
+              <Input
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(newValue) => setEmail(newValue)}
                 id="email"
                 name="email"
                 type="email"
                 required
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
                 placeholder="이메일을 입력하세요"
               />
             </div>
@@ -73,14 +73,13 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 비밀번호
               </label>
-              <input
+              <Input
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(newValue) => setPassword(newValue)}
                 id="password"
                 name="password"
                 type="password"
                 required
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 dark:border-gray-600 dark:bg-zinc-800 dark:text-white"
                 placeholder="비밀번호를 입력하세요"
               />
             </div>
