@@ -1,0 +1,13 @@
+{
+  "info": {
+    "dept": "MAS",
+    "type": "Minor",
+    "year": "2016"
+  },
+  "requirements": {
+    "type": "REQUIRE_MIN_CREDITS_AMONG", 
+    "description": "Elective_Major_CREDITS",
+    "credits": 18,
+    "targets": ["MAS.20010", "MAS.20012", "MAS.20041", "MAS.20042", "MAS.20060", "MAS.20070", "MAS.20075", "MAS.30011", "MAS.30012", "MAS.30021", "MAS.30031", "MAS.30041", "MAS.30050", "MAS.30055", "MAS.30064", "MAS.30065", "MAS.30070", "MAS.30074", "MAS.40010", "MAS.40011", "MAS.40012", "MAS.40020", "MAS.40030", "MAS.40035", "MAS.40040", "MAS.40041", "MAS.40042", "MAS.40043", "MAS.40055", "MAS.40056", "MAS.40064", "MAS.40067", "MAS.40071", "MAS.40072", "MAS.40073", "MAS.40075", "MAS.40076", "MAS.40077", "MAS.40078", "MAS.49900", "MAS.49901"]
+  }
+}

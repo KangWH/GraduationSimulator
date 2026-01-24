@@ -1,0 +1,13 @@
+{
+  "info": {
+    "dept": "MAS",
+    "type": "Advanced_Major",
+    "year": "2016"
+  },
+  "requirements": {
+    "type": "REQUIRE_MIN_CREDITS_AMONG", 
+    "description": "Elective_Major_CREDITS",
+    "credits": 13,
+    "targets": ["MAS.20042", "MAS.30012", "MAS.40030", "MAS.40040"]
+  }
+}
