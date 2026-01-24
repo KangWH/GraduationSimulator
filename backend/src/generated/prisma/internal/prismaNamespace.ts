@@ -937,10 +937,10 @@ export type SimulationScalarFieldEnum = (typeof SimulationScalarFieldEnum)[keyof
 export const CourseOfferingScalarFieldEnum = {
   id: 'id',
   code: 'code',
-  isSeasonalSemester: 'isSeasonalSemester',
   title: 'title',
   department: 'department',
   category: 'category',
+  tags: 'tags',
   credit: 'credit',
   au: 'au'
 } as const

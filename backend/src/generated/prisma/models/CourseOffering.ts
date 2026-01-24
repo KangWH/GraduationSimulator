@@ -39,7 +39,6 @@ export type CourseOfferingSumAggregateOutputType = {
 export type CourseOfferingMinAggregateOutputType = {
   id: string | null
   code: string | null
-  isSeasonalSemester: boolean | null
   title: string | null
   department: string | null
   category: string | null
@@ -50,7 +49,6 @@ export type CourseOfferingMinAggregateOutputType = {
 export type CourseOfferingMaxAggregateOutputType = {
   id: string | null
   code: string | null
-  isSeasonalSemester: boolean | null
   title: string | null
   department: string | null
   category: string | null
@@ -61,10 +59,10 @@ export type CourseOfferingMaxAggregateOutputType = {
 export type CourseOfferingCountAggregateOutputType = {
   id: number
   code: number
-  isSeasonalSemester: number
   title: number
   department: number
   category: number
+  tags: number
   credit: number
   au: number
   _all: number
@@ -84,7 +82,6 @@ export type CourseOfferingSumAggregateInputType = {
 export type CourseOfferingMinAggregateInputType = {
   id?: true
   code?: true
-  isSeasonalSemester?: true
   title?: true
   department?: true
   category?: true
@@ -95,7 +92,6 @@ export type CourseOfferingMinAggregateInputType = {
 export type CourseOfferingMaxAggregateInputType = {
   id?: true
   code?: true
-  isSeasonalSemester?: true
   title?: true
   department?: true
   category?: true
@@ -106,10 +102,10 @@ export type CourseOfferingMaxAggregateInputType = {
 export type CourseOfferingCountAggregateInputType = {
   id?: true
   code?: true
-  isSeasonalSemester?: true
   title?: true
   department?: true
   category?: true
+  tags?: true
   credit?: true
   au?: true
   _all?: true
@@ -204,10 +200,10 @@ export type CourseOfferingGroupByArgs<ExtArgs extends runtime.Types.Extensions.I
 export type CourseOfferingGroupByOutputType = {
   id: string
   code: string
-  isSeasonalSemester: boolean
   title: string
   department: string
   category: string
+  tags: string[]
   credit: number
   au: number
   _count: CourseOfferingCountAggregateOutputType | null
@@ -238,10 +234,10 @@ export type CourseOfferingWhereInput = {
   NOT?: Prisma.CourseOfferingWhereInput | Prisma.CourseOfferingWhereInput[]
   id?: Prisma.StringFilter<"CourseOffering"> | string
   code?: Prisma.StringFilter<"CourseOffering"> | string
-  isSeasonalSemester?: Prisma.BoolFilter<"CourseOffering"> | boolean
   title?: Prisma.StringFilter<"CourseOffering"> | string
   department?: Prisma.StringFilter<"CourseOffering"> | string
   category?: Prisma.StringFilter<"CourseOffering"> | string
+  tags?: Prisma.StringNullableListFilter<"CourseOffering">
   credit?: Prisma.IntFilter<"CourseOffering"> | number
   au?: Prisma.IntFilter<"CourseOffering"> | number
 }
@@ -249,35 +245,36 @@ export type CourseOfferingWhereInput = {
 export type CourseOfferingOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
-  isSeasonalSemester?: Prisma.SortOrder
   title?: Prisma.SortOrder
   department?: Prisma.SortOrder
   category?: Prisma.SortOrder
+  tags?: Prisma.SortOrder
   credit?: Prisma.SortOrder
   au?: Prisma.SortOrder
 }
 
 export type CourseOfferingWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  code_title_category_credit_au?: Prisma.CourseOfferingCodeTitleCategoryCreditAuCompoundUniqueInput
   AND?: Prisma.CourseOfferingWhereInput | Prisma.CourseOfferingWhereInput[]
   OR?: Prisma.CourseOfferingWhereInput[]
   NOT?: Prisma.CourseOfferingWhereInput | Prisma.CourseOfferingWhereInput[]
   code?: Prisma.StringFilter<"CourseOffering"> | string
-  isSeasonalSemester?: Prisma.BoolFilter<"CourseOffering"> | boolean
   title?: Prisma.StringFilter<"CourseOffering"> | string
   department?: Prisma.StringFilter<"CourseOffering"> | string
   category?: Prisma.StringFilter<"CourseOffering"> | string
+  tags?: Prisma.StringNullableListFilter<"CourseOffering">
   credit?: Prisma.IntFilter<"CourseOffering"> | number
   au?: Prisma.IntFilter<"CourseOffering"> | number
-}, "id">
+}, "id" | "code_title_category_credit_au">
 
 export type CourseOfferingOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
-  isSeasonalSemester?: Prisma.SortOrder
   title?: Prisma.SortOrder
   department?: Prisma.SortOrder
   category?: Prisma.SortOrder
+  tags?: Prisma.SortOrder
   credit?: Prisma.SortOrder
   au?: Prisma.SortOrder
   _count?: Prisma.CourseOfferingCountOrderByAggregateInput
@@ -293,10 +290,10 @@ export type CourseOfferingScalarWhereWithAggregatesInput = {
   NOT?: Prisma.CourseOfferingScalarWhereWithAggregatesInput | Prisma.CourseOfferingScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
   code?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
-  isSeasonalSemester?: Prisma.BoolWithAggregatesFilter<"CourseOffering"> | boolean
   title?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
   department?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
   category?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
+  tags?: Prisma.StringNullableListFilter<"CourseOffering">
   credit?: Prisma.IntWithAggregatesFilter<"CourseOffering"> | number
   au?: Prisma.IntWithAggregatesFilter<"CourseOffering"> | number
 }
@@ -304,10 +301,10 @@ export type CourseOfferingScalarWhereWithAggregatesInput = {
 export type CourseOfferingCreateInput = {
   id?: string
   code: string
-  isSeasonalSemester: boolean
   title: string
   department: string
   category: string
+  tags?: Prisma.CourseOfferingCreatetagsInput | string[]
   credit: number
   au: number
 }
@@ -315,10 +312,10 @@ export type CourseOfferingCreateInput = {
 export type CourseOfferingUncheckedCreateInput = {
   id?: string
   code: string
-  isSeasonalSemester: boolean
   title: string
   department: string
   category: string
+  tags?: Prisma.CourseOfferingCreatetagsInput | string[]
   credit: number
   au: number
 }
@@ -326,10 +323,10 @@ export type CourseOfferingUncheckedCreateInput = {
 export type CourseOfferingUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
-  isSeasonalSemester?: Prisma.BoolFieldUpdateOperationsInput | boolean
   title?: Prisma.StringFieldUpdateOperationsInput | string
   department?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
+  tags?: Prisma.CourseOfferingUpdatetagsInput | string[]
   credit?: Prisma.IntFieldUpdateOperationsInput | number
   au?: Prisma.IntFieldUpdateOperationsInput | number
 }
@@ -337,10 +334,10 @@ export type CourseOfferingUpdateInput = {
 export type CourseOfferingUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
-  isSeasonalSemester?: Prisma.BoolFieldUpdateOperationsInput | boolean
   title?: Prisma.StringFieldUpdateOperationsInput | string
   department?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
+  tags?: Prisma.CourseOfferingUpdatetagsInput | string[]
   credit?: Prisma.IntFieldUpdateOperationsInput | number
   au?: Prisma.IntFieldUpdateOperationsInput | number
 }
@@ -348,10 +345,10 @@ export type CourseOfferingUncheckedUpdateInput = {
 export type CourseOfferingCreateManyInput = {
   id?: string
   code: string
-  isSeasonalSemester: boolean
   title: string
   department: string
   category: string
+  tags?: Prisma.CourseOfferingCreatetagsInput | string[]
   credit: number
   au: number
 }
@@ -359,10 +356,10 @@ export type CourseOfferingCreateManyInput = {
 export type CourseOfferingUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
-  isSeasonalSemester?: Prisma.BoolFieldUpdateOperationsInput | boolean
   title?: Prisma.StringFieldUpdateOperationsInput | string
   department?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
+  tags?: Prisma.CourseOfferingUpdatetagsInput | string[]
   credit?: Prisma.IntFieldUpdateOperationsInput | number
   au?: Prisma.IntFieldUpdateOperationsInput | number
 }
@@ -370,21 +367,29 @@ export type CourseOfferingUpdateManyMutationInput = {
 export type CourseOfferingUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
-  isSeasonalSemester?: Prisma.BoolFieldUpdateOperationsInput | boolean
   title?: Prisma.StringFieldUpdateOperationsInput | string
   department?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
+  tags?: Prisma.CourseOfferingUpdatetagsInput | string[]
   credit?: Prisma.IntFieldUpdateOperationsInput | number
   au?: Prisma.IntFieldUpdateOperationsInput | number
+}
+
+export type CourseOfferingCodeTitleCategoryCreditAuCompoundUniqueInput = {
+  code: string
+  title: string
+  category: string
+  credit: number
+  au: number
 }
 
 export type CourseOfferingCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
-  isSeasonalSemester?: Prisma.SortOrder
   title?: Prisma.SortOrder
   department?: Prisma.SortOrder
   category?: Prisma.SortOrder
+  tags?: Prisma.SortOrder
   credit?: Prisma.SortOrder
   au?: Prisma.SortOrder
 }
@@ -397,7 +402,6 @@ export type CourseOfferingAvgOrderByAggregateInput = {
 export type CourseOfferingMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
-  isSeasonalSemester?: Prisma.SortOrder
   title?: Prisma.SortOrder
   department?: Prisma.SortOrder
   category?: Prisma.SortOrder
@@ -408,7 +412,6 @@ export type CourseOfferingMaxOrderByAggregateInput = {
 export type CourseOfferingMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
-  isSeasonalSemester?: Prisma.SortOrder
   title?: Prisma.SortOrder
   department?: Prisma.SortOrder
   category?: Prisma.SortOrder
@@ -421,15 +424,24 @@ export type CourseOfferingSumOrderByAggregateInput = {
   au?: Prisma.SortOrder
 }
 
+export type CourseOfferingCreatetagsInput = {
+  set: string[]
+}
+
+export type CourseOfferingUpdatetagsInput = {
+  set?: string[]
+  push?: string | string[]
+}
+
 
 
 export type CourseOfferingSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   code?: boolean
-  isSeasonalSemester?: boolean
   title?: boolean
   department?: boolean
   category?: boolean
+  tags?: boolean
   credit?: boolean
   au?: boolean
 }, ExtArgs["result"]["courseOffering"]>
@@ -437,10 +449,10 @@ export type CourseOfferingSelect<ExtArgs extends runtime.Types.Extensions.Intern
 export type CourseOfferingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   code?: boolean
-  isSeasonalSemester?: boolean
   title?: boolean
   department?: boolean
   category?: boolean
+  tags?: boolean
   credit?: boolean
   au?: boolean
 }, ExtArgs["result"]["courseOffering"]>
@@ -448,10 +460,10 @@ export type CourseOfferingSelectCreateManyAndReturn<ExtArgs extends runtime.Type
 export type CourseOfferingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   code?: boolean
-  isSeasonalSemester?: boolean
   title?: boolean
   department?: boolean
   category?: boolean
+  tags?: boolean
   credit?: boolean
   au?: boolean
 }, ExtArgs["result"]["courseOffering"]>
@@ -459,15 +471,15 @@ export type CourseOfferingSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
 export type CourseOfferingSelectScalar = {
   id?: boolean
   code?: boolean
-  isSeasonalSemester?: boolean
   title?: boolean
   department?: boolean
   category?: boolean
+  tags?: boolean
   credit?: boolean
   au?: boolean
 }
 
-export type CourseOfferingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "isSeasonalSemester" | "title" | "department" | "category" | "credit" | "au", ExtArgs["result"]["courseOffering"]>
+export type CourseOfferingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "title" | "department" | "category" | "tags" | "credit" | "au", ExtArgs["result"]["courseOffering"]>
 
 export type $CourseOfferingPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "CourseOffering"
@@ -475,10 +487,10 @@ export type $CourseOfferingPayload<ExtArgs extends runtime.Types.Extensions.Inte
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     code: string
-    isSeasonalSemester: boolean
     title: string
     department: string
     category: string
+    tags: string[]
     credit: number
     au: number
   }, ExtArgs["result"]["courseOffering"]>
@@ -906,10 +918,10 @@ export interface Prisma__CourseOfferingClient<T, Null = never, ExtArgs extends r
 export interface CourseOfferingFieldRefs {
   readonly id: Prisma.FieldRef<"CourseOffering", 'String'>
   readonly code: Prisma.FieldRef<"CourseOffering", 'String'>
-  readonly isSeasonalSemester: Prisma.FieldRef<"CourseOffering", 'Boolean'>
   readonly title: Prisma.FieldRef<"CourseOffering", 'String'>
   readonly department: Prisma.FieldRef<"CourseOffering", 'String'>
   readonly category: Prisma.FieldRef<"CourseOffering", 'String'>
+  readonly tags: Prisma.FieldRef<"CourseOffering", 'String[]'>
   readonly credit: Prisma.FieldRef<"CourseOffering", 'Int'>
   readonly au: Prisma.FieldRef<"CourseOffering", 'Int'>
 }

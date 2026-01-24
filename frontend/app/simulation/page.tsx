@@ -380,7 +380,7 @@ export default function SimulationPage() {
       </aside>
 
       {/* 메인 컨텐츠 */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 flex flex-col overflow-y-auto">
         {/* 상단 필터 바 (sticky) */}
         <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-gray-700 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
@@ -479,7 +479,7 @@ export default function SimulationPage() {
         </div>
 
         {/* 3분할 카드 래퍼 */}
-        <div className="flex-1 flex flex-col min-h-0 p-4">
+        <div className="grow flex flex-col min-h-0 p-4 overflow-hidden">
           <div className="flex-1 flex flex-col min-h-0 rounded-xl shadow-lg overflow-hidden bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-700">
             <div className="flex-1 flex min-h-0">
               {/* 좌측: 섹션별 요건 계산에 사용된 과목 (스크롤 동기화) */}
@@ -676,166 +676,69 @@ export default function SimulationPage() {
               </div>
 
               {/* 우측: 시뮬레이션에서 추가·삭제할 과목 선택 */}
-              <div className={`${rightPanelOpen ? 'w-1/3' : 'w-0'} flex-shrink-0 overflow-hidden transition-all duration-300 flex flex-col`}>
+              <div className={`${rightPanelOpen ? 'w-1/3' : 'w-0'} flex-shrink-0 overflow-hidden transition-all duration-300 flex flex-col min-h-0`}>
                 {rightPanelOpen && (
                   <>
-                  <div className="flex-1 overflow-y-auto">
-                    <div className="p-4">
-                      {/* 모드 전환 버튼 + 접기 버튼 */}
-                      <div className="flex gap-2 mb-4 items-center">
-                    <button
-                      type="button"
-                      onClick={() => setCourseMode('add')}
-                      className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                        courseMode === 'add'
-                          ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-700'
-                          : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700 border border-transparent'
-                      }`}
-                    >
-                      과목 추가
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCourseMode('view')}
-                      className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
-                        courseMode === 'view'
-                          ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-700'
-                          : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700 border border-transparent'
-                      }`}
-                    >
-                      선택한 과목
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRightPanelOpen(false)}
-                      className="flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors border border-gray-200 dark:border-gray-700"
-                      title="패널 접기"
-                    >
-                      <svg
-                        className="w-5 h-5 text-gray-600 dark:text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {courseMode === 'add' ? (
-                    <div className="space-y-4">
-                      {/* 검색창 (폼이 접혀있을 때만 표시) */}
-                      {!isAddFormExpanded && (
-                        <div className="relative">
-                          <Input
-                            type="text"
-                            value={courseSearchQuery}
-                            onChange={setCourseSearchQuery}
-                            placeholder="과목명, 과목코드, 개설학과로 검색..."
-                            size="medium"
-                            className="pr-10"
-                          />
+                    <div className="flex-1 min-h-0 overflow-y-auto">
+                      {/* sticky 상단: 모드 전환 + 검색창 */}
+                      <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-gray-700 p-4 flex-shrink-0 space-y-4">
+                        <div className="flex gap-2 items-center">
                           <button
                             type="button"
-                            onClick={() => setIsAddFormExpanded(true)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                            title="폼 펼치기"
+                            onClick={() => setCourseMode('add')}
+                            className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                              courseMode === 'add'
+                                ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-700'
+                                : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700 border border-transparent'
+                            }`}
+                          >
+                            과목 추가
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCourseMode('view')}
+                            className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                              courseMode === 'view'
+                                ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-700'
+                                : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700 border border-transparent'
+                            }`}
+                          >
+                            선택한 과목
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRightPanelOpen(false)}
+                            className="flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors border border-gray-200 dark:border-gray-700"
+                            title="패널 접기"
                           >
                             <svg
-                              className="w-5 h-5 transition-transform"
+                              className="w-5 h-5 text-gray-600 dark:text-gray-400"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
                           </button>
                         </div>
-                      )}
-
-                      {/* 통합검색 결과 (폼이 접혀있을 때만 표시) */}
-                      {!isAddFormExpanded && (
-                        <div className="space-y-2">
-                          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            검색 결과 ({filteredCourses.length})
-                          </h3>
-                          <div className="space-y-2 max-h-96 overflow-y-auto">
-                            {filteredCourses.length === 0 ? (
-                              <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
-                                {courseSearchQuery ? '검색 결과가 없습니다.' : '검색어를 입력하거나 과목을 직접 추가하세요.'}
-                              </p>
-                            ) : (
-                              filteredCourses.map((course) => (
-                                <div
-                                  key={course.id}
-                                  className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-zinc-800"
-                                >
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate">{course.title || course.name}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                      {course.code && `${course.code} | `}
-                                      {course.department && `${deptName(course.department)} | `}
-                                      {course.category || '구분 없음'}
-                                    </p>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (simulationCourses.find((c) => c.id === course.id)) {
-                                        setSimulationCourses(simulationCourses.filter((c) => c.id !== course.id));
-                                      } else {
-                                        setSimulationCourses([
-                                          ...simulationCourses,
-                                          {
-                                            id: course.id,
-                                            name: course.title || course.name,
-                                            code: course.code || '',
-                                            department: course.department || '',
-                                            category: course.category || '',
-                                            credit: course.credit || 3,
-                                          },
-                                        ]);
-                                      }
-                                    }}
-                                    className={`ml-3 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap ${
-                                      simulationCourses.find((c) => c.id === course.id)
-                                        ? 'bg-red-600 text-white hover:bg-red-700'
-                                        : 'bg-green-600 text-white hover:bg-green-700 text-white'
-                                    }`}
-                                  >
-                                    {simulationCourses.find((c) => c.id === course.id) ? '제거' : '추가'}
-                                  </button>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* 과목 추가 폼 (접을 수 있음) */}
-                      {isAddFormExpanded && (
-                        <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                        {courseMode === 'add' && !isAddFormExpanded && (
                           <div className="relative">
-                            {/* 과목명 */}
-                            <div className="flex flex-col grow gap-2">
-                              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목명</label>
-                              <Input
-                                type="text"
-                                value={newCourse.name}
-                                onChange={(value) => setNewCourse({ ...newCourse, name: value })}
-                                placeholder="예: 컴퓨터네트워크"
-                                size="medium"
-                              />
-                            </div>
-                            {/* 폼 접기 버튼 */}
+                            <Input
+                              type="text"
+                              value={courseSearchQuery}
+                              onChange={setCourseSearchQuery}
+                              placeholder="과목명, 과목코드, 개설학과로 검색..."
+                              size="medium"
+                              className="pr-10"
+                            />
                             <button
                               type="button"
-                              onClick={() => setIsAddFormExpanded(false)}
-                              className="absolute top-[-1rem] right-[-1rem] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                              title="폼 접기"
+                              onClick={() => setIsAddFormExpanded(true)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                              title="폼 펼치기"
                             >
                               <svg
-                                className="w-5 h-5 transition-transform rotate-180"
+                                className="w-5 h-5 transition-transform"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -844,110 +747,207 @@ export default function SimulationPage() {
                               </svg>
                             </button>
                           </div>
+                        )}
+                      </div>
 
-                          {/* 과목코드, 개설학과, 과목구분 (한 줄 3분할) */}
-                          <div className="grid grid-cols-3 gap-3">
-                            <div className="flex flex-col gap-2">
-                              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목코드</label>
-                              <Input
-                                type="text"
-                                value={newCourse.code}
-                                onChange={(value) => setNewCourse({ ...newCourse, code: value })}
-                                placeholder="예: CS330"
-                                size="small"
-                              />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">개설학과</label>
-                              <DepartmentDropdown
-                                value={newCourse.department}
-                                onChange={(value) => setNewCourse({ ...newCourse, department: value === 'none' ? '' : value })}
-                                mode="course"
-                                size="small"
-                                allowNone={true}
-                              />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목구분</label>
-                              <Select
-                                value={newCourse.category}
-                                onChange={(value) => setNewCourse({ ...newCourse, category: value })}
-                                size="small"
-                              >
-                                <option value="">선택</option>
-                                <option value="전필">전필</option>
-                                <option value="전선">전선</option>
-                                <option value="인선">인선</option>
-                                <option value="자선">자선</option>
-                                <option value="교필">교필</option>
-                                <option value="교선">교선</option>
-                              </Select>
-                            </div>
+                      <div className="p-4">
+                        {courseMode === 'add' ? (
+                          <div className="space-y-4">
+                            {/* 통합검색 결과 (폼이 접혀있을 때만 표시) */}
+                            {!isAddFormExpanded && (
+                              <div className="space-y-2 h-full flex flex-col overflow-y-hidden">
+                                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                  검색 결과 ({filteredCourses.length})
+                                </h3>
+                                <div className="space-y-2 overflow-y-auto">
+                                  {filteredCourses.length === 0 ? (
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
+                                      {courseSearchQuery ? '검색 결과가 없습니다.' : '검색어를 입력하거나 과목을 직접 추가하세요.'}
+                                    </p>
+                                  ) : (
+                                    filteredCourses.map((course) => (
+                                      <div
+                                        key={course.id}
+                                        className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-zinc-800"
+                                      >
+                                        <div className="flex-1 min-w-0">
+                                          <p className="font-medium truncate">{course.title || course.name}</p>
+                                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                                            {course.code && `${course.code} | `}
+                                            {course.department && `${deptName(course.department)} | `}
+                                            {course.category || '구분 없음'}
+                                          </p>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (simulationCourses.find((c) => c.id === course.id)) {
+                                              setSimulationCourses(simulationCourses.filter((c) => c.id !== course.id));
+                                            } else {
+                                              setSimulationCourses([
+                                                ...simulationCourses,
+                                                {
+                                                  id: course.id,
+                                                  name: course.title || course.name,
+                                                  code: course.code || '',
+                                                  department: course.department || '',
+                                                  category: course.category || '',
+                                                  credit: course.credit || 3,
+                                                },
+                                              ]);
+                                            }
+                                          }}
+                                          className={`ml-3 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap ${
+                                            simulationCourses.find((c) => c.id === course.id)
+                                              ? 'bg-red-600 text-white hover:bg-red-700'
+                                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700 border border-gray-300 dark:border-gray-600'
+                                          }`}
+                                        >
+                                          {simulationCourses.find((c) => c.id === course.id) ? '제거' : '추가'}
+                                        </button>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 과목 추가 폼 (접을 수 있음) */}
+                            {isAddFormExpanded && (
+                              <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
+                                <div className="relative">
+                                  {/* 과목명 */}
+                                  <div className="flex flex-col grow gap-2">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목명</label>
+                                    <Input
+                                      type="text"
+                                      value={newCourse.name}
+                                      onChange={(value) => setNewCourse({ ...newCourse, name: value })}
+                                      placeholder="예: 컴퓨터네트워크"
+                                      size="medium"
+                                    />
+                                  </div>
+                                  {/* 폼 접기 버튼 */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setIsAddFormExpanded(false)}
+                                    className="absolute top-[-1rem] right-[-1rem] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                    title="폼 접기"
+                                  >
+                                    <svg
+                                      className="w-5 h-5 transition-transform rotate-180"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  </button>
+                                </div>
+
+                                {/* 과목코드, 개설학과, 과목구분 (한 줄 3분할) */}
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목코드</label>
+                                    <Input
+                                      type="text"
+                                      value={newCourse.code}
+                                      onChange={(value) => setNewCourse({ ...newCourse, code: value })}
+                                      placeholder="예: CS330"
+                                      size="small"
+                                    />
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">개설학과</label>
+                                    <DepartmentDropdown
+                                      value={newCourse.department}
+                                      onChange={(value) => setNewCourse({ ...newCourse, department: value === 'none' ? '' : value })}
+                                      mode="course"
+                                      size="small"
+                                      allowNone={true}
+                                    />
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목구분</label>
+                                    <Select
+                                      value={newCourse.category}
+                                      onChange={(value) => setNewCourse({ ...newCourse, category: value })}
+                                      size="small"
+                                    >
+                                      <option value="">선택</option>
+                                      <option value="전필">전필</option>
+                                      <option value="전선">전선</option>
+                                      <option value="인선">인선</option>
+                                      <option value="자선">자선</option>
+                                      <option value="교필">교필</option>
+                                      <option value="교선">교선</option>
+                                    </Select>
+                                  </div>
+                                </div>
+
+                                {/* 추가 버튼 */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!newCourse.name.trim()) {
+                                      alert('과목명을 입력해주세요.');
+                                      return;
+                                    }
+                                    const newId = Date.now(); // 임시 ID
+                                    const courseToAdd = {
+                                      id: newId,
+                                      name: newCourse.name,
+                                      code: newCourse.code || '',
+                                      department: newCourse.department || '',
+                                      category: newCourse.category || '',
+                                      credit: 3, // 기본값, 나중에 입력받을 수 있음
+                                    };
+                                    setSimulationCourses([...simulationCourses, courseToAdd]);
+                                    setNewCourse({ name: '', code: '', department: '', category: '' });
+                                    setIsAddFormExpanded(false);
+                                  }}
+                                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700 border border-gray-300 dark:border-gray-600 rounded-lg font-medium transition-colors"
+                                >
+                                  과목 추가
+                                </button>
+                              </div>
+                            )}
                           </div>
-
-                          {/* 추가 버튼 */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!newCourse.name.trim()) {
-                                alert('과목명을 입력해주세요.');
-                                return;
-                              }
-                              const newId = Date.now(); // 임시 ID
-                              const courseToAdd = {
-                                id: newId,
-                                name: newCourse.name,
-                                code: newCourse.code || '',
-                                department: newCourse.department || '',
-                                category: newCourse.category || '',
-                                credit: 3, // 기본값, 나중에 입력받을 수 있음
-                              };
-                              setSimulationCourses([...simulationCourses, courseToAdd]);
-                              setNewCourse({ name: '', code: '', department: '', category: '' });
-                              setIsAddFormExpanded(false);
-                            }}
-                            className="w-full px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-medium transition-colors"
-                          >
-                            과목 추가
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                ) : (
-                    /* 선택한 과목 보기 */
-                    <div className="space-y-2">
-                      {simulationCourses.length === 0 ? (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
-                          추가된 과목이 없습니다.
-                        </p>
-                      ) : (
-                        simulationCourses.map((course) => (
-                          <div
-                            key={course.id}
-                            className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-violet-50 dark:bg-violet-900/20"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{course.name}</p>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {course.code && `${course.code} | `}
-                                {course.department && `${deptName(course.department)} | `}
-                                {course.category || '구분 없음'} | {course.credit || 3}학점
+                        ) : (
+                          /* 선택한 과목 보기 */
+                          <div className="space-y-2">
+                            {simulationCourses.length === 0 ? (
+                              <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
+                                추가된 과목이 없습니다.
                               </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setSimulationCourses(simulationCourses.filter((c) => c.id !== course.id))}
-                              className="ml-3 px-3 py-1.5 text-red-600 hover:text-red-700 text-sm font-medium whitespace-nowrap"
-                            >
-                              삭제
-                            </button>
+                            ) : (
+                              simulationCourses.map((course) => (
+                                <div
+                                  key={course.id}
+                                  className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-violet-50 dark:bg-violet-900/20"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium truncate">{course.name}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                      {course.code && `${course.code} | `}
+                                      {course.department && `${deptName(course.department)} | `}
+                                      {course.category || '구분 없음'} | {course.credit || 3}학점
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSimulationCourses(simulationCourses.filter((c) => c.id !== course.id))}
+                                    className="ml-3 px-3 py-1.5 text-red-600 hover:text-red-700 text-sm font-medium whitespace-nowrap"
+                                  >
+                                    삭제
+                                  </button>
+                                </div>
+                              ))
+                            )}
                           </div>
-                        ))
-                      )}
+                        )}
+                      </div>
                     </div>
-                  )}
-                    </div>
-                  </div>
                   </>
                 )}
               </div>

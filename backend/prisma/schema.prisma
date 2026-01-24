@@ -57,12 +57,15 @@ model Simulation {
 model CourseOffering {
   id                 String @id @default(uuid())
   code               String
-  isSeasonalSemester Boolean
   title              String
   department         String
-  category           String // 인선, 자선, 전필
+  category           String // 인선, 자선, 전필 등
+  tags               String[] // 인선의 경우, 핵심·융합·일반, 인문 등의 분류를 기록
   credit             Int
   au                 Int
+
+  @@unique([code, title, category, credit, au])
+  @@index([code])
 }
 
 // 교양과목 이수요건 데이터

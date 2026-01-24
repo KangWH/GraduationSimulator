@@ -128,10 +128,26 @@
     "minorable": true
   },
   {
+    "id": "AI",
+    "name": "김재철AI대학원",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
     "id": "SS",
     "name": "반도체시스템공학과",
     "category": "공과대학",
     "majorable": true,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "AS",
+    "name": "인공지능반도체대학원",
+    "category": "공과대학",
+    "majorable": false,
     "doubleMajorable": false,
     "minorable": false
   },
@@ -142,6 +158,22 @@
     "majorable": false,
     "doubleMajorable": false,
     "minorable": true
+  },
+  {
+    "id": "BA",
+    "name": "경영공학부",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "BAF",
+    "name": "금융전문대학원",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
   },
   {
     "id": "BTM",
