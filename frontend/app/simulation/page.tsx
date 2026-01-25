@@ -548,12 +548,13 @@ export default function SimulationPage() {
           return;
         }
 
+        const defaultGrade = (draggedCourse.au || 0) > 0 ? 'S' : 'A+';
         const newCourse: CourseSimulation = {
           courseId: courseCode,
           course: courseObj,
           enrolledYear: targetSemesterObj.year,
           enrolledSemester: targetSemesterObj.semester,
-          grade: 'A+',
+          grade: defaultGrade,
           recognizedAs: profile ? determineRecognizedAs(courseObj, profile) : { type: 'OTHER_ELECTIVE' },
         };
 
@@ -606,7 +607,7 @@ export default function SimulationPage() {
     const out: Section[] = [];
     const majorName = filters.major ? deptName(filters.major) : '';
 
-    const unWithdrawnCourses = simulationCourses.filter(c => c.grade !== 'W');
+    const unWithdrawnCourses = simulationCourses.filter(c => c.grade !== 'W' && c.grade !== 'F' && c.grade !== 'U' && c.grade !== 'NR');
 
     out.push({
       id: 'BASIC_REQUIRED',
@@ -1381,14 +1382,9 @@ export default function SimulationPage() {
                           />
                         ) : (
                           <>
-                            <div className="text-sm text-center my-4 px-4 text-gray-500 space-y-2">
-                              <p>
-                                시뮬레이션에 사용할 과목들을 지정합니다. 아직 듣지 않았지만 들을 예정인 과목을 추가하거나, 재수강 예정인 과목의 성적을 변경하여 시뮬레이션을 진행합니다.
-                              </p>
-                              <p>
-                                이곳에서 과목을 추가하거나 삭제하더라도 프로필에 저장된 수강 내역은 변경되지 않습니다.
-                              </p>
-                            </div>
+                            <p className="text-sm text-center my-4 px-4 text-gray-500">
+                              시뮬레이션에 사용할 과목들을 지정합니다. 아직 듣지 않았지만 들을 예정인 과목을 추가하거나, 재수강 예정인 과목의 성적을 변경하여 시뮬레이션을 진행할 수 있습니다.
+                            </p>
                             <EnrollmentsList
                               enrollments={enrollmentsForList}
                               semesterGroups={semesterGroups}
@@ -1430,6 +1426,9 @@ export default function SimulationPage() {
                               onDropOutside={handleDropOutside}
                               findNearestPastSemester={findNearestPastSemester}
                             />
+                            <p className="text-sm text-center my-4 px-4 text-gray-500">
+                              이곳에서 과목을 추가하거나 삭제하더라도 프로필에 저장된 수강 내역은 변경되지 않습니다.
+                            </p>
                           </>
                         )}
                       </div>

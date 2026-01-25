@@ -1,4 +1,4 @@
-code,title,department,category,credit,au,tag
+code,title,department,category,credit,au,tags
 BS.10020,일반생물학,BS,BR,3,0,
 CH.10001,일반화학 I,CH,BR,3,0,
 CH.10002,일반화학실험 I,CH,BR,1,0,
@@ -46,6 +46,326 @@ MSE.10001,인체와 질병,MSE,BE,3,0,
 NQE.10001,원자력과 양자의 세계,NQE,BE,3,0,
 PH.10052,일반물리학실험 II,PH,BE,1,0,
 STP.10010,엔지니어의 삶,STP,BE,3,0,
+HSS.10001,논리적글쓰기,HSS,MGC,3,0,
+HSS.10004,창의적 글쓰기,HSS,MGC,3,0,
+HSS.10006,초급한국어 I,HSS,MGC,3,0,
+HSS.10006,한국어1 (학부),HSS,MGC,3,0,
+HSS.10022,English Presentation & Discussion,HSS,MGC,1,0,
+HSS.10023,Advanced English Listening,HSS,MGC,1,0,
+HSS.10024,Advanced English Writing,HSS,MGC,1,0,
+HSS.10025,Advanced English Reading,HSS,MGC,1,0,
+HSS.10038,체육자격증,HSS,MGC,0,2,
+HSS.10039,건강한 캠퍼스 생활,HSS,MGC,0,2,
+HSS.10040,배드민턴,HSS,MGC,0,2,
+HSS.10041,수영,HSS,MGC,0,2,
+HSS.10043,농구,HSS,MGC,0,2,
+HSS.10046,골프,HSS,MGC,0,2,
+HSS.10047,축구와 풋살,HSS,MGC,0,2,
+HSS.10048,체육동아리,HSS,MGC,0,2,
+HSS.10050,댄스스포츠,HSS,MGC,0,2,
+HSS.10051,한국어3,HSS,MGC,3,0,
+HSS.10051,한국어3(학부),HSS,MGC,3,0,
+HSS.10052,코어 운동,HSS,MGC,0,2,
+HSS.10053,발레핏,HSS,MGC,0,2,
+HSS.10054,고급수영,HSS,MGC,0,2,
+HSS.10072,인성/리더십 I,HSS,MGC,0,1,
+HSS.10073,인성/리더십 II,HSS,MGC,0,1,
+HSS.10074,인성/리더십 III,HSS,MGC,0,1,
+HSS.10081,체력육성,HSS,MGC,0,2,
+HSS.10082,테니스,HSS,MGC,0,2,
+HSS.10099,신나는 대학생활,HSS,MGC,0,1,
+HSS.10175,인성/리더십 IV,HSS,MGC,0,1,
+HSS.10195,즐거운 대학생활,HSS,MGC,0,1,
+HSS.10005,논리학,HSS,HSE,3,0,
+HSS.10042,문명과 사상,HSS,HSE,3,0,
+HSS.10042,문명과 사상,HSS,HSE,3,0,인문|핵심
+HSS.10075,German Conversation,HSS,HSE,3,0,
+HSS.10075,독일어 회화,HSS,HSE,3,0,
+HSS.10076,Japanese Conversation,HSS,HSE,3,0,
+HSS.10076,일본어 회화,HSS,HSE,3,0,
+HSS.10077,French Conversation,HSS,HSE,3,0,
+HSS.10077,불어 회화,HSS,HSE,3,0,
+HSS.10078,Chinese Conversation,HSS,HSE,3,0,
+HSS.10078,중국어 회화,HSS,HSE,3,0,
+HSS.10079,Spanish Conversation,HSS,HSE,3,0,
+HSS.10079,스페인어 회화,HSS,HSE,3,0,
+HSS.10123,History of Western Civilization,HSS,HSE,3,0,
+HSS.10126,현대 영문학,HSS,HSE,3,0,
+HSS.10137,북한의 이해,HSS,HSE,3,0,
+HSS.10138,"과학기술, 민주주의 시장",HSS,HSE,3,0,
+HSS.10148,사회학개론,HSS,HSE,3,0,
+HSS.10148,사회학의 이해,HSS,HSE,3,0,사회|일반
+HSS.10150,정치학 개론,HSS,HSE,3,0,
+HSS.10150,정치학 개론,HSS,HSE,3,0,사회|일반
+HSS.10154,영화 속의 법,HSS,HSE,3,0,
+HSS.10172,"Vision, Brain and Art",HSS,HSE,3,0,
+HSS.10172,"시각, 뇌, 예술",HSS,HSE,3,0,
+HSS.10177,The world of Musicals,HSS,HSE,3,0,
+HSS.10177,뮤지컬의 세계,HSS,HSE,3,0,
+HSS.10187,미술사와 시각문화,HSS,HSE,3,0,
+HSS.10187,미술사와 시각문화,HSS,HSE,3,0,문학예술|일반
+HSS.20000,History of Science,HSS,HSE,3,0,
+HSS.20000,과학사,HSS,HSE,3,0,
+HSS.20000,과학사,HSS,HSE,3,0,인문|일반
+HSS.20003,Environmentalism: A History Survey,HSS,HSE,3,0,
+HSS.20003,환경주의: 역사학적 개론,HSS,HSE,3,0,
+HSS.20003,환경주의: 역사학적 개론,HSS,HSE,3,0,인문|일반
+HSS.20006,분석철학,HSS,HSE,3,0,
+HSS.20007,철학개론,HSS,HSE,3,0,
+HSS.20007,철학개론,HSS,HSE,3,0,인문|일반
+HSS.20008,한국사회경제사,HSS,HSE,3,0,
+HSS.20008,한국사회경제사,HSS,HSE,3,0,인문|일반
+HSS.20010,"언어,마음,뇌",HSS,HSE,3,0,인문|핵심
+HSS.20011,English Structure and Grammar,HSS,HSE,3,0,
+HSS.20011,영어의 구조와 문법,HSS,HSE,3,0,
+HSS.20011,영어의 구조와 문법,HSS,HSE,3,0,인문|일반
+HSS.20013,언어와 문화,HSS,HSE,3,0,인문|핵심
+HSS.20015,근현대 미국사,HSS,HSE,3,0,
+HSS.20015,근현대 미국사,HSS,HSE,3,0,인문|일반
+HSS.20017,헐리우드와 중국의 판타지 영화,HSS,HSE,3,0,
+HSS.20017,헐리우드와 중국의 판타지 영화,HSS,HSE,3,0,문학예술|일반
+HSS.20018,서양 고전의 이해,HSS,HSE,3,0,인문|핵심
+HSS.20024,아동언어습득,HSS,HSE,3,0,인문|일반
+HSS.20025,단어의 세계,HSS,HSE,3,0,인문|일반
+HSS.20026,고전 라틴어,HSS,HSE,3,0,
+HSS.20027,고전문학과 절학,HSS,HSE,3,0,
+HSS.20027,고전문학과 절학,HSS,HSE,3,0,인문|일반
+HSS.20028,고대 그리스인들의 세계,HSS,HSE,3,0,인문|일반
+HSS.20029,인간과 환경-지속가능한 사회생태 시스템,HSS,HSE,3,0,사회|핵심
+HSS.20032,과학기술사회학,HSS,HSE,3,0,
+HSS.20032,과학기술사회학,HSS,HSE,3,0,사회|일반
+HSS.20038,커뮤니케이션 연구의 이해,HSS,HSE,3,0,사회|핵심
+HSS.20041,정치화 정부 재정,HSS,HSE,3,0,
+HSS.20044,Understanding Globalization,HSS,HSE,3,0,
+HSS.20044,세계화의 이해,HSS,HSE,3,0,
+HSS.20048,Nations and Cultures,HSS,HSE,3,0,
+HSS.20048,민족과 문화,HSS,HSE,3,0,
+HSS.20048,민족과 문화,HSS,HSE,3,0,사회|일반
+HSS.20049,음식 인류학,HSS,HSE,3,0,
+HSS.20049,음식 인류학,HSS,HSE,3,0,사회|일반
+HSS.20050,동아시아 지정학의 이해,HSS,HSE,3,0,
+HSS.20050,동아시아 지정학의 이해,HSS,HSE,3,0,사회|일반
+HSS.20050,동아시아 지정학의 이해,HSS,HSE,3,0,사회|핵심
+HSS.20051,인문학으로서의 소설 읽기,HSS,HSE,3,0,문학예술|핵심
+HSS.20052,도시·지역 개발의 이해,HSS,HSE,3,0,
+HSS.20052,도시·지역 개발의 이해,HSS,HSE,3,0,사회|핵심
+HSS.20055,성과 사회,HSS,HSE,3,0,
+HSS.20055,젠더와 사회,HSS,HSE,3,0,
+HSS.20055,젠더와 사회,HSS,HSE,3,0,사회|핵심
+HSS.20056,중국의 사회와 문화,HSS,HSE,3,0,
+HSS.20058,국제개발의 지리,HSS,HSE,3,0,
+HSS.20058,국제개발의 지리,HSS,HSE,3,0,사회|핵심
+HSS.20059,글로컬라이제이션과 한국문학,HSS,HSE,3,0,문학예술|핵심
+HSS.20060,언어학의 이해,HSS,HSE,3,0,인문|핵심
+HSS.20065,한국시 다시읽기,HSS,HSE,3,0,
+HSS.20065,한국시 다시읽기,HSS,HSE,3,0,문학예술|핵심
+HSS.20066,한국소설다시읽기,HSS,HSE,3,0,
+HSS.20066,한국소설다시읽기,HSS,HSE,3,0,문학예술|핵심
+HSS.20069,Animation in East Asia,HSS,HSE,3,0,
+HSS.20069,동아시아 애니메이션,HSS,HSE,3,0,문학예술|일반
+HSS.20069,동아시아 애니메이션,HSS,HSE,3,0,문학예술|핵심
+HSS.20070,British and American Poetry,HSS,HSE,3,0,
+HSS.20070,영미 시,HSS,HSE,3,0,
+HSS.20070,영미 시,HSS,HSE,3,0,문학예술|일반
+HSS.20071,British and American Novel,HSS,HSE,3,0,
+HSS.20071,영미소설,HSS,HSE,3,0,
+HSS.20071,영미소설,HSS,HSE,3,0,문학예술|일반
+HSS.20072,영미 드라마와 영화,HSS,HSE,3,0,
+HSS.20073,English Short Stories,HSS,HSE,3,0,
+HSS.20073,영미 단편소설,HSS,HSE,3,0,
+HSS.20073,영미 단편소설,HSS,HSE,3,0,문학예술|일반
+HSS.20074,영미 과학소설,HSS,HSE,3,0,
+HSS.20074,영미 과학소설,HSS,HSE,3,0,문학예술|일반
+HSS.20074,영미 과학소설,HSS,HSE,3,0,문학예술|핵심
+HSS.20075,아시아 미술의 이해,HSS,HSE,3,0,
+HSS.20075,아시아 미술의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20076,Comic Books and American Cinema,HSS,HSE,3,0,
+HSS.20076,만화와 미국영화,HSS,HSE,3,0,
+HSS.20076,만화와 미국영화,HSS,HSE,3,0,문학예술|핵심
+HSS.20079,Art after 1945,HSS,HSE,3,0,
+HSS.20079,1945년 이후 미술,HSS,HSE,3,0,
+HSS.20079,1945년 이후 미술,HSS,HSE,3,0,문학예술|핵심
+HSS.20081,European Literature and Art,HSS,HSE,3,0,
+HSS.20083,디지털인문학의 이해,HSS,HSE,3,0,인문|핵심
+HSS.20084,인문사회과학 연구를 위한 통계 입문,HSS,HSE,3,0,사회|핵심
+HSS.20095,현대사회이론,HSS,HSE,3,0,
+HSS.20095,현대사회이론,HSS,HSE,3,0,사회|핵심
+HSS.20110,한국문화사,HSS,HSE,3,0,
+HSS.20110,한국문화사,HSS,HSE,3,0,인문|일반
+HSS.20111,한국근현대사,HSS,HSE,3,0,
+HSS.20111,한국근현대사,HSS,HSE,3,0,인문|일반
+HSS.20112,과학기술과 철학,HSS,HSE,3,0,
+HSS.20112,과학기술과 철학,HSS,HSE,3,0,인문|일반
+HSS.20114,"한글, 글자, 문명",HSS,HSE,3,0,
+HSS.20114,"한글, 글자, 문명",HSS,HSE,3,0,인문|일반
+HSS.20114,"한글, 글자, 문명",HSS,HSE,3,0,인문|핵심
+HSS.20115,한국 근대의 재발견,HSS,HSE,3,0,
+HSS.20116,언어의 이해,HSS,HSE,3,0,
+HSS.20116,언어학의 이해,HSS,HSE,3,0,인문|일반
+HSS.20117,스타트업 101,HSS,HSE,3,0,
+HSS.20117,스타트업 101,HSS,HSE,3,0,사회|일반
+HSS.20119,독일어권 문화 이해,HSS,HSE,3,0,
+HSS.20119,독일어권 문화 이해,HSS,HSE,3,0,인문|일반
+HSS.20120,Understanding Korean Cinema,HSS,HSE,3,0,
+HSS.20120,한국영화의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20122,한국과학기술사,HSS,HSE,3,0,인문|일반
+HSS.20123,한국사상사,HSS,HSE,3,0,
+HSS.20123,한국사상사,HSS,HSE,3,0,인문|일반
+HSS.20124,동양문화사,HSS,HSE,3,0,
+HSS.20124,동아시아 역사와 문화,HSS,HSE,3,0,인문|일반
+HSS.20126,Understanding of American Culture,HSS,HSE,3,0,
+HSS.20126,영어와 미국문화,HSS,HSE,3,0,
+HSS.20126,영어와 미국문화,HSS,HSE,3,0,인문|일반
+HSS.20126,영어사와 미국문화,HSS,HSE,3,0,인문|일반
+HSS.20126,영어사와 미국문화,HSS,HSE,3,0,인문|핵심
+HSS.20127,윤리학,HSS,HSE,3,0,
+HSS.20127,윤리학,HSS,HSE,3,0,인문|일반
+HSS.20130,"Science, Technology and Society",HSS,HSE,3,0,
+HSS.20130,과학기술과사회,HSS,HSE,3,0,
+HSS.20130,과학기술과사회,HSS,HSE,3,0,사회|핵심
+HSS.20133,Introduction to Psychology,HSS,HSE,3,0,
+HSS.20133,심리학개론,HSS,HSE,3,0,
+HSS.20133,심리학개론,HSS,HSE,3,0,사회|일반
+HSS.20134,인지과학입문,HSS,HSE,3,0,
+HSS.20138,Korean History and Culture for International Students,HSS,HSE,3,0,
+HSS.20138,외국인을 위한 한국역사와 문화,HSS,HSE,3,0,
+HSS.20138,외국인을 위한 한국역사와 문화,HSS,HSE,3,0,인문|일반
+HSS.20139,종교학의 이해,HSS,HSE,3,0,
+HSS.20143,현대 중국의 이해,HSS,HSE,3,0,
+HSS.20143,현대 중국의 이해,HSS,HSE,3,0,사회|일반
+HSS.20144,서양문명의 기원,HSS,HSE,3,0,
+HSS.20145,중세이후의 서양문명,HSS,HSE,3,0,
+HSS.20145,중세이후의 서양문명,HSS,HSE,3,0,인문|일반
+HSS.20146,인간관계와 커뮤니케이션,HSS,HSE,3,0,
+HSS.20147,사회언어학개론,HSS,HSE,3,0,
+HSS.20147,사회언어학의 이해,HSS,HSE,3,0,인문|일반
+HSS.20153,한국미술의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20155,Introduction to Mass Communication,HSS,HSE,3,0,
+HSS.20155,매스 커뮤니케이션의 이해,HSS,HSE,3,0,
+HSS.20155,매스 커뮤니케이션의 이해,HSS,HSE,3,0,사회|일반
+HSS.20156,법학개론,HSS,HSE,3,0,
+HSS.20156,법학개론,HSS,HSE,3,0,사회|일반
+HSS.20157,Introduction to Anthropology,HSS,HSE,3,0,
+HSS.20157,문화인류학개론,HSS,HSE,3,0,
+HSS.20157,인류학의 이해,HSS,HSE,3,0,
+HSS.20157,인류학의 이해,HSS,HSE,3,0,사회|일반
+HSS.20159,Introduction to Economics,HSS,HSE,3,0,
+HSS.20159,경제학개론,HSS,HSE,3,0,
+HSS.20159,경제학개론,HSS,HSE,3,0,사회|일반
+HSS.20163,법과 사회생활,HSS,HSE,3,0,
+HSS.20167,한국문학과사회,HSS,HSE,3,0,
+HSS.20167,한국문학의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20169,경제와 법,HSS,HSE,3,0,
+HSS.20169,경제와 법,HSS,HSE,3,0,사회|일반
+HSS.20171,영미문학의 이해,HSS,HSE,3,0,
+HSS.20171,영미문학의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20186,Understanding Music & Music History,HSS,HSE,3,0,
+HSS.20186,서양음악사,HSS,HSE,3,0,
+HSS.20186,서양음악의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20228,Introduction to Oriental Philosophy,HSS,HSE,3,0,
+HSS.20228,동양철학입문,HSS,HSE,3,0,
+HSS.20228,동양철학입문,HSS,HSE,3,0,인문|일반
+HSS.20700,디지털 역사학 입문,HSS,HSE,3,0,인문|핵심
+HSS.30020,건축사,HSS,HSE,3,0,
+HSS.30021,한문으로 읽는 동양고전,HSS,HSE,3,0,
+HSS.30021,한문으로 읽는 동양고전,HSS,HSE,3,0,문학예술|일반
+HSS.30022,음악과 뇌,HSS,HSE,3,0,
+HSS.30022,음악과 뇌,HSS,HSE,3,0,문학예술|융합
+HSS.30023,인류의 진화,HSS,HSE,3,0,사회|일반
+HSS.30023,인류의 진화,HSS,HSE,3,0,사회|핵심
+HSS.30024,Science Fiction Cinema,HSS,HSE,3,0,
+HSS.30024,영미 과학영화,HSS,HSE,3,0,
+HSS.30024,영미 과학영화,HSS,HSE,3,0,문학예술|융합
+HSS.30027,환경거버넌스,HSS,HSE,3,0,사회|일반
+HSS.30028,수학철학,HSS,HSE,3,0,
+HSS.30028,수학철학,HSS,HSE,3,0,인문|일반
+HSS.30029,기후변화대응,HSS,HSE,3,0,사회|일반
+HSS.30037,뉴미디어와 커뮤니케이션,HSS,HSE,3,0,
+HSS.30039,인터넷 커뮤니케이션,HSS,HSE,3,0,
+HSS.30039,인터넷 커뮤니케이션,HSS,HSE,3,0,사회|융합
+HSS.30039,인터넷 커뮤니케이션,HSS,HSE,3,0,사회|핵심
+HSS.30040,한국정치의 이해,HSS,HSE,3,0,
+HSS.30045,복지국가와 사회보장,HSS,HSE,3,0,
+HSS.30047,실험 심리학 입문,HSS,HSE,3,0,사회|핵심
+HSS.30048,인문학 택스트 분석,HSS,HSE,3,0,인문|핵심
+HSS.30049,외국어학습의 이해,HSS,HSE,3,0,인문|핵심
+HSS.30053,창조적 활동과 법,HSS,HSE,3,0,
+HSS.30071,20세기 아시아 건축,HSS,HSE,3,0,
+HSS.30071,20세기 아시아 건축,HSS,HSE,3,0,문학예술|일반
+HSS.30071,20세기 아시아 건축,HSS,HSE,3,0,문학예술|핵심
+HSS.30074,근대 건축사,HSS,HSE,3,0,
+HSS.30074,건축과 현대사회,HSS,HSE,3,0,문학예술|핵심
+HSS.30075,20세기 동아시아 미술,HSS,HSE,3,0,
+HSS.30075,한국현대미술의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.30076,음악현상의 이해,HSS,HSE,3,0,
+HSS.30078,Violin Family Instrument Making & Experimentation,HSS,HSE,3,0,
+HSS.30078,바이올린 제작과 실험,HSS,HSE,3,0,
+HSS.32201,심리학적 데이터 기반 계산인지모델링,HSS,HSE,3,0,사회|핵심
+HSS.34200,의학과 사회,HSS,HSE,3,0,사회|융합
+HSS.35300,SF영화: 외계세계탐험,HSS,HSE,3,0,문학예술|핵심
+HSS.39900,Topics in Philosophy,HSS,HSE,3,0,특강
+HSS.39900,철학 특강,HSS,HSE,3,0,특강
+HSS.39900,철학 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39901,Special Lectures on Linguistics,HSS,HSE,3,0,특강
+HSS.39901,언어학 특강,HSS,HSE,3,0,특강
+HSS.39901,언어학 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39902,한국사 특강,HSS,HSE,3,0,특강
+HSS.39902,한국사 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39903,Special issues in History,HSS,HSE,3,0,특강
+HSS.39903,역사학 특강,HSS,HSE,3,0,특강
+HSS.39903,역사학 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39904,Special Lectures on World Languages and Cultures,HSS,HSE,3,0,특강
+HSS.39904,세계문화 특강,HSS,HSE,3,0,특강
+HSS.39904,세계문화 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39905,경제학특강,HSS,HSE,3,0,특강
+HSS.39905,경제학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39906,법학특강,HSS,HSE,3,0,특강
+HSS.39906,법학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39907,사회학특강,HSS,HSE,3,0,특강
+HSS.39907,사회학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39908,정치학특강,HSS,HSE,3,0,특강
+HSS.39908,정치학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39909,언론정보학특강,HSS,HSE,3,0,특강
+HSS.39910,인류학특강,HSS,HSE,3,0,특강
+HSS.39911,외국인을 위한 한국학 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39912,세계문학 특강,HSS,HSE,3,0,특강
+HSS.39912,세계문학 특강,HSS,HSE,3,0,특강|문학예술|일반
+HSS.39913,환경학특강,HSS,HSE,3,0,특강
+HSS.39914,인문학 특강,HSS,HSE,3,0,특강
+HSS.39914,인문학 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39915,과학기술학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39916,Special Topics in Social Sciences,HSS,HSE,3,0,특강
+HSS.39916,사회과학특강,HSS,HSE,3,0,특강
+HSS.39916,사회과학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39917,심리학 특강,HSS,HSE,3,0,특강
+HSS.39917,심리학 특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39919,한국문학특강,HSS,HSE,3,0,특강
+HSS.39919,한국문학특강,HSS,HSE,3,0,특강|문학예술|일반
+HSS.39920,Special Lectures on English Literature,HSS,HSE,3,0,특강
+HSS.39920,영문학 특강,HSS,HSE,3,0,특강
+HSS.39920,영문학 특강,HSS,HSE,3,0,특강|문학예술|일반
+HSS.39921,Special Lectures on Art,HSS,HSE,3,0,특강
+HSS.39921,예술학특강,HSS,HSE,3,0,특강
+HSS.39921,예술학특강,HSS,HSE,3,0,특강|문학예술|일반
+HSS.39942,인문핵심특강,HSS,HSE,3,0,특강|인문|핵심
+HSS.39943,사회 핵심 특강,HSS,HSE,3,0,특강|사회|핵심
+HSS.39944,문예 핵심 특강,HSS,HSE,3,0,특강|문학예술|핵심
+HSS.40002,음성언어와 컴퓨터,HSS,HSE,3,0,인문|융합
+HSS.40005,논리학과 인공지능,HSS,HSE,3,0,
+HSS.40005,논리학과 인공지능,HSS,HSE,3,0,인문|일반
+HSS.40007,계산사회과학,HSS,HSE,3,0,사회|융합
+HSS.40007,계산사회과학의 이해,HSS,HSE,3,0,사회|융합
+HSS.40030,운동학의 이해,HSS,HSE,3,0,
+HSS.40035,"시각, 뇌, 예술",HSS,HSE,3,0,문학예술|융합
+HSS.40036,심리철학,HSS,HSE,3,0,
+HSS.40038,"세계만들기, 폭력, 소설",HSS,HSE,3,0,문학예술|핵심
+HSS.40039,고급논리,HSS,HSE,3,0,인문|핵심
+HSS.40041,커뮤니케이션 연구: 이해와 적용,HSS,HSE,3,0,사회|핵심
+HSS.40072,Art and Philosophy,HSS,HSE,3,0,
+HSS.40072,예술과 철학,HSS,HSE,3,0,
+HSS.49900,체육학 특강,HSS,HSE,3,0,
+HSS.49901,인문융합특강,HSS,HSE,3,0,특강|인문|융합
+HSS.49903,사회융합특강,HSS,HSE,3,0,특강|사회|융합
 AE.20000,기초 우주 프로젝트,AE,ME,3,0,
 AE.20001,기초항공프로젝트,AE,ME,3,0,
 AE.20008,항공우주공학 실험 I,AE,MR,3,0,

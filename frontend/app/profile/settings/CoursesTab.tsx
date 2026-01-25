@@ -423,6 +423,8 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             ? findNearestPastSemester()
             : { year: parseInt(targetYear), semester: targetSemester as Semester };
         const courseCode = draggedCourse.code || draggedCourse.id || '';
+        const au = draggedCourse.au || 0;
+        const defaultGrade = au > 0 ? 'S' : 'A+';
         const newEnrollment: Enrollment = {
           courseId: courseCode,
           course: {
@@ -432,11 +434,11 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             department: draggedCourse.department || '',
             category: draggedCourse.category || '',
             credit: draggedCourse.credit || 3,
-            au: draggedCourse.au || 0,
+            au,
           },
           enrolledYear: targetSemesterObj.year,
           enrolledSemester: targetSemesterObj.semester,
-          grade: 'A+',
+          grade: defaultGrade,
         };
 
         // 중복 체크 (같은 과목이 같은 학기에 이미 있는지)

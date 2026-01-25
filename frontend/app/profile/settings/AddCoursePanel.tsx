@@ -246,7 +246,7 @@ export default function AddCoursePanel({
 
       {/* 추가 옵션 및 버튼 */}
       {selectedCourseIds.size > 0 && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-zinc-800/50">
+        <div className="sticky bottom-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-zinc-800/50">
           <div className="flex items-end gap-3">
             <div className="flex flex-col gap-2 flex-1">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">수강 연도</label>
