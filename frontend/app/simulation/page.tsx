@@ -58,11 +58,18 @@ export default function SimulationPage() {
   const [courseSearchQuery, setCourseSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
+  const selectedCourseIdsRef = useRef<Set<string>>(new Set());
+  
+  // selectedCourseIds와 ref를 동시에 업데이트하는 함수
+  const updateSelectedCourseIds = useCallback((newIds: Set<string>) => {
+    selectedCourseIdsRef.current = newIds;
+    setSelectedCourseIds(newIds);
+  }, []);
   const [addYear, setAddYear] = useState(new Date().getFullYear());
   const [addSemester, setAddSemester] = useState<Semester>('SPRING');
   const [addGrade, setAddGrade] = useState<Grade>('A+');
   const [filterDepartment, setFilterDepartment] = useState<string>('none');
-  const [filterCategory, setFilterCategory] = useState<string>('');
+  const [filterCategory, setFilterCategory] = useState<string>('none');
   const [draggedEnrollment, setDraggedEnrollment] = useState<CourseSimulation | null>(null);
   const [draggedFromSemester, setDraggedFromSemester] = useState<string | null>(null);
   const [draggedCourse, setDraggedCourse] = useState<any | null>(null);
@@ -315,18 +322,27 @@ export default function SimulationPage() {
 
   // 서버 검색
   useEffect(() => {
-    if (!courseSearchQuery.trim()) {
+    const hasQuery = !!courseSearchQuery.trim();
+    const hasDept = !!(filterDepartment && filterDepartment !== 'none');
+    const hasCat = !!(filterCategory && filterCategory !== 'none');
+
+    if (!hasQuery && !hasDept && !hasCat) {
       setSearchResults([]);
+      if (selectedCourseIdsRef.current.size > 0) {
+        updateSelectedCourseIds(new Set());
+      }
       return;
     }
 
     const timeoutId = setTimeout(() => {
       const params = new URLSearchParams();
-      params.append('query', courseSearchQuery);
-      if (filterDepartment && filterDepartment !== 'none') {
+      if (hasQuery) {
+        params.append('query', courseSearchQuery.trim());
+      }
+      if (hasDept) {
         params.append('department', filterDepartment);
       }
-      if (filterCategory && filterCategory !== '') {
+      if (hasCat) {
         params.append('category', filterCategory);
       }
 
@@ -338,16 +354,35 @@ export default function SimulationPage() {
           return r.json();
         })
         .then((courses) => {
-          setSearchResults(Array.isArray(courses) ? courses : []);
+          const newResults = Array.isArray(courses) ? courses : [];
+          setSearchResults(newResults);
+          
+          // 검색 결과가 변경되면, 화면에서 사라진 항목은 선택 해제
+          const currentSelected = selectedCourseIdsRef.current;
+          if (currentSelected.size > 0) {
+            const availableCourseIds = new Set(
+              newResults.map((c) => c.id || c.code || '').filter((id) => id !== '')
+            );
+            const filteredSelected = new Set(
+              Array.from(currentSelected).filter((id) => availableCourseIds.has(id))
+            );
+            if (filteredSelected.size !== currentSelected.size) {
+              updateSelectedCourseIds(filteredSelected);
+            }
+          }
         })
         .catch((error) => {
           console.error('Error fetching courses:', error);
           setSearchResults([]);
+          // 에러 발생 시 선택 해제
+          if (selectedCourseIdsRef.current.size > 0) {
+            updateSelectedCourseIds(new Set());
+          }
         });
-    }, 300); // 디바운스
+    }, 500); // 디바운스
 
     return () => clearTimeout(timeoutId);
-  }, [courseSearchQuery, filterDepartment, filterCategory]);
+  }, [courseSearchQuery, filterDepartment, filterCategory, updateSelectedCourseIds]);
 
   // 선택된 과목 추가
   const handleAddSelected = useCallback(() => {
@@ -416,8 +451,8 @@ export default function SimulationPage() {
     }
 
     setSimulationCourses(newCourses);
-    setSelectedCourseIds(new Set());
-  }, [selectedCourseIds, searchResults, simulationCourses, profile, addYear, addSemester, addGrade]);
+    updateSelectedCourseIds(new Set());
+  }, [selectedCourseIds, searchResults, simulationCourses, profile, addYear, addSemester, addGrade, updateSelectedCourseIds]);
 
   // 성적 변경
   const handleGradeChange = useCallback(
@@ -1330,7 +1365,7 @@ export default function SimulationPage() {
                             onSearchQueryChange={setCourseSearchQuery}
                             searchResults={searchResults}
                             selectedCourseIds={selectedCourseIds}
-                            onSelectionChange={setSelectedCourseIds}
+                            onSelectionChange={updateSelectedCourseIds}
                             addYear={addYear}
                             onAddYearChange={setAddYear}
                             addSemester={addSemester}
