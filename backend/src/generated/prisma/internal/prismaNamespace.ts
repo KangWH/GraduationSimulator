@@ -928,6 +928,8 @@ export const SimulationScalarFieldEnum = {
   major: 'major',
   doubleMajors: 'doubleMajors',
   minors: 'minors',
+  advancedMajor: 'advancedMajor',
+  individuallyDesignedMajor: 'individuallyDesignedMajor',
   courses: 'courses'
 } as const
 

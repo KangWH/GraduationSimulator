@@ -9,7 +9,7 @@ const router = express.Router();
 // 시뮬레이션 저장
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { userId, title, referenceYear, major, doubleMajors, minors, courses } = req.body;
+    const { userId, title, referenceYear, major, doubleMajors, minors, advancedMajor, individuallyDesignedMajor, courses } = req.body;
 
     // 필수 필드 검증
     if (!userId || !title || !referenceYear || !major) {
@@ -41,6 +41,8 @@ router.post('/', async (req: Request, res: Response) => {
         major: major,
         doubleMajors: Array.isArray(doubleMajors) ? doubleMajors : [],
         minors: Array.isArray(minors) ? minors : [],
+        advancedMajor: Boolean(advancedMajor),
+        individuallyDesignedMajor: Boolean(individuallyDesignedMajor),
         courses: courses || [],
       },
     });
