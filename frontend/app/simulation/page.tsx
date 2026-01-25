@@ -1,19 +1,24 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DepartmentDropdown, MultipleDepartmentDropdown } from '../components/DepartmentDropdown';
 import { NumberInput, Select, Input } from '../components/formFields';
 import { CourseCategoryDropdown } from '../components/CourseCategoryDropdown';
-
-const API = 'http://localhost:4000';
+import { API } from '../lib/api';
+import type { Profile, Enrollment, RawEnrollment, Semester, Grade, Course } from '../profile/settings/types';
+import type { CourseSimulation, RawCourseSimulation, CreditType } from './types';
+import AddCoursePanel from '../profile/settings/AddCoursePanel';
+import EnrollmentsList from '../profile/settings/EnrollmentsList';
+import { group } from 'console';
 
 type Dept = { id: string; name: string };
 type Section = {
   id: string;
   title: string;
-  courses: { id: number; name: string; credit: number; grade?: string }[];
+  titleElements: string[];
+  courses: CourseSimulation[];
   fulfilled: boolean;
   detail: string; // e.g. "12 / 36 학점"
 };
@@ -21,10 +26,12 @@ type Section = {
 export default function SimulationPage() {
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [previousSimulations] = useState([
-    { id: 1, name: '2024년 1학기 시뮬레이션', date: '2024-01-15' },
-    { id: 2, name: '2023년 2학기 시뮬레이션', date: '2023-08-20' },
-  ]);
+  const [previousSimulations, setPreviousSimulations] = useState<Array<{
+    id: string;
+    name: string;
+    date: string;
+    canGraduate?: boolean;
+  }>>([]);
   const [depts, setDepts] = useState<Dept[]>([]);
   const leftScrollRef = useRef<HTMLDivElement>(null);
   const centerScrollRef = useRef<HTMLDivElement>(null);
@@ -38,7 +45,8 @@ export default function SimulationPage() {
     advancedMajor: false,
     individuallyDesignedMajor: false,
   });
-  const [simulationCourses, setSimulationCourses] = useState<any[]>([]);
+  const [simulationCourses, setSimulationCourses] = useState<CourseSimulation[]>([]);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [userName, setUserName] = useState<string>('');
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
@@ -47,27 +55,23 @@ export default function SimulationPage() {
   
   // 과목 추가/선택 모드
   const [courseMode, setCourseMode] = useState<'add' | 'view'>('add');
-  const [isAddFormExpanded, setIsAddFormExpanded] = useState(false);
   const [courseSearchQuery, setCourseSearchQuery] = useState('');
-  const [newCourse, setNewCourse] = useState({
-    name: '',
-    code: '',
-    department: '',
-    category: 'ME',
-  });
-  const [availableCourses, setAvailableCourses] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
+  const [addYear, setAddYear] = useState(new Date().getFullYear());
+  const [addSemester, setAddSemester] = useState<Semester>('SPRING');
+  const [addGrade, setAddGrade] = useState<Grade>('A+');
+  const [filterDepartment, setFilterDepartment] = useState<string>('none');
+  const [filterCategory, setFilterCategory] = useState<string>('');
+  const [draggedEnrollment, setDraggedEnrollment] = useState<CourseSimulation | null>(null);
+  const [draggedFromSemester, setDraggedFromSemester] = useState<string | null>(null);
+  const [draggedCourse, setDraggedCourse] = useState<any | null>(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
   useEffect(() => {
     fetch('http://localhost:4000/departments')
       .then((r) => r.json())
       .then((arr: Dept[]) => setDepts(arr))
-      .catch(() => {});
-    
-    // 과목 목록 로드
-    fetch(`${API}/courses`)
-      .then((r) => r.json())
-      .then((arr: any[]) => setAvailableCourses(arr))
       .catch(() => {});
   }, []);
 
@@ -85,10 +89,15 @@ export default function SimulationPage() {
       fetch(`${API}/auth/me?userId=${encodeURIComponent(userId!)}`, { credentials: 'include' })
         .then((r) => r.json());
 
-    Promise.all([loadProfile(), loadMe()])
-      .then(([profileRes, meRes]) => {
+    const loadSimulations = () =>
+      fetch(`${API}/simulation?userId=${encodeURIComponent(userId!)}`, { credentials: 'include' })
+        .then((r) => r.json());
+
+    Promise.all([loadProfile(), loadMe(), loadSimulations()])
+      .then(([profileRes, meRes, simulationsRes]) => {
         if (profileRes.success && profileRes.profile) {
-          const p = profileRes.profile;
+          const p = profileRes.profile as Profile;
+          setProfile(p);
           setFilters({
             requirementYear: p.admissionYear || new Date().getFullYear(),
             major: p.major || '',
@@ -98,137 +107,610 @@ export default function SimulationPage() {
             individuallyDesignedMajor: p.individuallyDesignedMajor || false,
           });
           setUserName(p.name || '');
+
+          // 초기 데이터 생성
+          initializeSimulationData(p);
         }
         if (meRes.success && meRes.user) {
           setUserName((prev) => prev || meRes.user.email || '');
+        }
+        if (simulationsRes.success) {
+          const sims = (simulationsRes.simulations || []).map((sim: any) => ({
+            id: sim.id,
+            name: sim.title,
+            date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
+            canGraduate: false, // TODO: 졸업가능 여부 계산 로직 추가 필요
+          }));
+          setPreviousSimulations(sims);
         }
         setProfileLoaded(true);
       })
       .catch(() => setProfileLoaded(true));
   }, [profileLoaded]);
 
+  // 초기 시뮬레이션 데이터 생성
+  const initializeSimulationData = useCallback(async (profileData: Profile) => {
+    if (!profileData) return;
+
+    // 프로필의 수강 내역 가져오기
+    try {
+      const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+      if (!userId) return;
+
+      const enrollmentsRes = await fetch(`${API}/profile/enrollments?userId=${encodeURIComponent(userId)}`, {
+        credentials: 'include',
+      });
+      const enrollmentsData = await enrollmentsRes.json();
+
+      let rawEnrollments: RawEnrollment[] = [];
+      if (enrollmentsData.success && enrollmentsData.enrollments) {
+        const raw = enrollmentsData.enrollments;
+        if (Array.isArray(raw)) {
+          rawEnrollments = raw as RawEnrollment[];
+        } else if (typeof raw === 'string') {
+          try {
+            const parsed = JSON.parse(raw);
+            rawEnrollments = Array.isArray(parsed) ? (parsed as RawEnrollment[]) : [];
+          } catch {
+            rawEnrollments = [];
+          }
+        }
+      }
+
+      // Enrollment[]로 변환
+      const enrollments = await convertToEnrollments(rawEnrollments);
+
+      // CourseSimulation[]로 변환 (recognizedAs 추가)
+      const courseSimulations = convertEnrollmentsToCourseSimulations(enrollments, profileData);
+
+      setSimulationCourses(courseSimulations);
+    } catch (error) {
+      console.error('초기 데이터 생성 오류:', error);
+      setSimulationCourses([]);
+    }
+  }, []);
+
   const deptName = (id: string) => depts.find((d) => d.id === id)?.name ?? id;
 
-  // 검색어 정규화 (띄어쓰기, 문장부호, 특수문자 제거, 한글/로마자/숫자만)
-  const normalizeSearchText = (text: string): string => {
-    if (!text) return '';
-    return text
-      .replace(/\s+/g, '') // 띄어쓰기 제거
-      .replace(/[^\w가-힣]/g, '') // 한글, 로마자, 숫자만 남김
-      .toLowerCase();
+  // RawEnrollment[]를 Enrollment[]로 변환
+  async function convertToEnrollments(rawEnrollments: RawEnrollment[]): Promise<Enrollment[]> {
+    const enrollments: Enrollment[] = [];
+    for (const raw of rawEnrollments) {
+      try {
+        const courseRes = await fetch(`${API}/courses?code=${encodeURIComponent(raw.courseId)}`);
+        const courses = await courseRes.json();
+        const course = Array.isArray(courses) && courses.length > 0 ? courses[0] : null;
+        if (course) {
+          enrollments.push({
+            courseId: raw.courseId,
+            course: {
+              id: course.id || raw.courseId,
+              code: course.code || raw.courseId,
+              title: course.title || '',
+              department: course.department || '',
+              category: course.category || '',
+              credit: course.credit || 3,
+              au: course.au || 0,
+            },
+            enrolledYear: raw.enrolledYear,
+            enrolledSemester: raw.enrolledSemester,
+            grade: raw.grade,
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to fetch course ${raw.courseId}:`, error);
+      }
+    }
+    return enrollments;
+  }
+
+  // 과목의 category와 프로필 정보를 기반으로 recognizedAs 결정
+  function determineRecognizedAs(
+    course: Course,
+    profileData: Profile
+  ): CreditType {
+    const category = course.category;
+    const department = course.department;
+
+    // BR -> BASIC_REQUIRED
+    if (category === 'BR') {
+      return { type: 'BASIC_REQUIRED' };
+    }
+
+    // BE -> BASIC_ELECTIVE
+    if (category === 'BE') {
+      return { type: 'BASIC_ELECTIVE' };
+    }
+
+    // MR, ME, GE
+    if (category === 'MR' || category === 'ME' || category === 'GE') {
+      // 개설학과가 주전공 학과인 경우
+      if (department === profileData.major) {
+        return { type: 'MAJOR', department };
+      }
+      // 개설학과가 복수전공 학과인 경우
+      if (profileData.doubleMajors && profileData.doubleMajors.includes(department)) {
+        return { type: 'DOUBLE_MAJOR', department };
+      }
+      // 개설학과가 부전공 학과인 경우
+      if (profileData.minors && profileData.minors.includes(department)) {
+        return { type: 'MINOR', department };
+      }
+      // 어디에도 속하지 않으면서 individuallyDesignedMajor가 true인 경우
+      if (profileData.individuallyDesignedMajor) {
+        return { type: 'INDIVIDUALLY_DESIGNED_MAJOR' };
+      }
+      // 그 외
+      return { type: 'OTHER_ELECTIVE' };
+    }
+
+    // MGC -> MANDATORY_GENERAL_COURSES
+    if (category === 'MGC') {
+      return { type: 'MANDATORY_GENERAL_COURSES' };
+    }
+
+    // HSE -> HUMANITIES_SOCIAL_ELECTIVE
+    if (category === 'HSE' || category === 'HS') {
+      return { type: 'HUMANITIES_SOCIAL_ELECTIVE' };
+    }
+
+    // RS -> RESEARCH
+    if (category === 'RS') {
+      return { type: 'RESEARCH' };
+    }
+
+    // OE, 기타 -> OTHER_ELECTIVE
+    return { type: 'OTHER_ELECTIVE' };
+  }
+
+  // Enrollment[]를 CourseSimulation[]로 변환 (recognizedAs 추가)
+  function convertEnrollmentsToCourseSimulations(
+    enrollments: Enrollment[],
+    profileData: Profile
+  ): CourseSimulation[] {
+    return enrollments.map((e) => ({
+      ...e,
+      recognizedAs: determineRecognizedAs(e.course, profileData),
+    }));
+  }
+
+  // 학기별로 그룹화
+  function groupBySemester(simulations: CourseSimulation[]): Map<string, CourseSimulation[]> {
+    const map = new Map<string, CourseSimulation[]>();
+    simulations.forEach((s) => {
+      const key = `${s.enrolledYear}-${s.enrolledSemester}`;
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+      map.get(key)!.push(s);
+    });
+    return map;
+  }
+
+  // 오늘보다 이른 학기 중 가장 가까운 학기 찾기
+  function findNearestPastSemester(): { year: number; semester: Semester } {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-11
+
+    // 학기 판단: 봄(3-5), 여름(6-7), 가을(9-11), 겨울(12-2)
+    let currentSemester: Semester = 'SPRING';
+    if (currentMonth >= 2 && currentMonth <= 4) currentSemester = 'SPRING';
+    else if (currentMonth >= 5 && currentMonth <= 6) currentSemester = 'SUMMER';
+    else if (currentMonth >= 8 && currentMonth <= 10) currentSemester = 'FALL';
+    else currentSemester = 'WINTER';
+
+    // 현재 학기보다 이전 학기 찾기
+    const semesterOrder: Semester[] = ['SPRING', 'SUMMER', 'FALL', 'WINTER'];
+    let year = currentYear;
+    let semesterIndex = semesterOrder.indexOf(currentSemester) - 1;
+
+    if (semesterIndex < 0) {
+      year--;
+      semesterIndex = semesterOrder.length - 1;
+    }
+
+    return { year, semester: semesterOrder[semesterIndex] };
+  }
+
+  // 서버 검색
+  useEffect(() => {
+    if (!courseSearchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      const params = new URLSearchParams();
+      params.append('query', courseSearchQuery);
+      if (filterDepartment && filterDepartment !== 'none') {
+        params.append('department', filterDepartment);
+      }
+      if (filterCategory && filterCategory !== '') {
+        params.append('category', filterCategory);
+      }
+
+      fetch(`${API}/courses?${params.toString()}`)
+        .then((r) => {
+          if (!r.ok) {
+            throw new Error(`HTTP error! status: ${r.status}`);
+          }
+          return r.json();
+        })
+        .then((courses) => {
+          setSearchResults(Array.isArray(courses) ? courses : []);
+        })
+        .catch((error) => {
+          console.error('Error fetching courses:', error);
+          setSearchResults([]);
+        });
+    }, 300); // 디바운스
+
+    return () => clearTimeout(timeoutId);
+  }, [courseSearchQuery, filterDepartment, filterCategory]);
+
+  // 선택된 과목 추가
+  const handleAddSelected = useCallback(() => {
+    if (!profile) return;
+    if (selectedCourseIds.size === 0) {
+      alert('추가할 과목을 선택해주세요.');
+      return;
+    }
+
+    const newCourses = [...simulationCourses];
+    const targetSemester = { year: addYear, semester: addSemester };
+
+    let addedCount = 0;
+    selectedCourseIds.forEach((courseId) => {
+      if (!courseId) return;
+
+      const course = searchResults.find((c) => {
+        const cId = c.id || c.code || '';
+        return cId === courseId || c.id === courseId || c.code === courseId;
+      });
+
+      if (!course) {
+        console.warn(`Course not found for courseId: ${courseId}`);
+        return;
+      }
+
+      const finalCourseId = course.code || course.id || courseId;
+
+      // 중복 체크
+      const isDuplicate = newCourses.some(
+        (c) =>
+          c.courseId === finalCourseId &&
+          c.enrolledYear === targetSemester.year &&
+          c.enrolledSemester === targetSemester.semester
+      );
+
+      if (isDuplicate) {
+        console.warn(`Duplicate course: ${finalCourseId}`);
+        return;
+      }
+
+      const courseObj: Course = {
+        id: course.id || finalCourseId,
+        code: course.code || finalCourseId,
+        title: course.title || '',
+        department: course.department || '',
+        category: course.category || '',
+        credit: course.credit || 3,
+        au: course.au || 0,
+      };
+
+      newCourses.push({
+        courseId: finalCourseId,
+        course: courseObj,
+        enrolledYear: targetSemester.year,
+        enrolledSemester: targetSemester.semester,
+        grade: addGrade,
+        recognizedAs: determineRecognizedAs(courseObj, profile),
+      });
+      addedCount++;
+    });
+
+    if (addedCount === 0) {
+      alert('추가할 수 있는 과목이 없습니다.');
+      return;
+    }
+
+    setSimulationCourses(newCourses);
+    setSelectedCourseIds(new Set());
+  }, [selectedCourseIds, searchResults, simulationCourses, profile, addYear, addSemester, addGrade]);
+
+  // 성적 변경
+  const handleGradeChange = useCallback(
+    (simulation: CourseSimulation, newGrade: Grade) => {
+      const newCourses = simulationCourses.map((c) =>
+        c.courseId === simulation.courseId &&
+        c.enrolledYear === simulation.enrolledYear &&
+        c.enrolledSemester === simulation.enrolledSemester
+          ? { ...c, grade: newGrade }
+          : c
+      );
+      setSimulationCourses(newCourses);
+    },
+    [simulationCourses]
+  );
+
+  // 삭제
+  const handleRemove = useCallback(
+    (simulation: CourseSimulation) => {
+      const newCourses = simulationCourses.filter(
+        (c) =>
+          !(
+            c.courseId === simulation.courseId &&
+            c.enrolledYear === simulation.enrolledYear &&
+            c.enrolledSemester === simulation.enrolledSemester
+          )
+      );
+      setSimulationCourses(newCourses);
+    },
+    [simulationCourses]
+  );
+
+  // 드래그 시작
+  const handleDragStart = (e: React.DragEvent, simulation: CourseSimulation, semesterKey: string) => {
+    setDraggedEnrollment(simulation);
+    setDraggedFromSemester(semesterKey);
+    e.dataTransfer.effectAllowed = 'move';
   };
 
-  // 과목 검색 필터링
-  const filteredCourses = useMemo(() => {
-    if (!courseSearchQuery.trim()) return availableCourses;
-    
-    const normalizedQuery = normalizeSearchText(courseSearchQuery);
-    
-    return availableCourses.filter((course) => {
-      const normalizedName = normalizeSearchText(course.title || course.name || '');
-      const deptNameStr = course.department ? deptName(course.department) : '';
-      const normalizedDept = normalizeSearchText(deptNameStr);
-      const normalizedCode = normalizeSearchText(course.code || '');
-      
-      return (
-        normalizedName.includes(normalizedQuery) ||
-        normalizedDept.includes(normalizedQuery) ||
-        normalizedCode.includes(normalizedQuery)
-      );
+  // 드롭
+  const handleDrop = useCallback(
+    (e: React.DragEvent, targetSemesterKey: string) => {
+      e.preventDefault();
+      const [targetYear, targetSemester] = targetSemesterKey.split('-');
+
+      if (draggedEnrollment) {
+        const newCourses = simulationCourses
+          .filter(
+            (c) =>
+              !(
+                c.courseId === draggedEnrollment.courseId &&
+                c.enrolledYear === draggedEnrollment.enrolledYear &&
+                c.enrolledSemester === draggedEnrollment.enrolledSemester
+              )
+          )
+          .map((c) => c);
+
+        newCourses.push({
+          ...draggedEnrollment,
+          enrolledYear: parseInt(targetYear),
+          enrolledSemester: targetSemester as Semester,
+        });
+
+        setSimulationCourses(newCourses);
+        setDraggedEnrollment(null);
+        setDraggedFromSemester(null);
+      } else if (draggedCourse) {
+        const targetSemesterObj =
+          simulationCourses.length === 0
+            ? findNearestPastSemester()
+            : { year: parseInt(targetYear), semester: targetSemester as Semester };
+        const courseCode = draggedCourse.code || draggedCourse.id || '';
+        const courseObj: Course = {
+          id: draggedCourse.id || courseCode,
+          code: draggedCourse.code || courseCode,
+          title: draggedCourse.title || '',
+          department: draggedCourse.department || '',
+          category: draggedCourse.category || '',
+          credit: draggedCourse.credit || 3,
+          au: draggedCourse.au || 0,
+        };
+
+        const isDuplicate = simulationCourses.some(
+          (c) =>
+            c.courseId === courseCode &&
+            c.enrolledYear === targetSemesterObj.year &&
+            c.enrolledSemester === targetSemesterObj.semester
+        );
+
+        if (isDuplicate) {
+          alert('이미 해당 학기에 추가된 과목입니다.');
+          setDraggedCourse(null);
+          return;
+        }
+
+        const newCourse: CourseSimulation = {
+          courseId: courseCode,
+          course: courseObj,
+          enrolledYear: targetSemesterObj.year,
+          enrolledSemester: targetSemesterObj.semester,
+          grade: 'A+',
+          recognizedAs: profile ? determineRecognizedAs(courseObj, profile) : { type: 'OTHER_ELECTIVE' },
+        };
+
+        const newCourses = [...simulationCourses, newCourse];
+        setSimulationCourses(newCourses);
+        setDraggedCourse(null);
+      }
+    },
+    [draggedEnrollment, draggedCourse, simulationCourses, profile]
+  );
+
+  // 목록 밖으로 드롭 (삭제)
+  const handleDropOutside = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (draggedEnrollment) {
+        handleRemove(draggedEnrollment);
+        setDraggedEnrollment(null);
+        setDraggedFromSemester(null);
+      }
+      if (draggedCourse) {
+        setDraggedCourse(null);
+      }
+    },
+    [draggedEnrollment, draggedCourse, handleRemove]
+  );
+
+  const semesterGroups = useMemo(() => groupBySemester(simulationCourses), [simulationCourses]);
+  const sortedSemesterKeys = useMemo(() => {
+    const keys = Array.from(semesterGroups.keys());
+    return keys.sort((a, b) => {
+      const [yearA, semA] = a.split('-');
+      const [yearB, semB] = b.split('-');
+      if (yearA !== yearB) return parseInt(yearA) - parseInt(yearB);
+      const order: Semester[] = ['SPRING', 'SUMMER', 'FALL', 'WINTER'];
+      return order.indexOf(semA as Semester) - order.indexOf(semB as Semester);
     });
-  }, [availableCourses, courseSearchQuery, depts]);
+  }, [semesterGroups]);
+
+  // CourseSimulation[]를 Enrollment[]로 변환 (EnrollmentsList 컴포넌트 사용을 위해)
+  const enrollmentsForList: Enrollment[] = simulationCourses.map((cs) => ({
+    courseId: cs.courseId,
+    course: cs.course,
+    enrolledYear: cs.enrolledYear,
+    enrolledSemester: cs.enrolledSemester,
+    grade: cs.grade,
+  }));
 
   const sections = useMemo((): Section[] => {
     const out: Section[] = [];
     const majorName = filters.major ? deptName(filters.major) : '';
+
+    const unWithdrawnCourses = simulationCourses.filter(c => c.grade !== 'W');
+
+    out.push({
+      id: 'BASIC_REQUIRED',
+      title: '기초필수',
+      titleElements: ['기초필수'],
+      courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'BASIC_REQUIRED'),
+      fulfilled: false,
+      detail: '0/0학점'
+    });
+    out.push({
+      id: 'BASIC_ELECTIVE',
+      title: '기초선택',
+      titleElements: ['기초선택'],
+      courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'BASIC_ELECTIVE'),
+      fulfilled: false,
+      detail: 'a'
+    });
+
     if (filters.major) {
       out.push({
-        id: 'major',
-        title: `${majorName} 주전공 이수 요건`,
-        courses: [
-          { id: 1, name: '데이터구조', credit: 3, grade: 'A+' },
-          { id: 2, name: '알고리즘', credit: 3, grade: 'A' },
-        ],
+        id: `MAJOR_${filters.major}`,
+        title: `${majorName}`,
+        titleElements: [majorName, '전공'],
+        courses: unWithdrawnCourses.filter(c => (c.recognizedAs?.type === 'MAJOR' && c.recognizedAs?.department === filters.major)),
         fulfilled: false,
-        detail: '12 / 36 학점',
+        detail: 'a'
+      });
+      if (filters.advancedMajor) {
+        out.push({
+          id: `ADVANCED_MAJOR_${filters.major}`,
+          title: `${majorName} (심화전공)`,
+          titleElements: [majorName, '심화전공'],
+          courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'ADVANCED_MAJOR'),
+          fulfilled: false,
+          detail: 'a',
+        });
+      }
+    }
+    if (filters.major) {
+      out.push({
+        id: `RESEARCH_${filters.major}`,
+        title: `${majorName} (연구)`,
+        titleElements: [majorName, '연구'],
+        courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'RESEARCH'),
+        fulfilled: false,
+        detail: 'a',
       });
     }
-    if (filters.advancedMajor && filters.major) {
+
+    (filters.doubleMajors || []).forEach(id => {
       out.push({
-        id: 'advanced',
-        title: `${majorName} 심화전공 이수 요건`,
-        courses: [],
+        id: `DOUBLE_MAJOR_${id}`,
+        title: `${deptName(id)} (복수전공)`,
+        titleElements: [deptName(id), '복수전공'],
+        courses: unWithdrawnCourses.filter(c => (c.recognizedAs?.type === 'DOUBLE_MAJOR' && c.recognizedAs?.department === id)),
         fulfilled: false,
-        detail: '0 / 12 학점',
-      });
-    }
-    (filters.doubleMajors || []).forEach((id, i) => {
-      out.push({
-        id: `double-${id}-${i}`,
-        title: `${deptName(id)} 복수전공 이수 요건`,
-        courses: [],
-        fulfilled: false,
-        detail: '0 / 36 학점',
+        detail: 'a',
       });
     });
-    (filters.minors || []).forEach((id, i) => {
+
+    (filters.minors || []).forEach(id => {
       out.push({
-        id: `minor-${id}-${i}`,
-        title: `${deptName(id)} 부전공 이수 요건`,
-        courses: [],
+        id: `MINOR_${id}`,
+        title: `${deptName(id)} (부전공)`,
+        titleElements: [deptName(id), '부전공'],
+        courses: unWithdrawnCourses.filter(c => (c.recognizedAs?.type === 'MINOR' && c.recognizedAs?.department === id)),
         fulfilled: false,
-        detail: '0 / 21 학점',
+        detail: '',
       });
     });
+
     if (filters.individuallyDesignedMajor) {
       out.push({
-        id: 'individually',
-        title: '자유융합전공 이수 요건',
-        courses: [],
+        id: 'INDIVIDUALLY_DESIGNED_MAJOR',
+        title: '자유융합전공',
+        titleElements: ['자유융합전공'],
+        courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR'),
         fulfilled: false,
-        detail: '0 / 36 학점',
+        detail: '',
       });
     }
-    if (filters.major) {
-      out.push({
-        id: 'research',
-        title: `${majorName} 연구 요건`,
-        courses: [],
-        fulfilled: false,
-        detail: '0 / 4 학점',
-      });
-    }
+
     out.push({
-      id: 'humanities',
-      title: '인문사회선택 요건',
-      courses: [{ id: 10, name: '인문학개론', credit: 2, grade: 'B+' }],
+      id: 'MANDATORY_GENERAL_COURSES',
+      title: '교양필수',
+      titleElements: ['교양필수'],
+      courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'MANDATORY_GENERAL_COURSES'),
       fulfilled: false,
-      detail: '2 / 6 학점',
+      detail: '',
     });
     out.push({
-      id: 'generalEd',
-      title: '교양필수 요건',
-      courses: [{ id: 11, name: '영어회화', credit: 2, grade: 'B+' }],
+      id: 'HUMANITIES_SOCIAL_ELECTIVE',
+      title: '인문사회선택',
+      titleElements: ['인문사회선택'],
+      courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'HUMANITIES_SOCIAL_ELECTIVE'),
       fulfilled: false,
-      detail: '2 / 21 학점',
+      detail: '',
     });
+
+    out.push({
+      id: 'OTHER_ELECTIVE',
+      title: '자유선택',
+      titleElements: ['자유선택'],
+      courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'OTHER_ELECTIVE'),
+      fulfilled: false,
+      detail: '',
+    });
+    out.push({
+      id: 'UNCLASSIFIED',
+      title: '미분류',
+      titleElements: ['미분류'],
+      courses: unWithdrawnCourses.filter(c => c.recognizedAs === null),
+      fulfilled: false,
+      detail: '',
+    });
+
     return out;
-  }, [filters, depts]);
+  }, [filters, simulationCourses, depts]);
 
   // 섹션을 그룹화: 주전공/심화전공/연구를 하나의 그룹으로
   const groupedSections = useMemo(() => {
+    const basicGroup: Section[] = [];
     const majorGroup: Section[] = [];
     const otherSections: Section[] = [];
+    const miscSections: Section[] = [];
     
     sections.forEach((s) => {
-      if (s.id === 'major' || s.id === 'advanced' || s.id === 'research') {
+      if (s.id.match(/^BASIC_/)) {
+        basicGroup.push(s);
+      } else if (s.id.match(/^MAJOR_/) || s.id.match(/^ADVANCED_MAJOR_/) || s.id.match(/^RESEARCH_/)) {
         majorGroup.push(s);
+      } else if (s.id === 'OTHER_ELECTIVE' || s.id === 'UNCLASSIFIED') {
+        miscSections.push(s);
       } else {
         otherSections.push(s);
       }
     });
     
-    return { majorGroup, otherSections };
+    return { basicGroup, majorGroup, otherSections, miscSections };
   }, [sections]);
 
   const handleLeftScroll = () => {
@@ -281,8 +763,9 @@ export default function SimulationPage() {
           {/* 새로운 시뮬레이션 */}
           <button
             onClick={() => {
-              // 새로운 시뮬레이션 시작 로직
-              setSimulationCourses([]);
+              if (profile) {
+                initializeSimulationData(profile);
+              }
             }}
             className={`w-full flex items-center gap-3 rounded-lg transition-colors ${
               sidebarOpen
@@ -300,34 +783,76 @@ export default function SimulationPage() {
           <div className={sidebarOpen ? 'mt-6' : 'mt-4'}>
             {sidebarOpen && (
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 px-2 whitespace-nowrap min-w-0 truncate">
-                이전 시뮬레이션
+                저장된 시뮬레이션
               </h3>
             )}
             <div className="space-y-1">
-              {previousSimulations.map((sim) => (
-                <button
-                  key={sim.id}
-                  onClick={() => {
-                    // 시뮬레이션 로드 로직
-                  }}
-                  className={`w-full flex items-center gap-3 rounded-lg text-left transition-colors ${
-                    sidebarOpen
-                      ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 px-4 py-2'
-                      : 'justify-center p-2'
-                  }`}
-                  title={sidebarOpen ? undefined : sim.name}
-                >
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  {sidebarOpen && (
-                    <div className="flex-1 min-w-0 overflow-hidden">
-                      <p className="text-sm font-medium truncate">{sim.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{sim.date}</p>
-                    </div>
-                  )}
-                </button>
-              ))}
+              {previousSimulations.length === 0 ? (
+                sidebarOpen && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 px-2 py-2">저장된 시뮬레이션이 없습니다.</p>
+                )
+              ) : (
+                previousSimulations.map((sim) => (
+                  <div
+                    key={sim.id}
+                    className={`w-full flex items-center gap-3 rounded-lg text-left transition-colors ${
+                      sidebarOpen
+                        ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 px-4 py-2'
+                        : 'justify-center p-2'
+                    }`}
+                  >
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    {sidebarOpen && (
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <p className="text-sm font-medium truncate">{sim.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{sim.date}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {sim.canGraduate ? '✅ 졸업 가능' : '❌ 졸업 불가능'}
+                        </p>
+                      </div>
+                    )}
+                    {sidebarOpen && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+                          if (!userId) return;
+                          if (!confirm('정말 이 시뮬레이션을 삭제하시겠습니까?')) return;
+                          fetch(`${API}/simulation/${sim.id}?userId=${encodeURIComponent(userId)}`, {
+                            method: 'DELETE',
+                            credentials: 'include',
+                          })
+                            .then((r) => r.json())
+                            .then((data) => {
+                              if (data.success) {
+                                setPreviousSimulations((prev) => prev.filter((s) => s.id !== sim.id));
+                              } else {
+                                alert(data.message || '삭제에 실패했습니다.');
+                              }
+                            })
+                            .catch((error) => {
+                              console.error('삭제 오류:', error);
+                              alert('삭제 중 오류가 발생했습니다.');
+                            });
+                        }}
+                        className="flex-shrink-0 p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                        title="삭제"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -382,7 +907,7 @@ export default function SimulationPage() {
 
       {/* 메인 컨텐츠 */}
       <div className="flex-1 flex flex-col overflow-y-auto">
-        {/* 상단 필터 바 (sticky) */}
+        {/* 상단 바 (sticky) */}
         <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-gray-700 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex-1 overflow-x-auto">
@@ -498,12 +1023,12 @@ export default function SimulationPage() {
                       </p>
                     ) : (
                       <>
-                        {/* 주전공/심화전공/연구 그룹 */}
-                        {groupedSections.majorGroup.length > 0 && (
-                          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                            {groupedSections.majorGroup.map((s, idx) => (
-                              <div key={s.id}>
-                                <div className="p-4">
+                        {/* 기초과목 그룹 */}
+                        {groupedSections.basicGroup.length > 0 && (
+                          <>
+                            {groupedSections.basicGroup.map((s, i) => (
+                              <div key={s.id} className={i > 0 ? 'mt-4' : ''}>
+                                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                                   <h3 className="font-medium text-base mb-3">{s.title}</h3>
                                   <div className="space-y-2">
                                     {s.courses.length === 0 ? (
@@ -511,27 +1036,62 @@ export default function SimulationPage() {
                                     ) : (
                                       s.courses.map((c) => (
                                         <div
-                                          key={c.id}
+                                          key={c.courseId}
                                           className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                         >
-                                          <p className="font-medium text-sm">{c.name}</p>
+                                          <p className="font-medium text-sm">{c.course.title}</p>
                                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {c.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
+                                            {c.course.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
                                           </p>
                                         </div>
                                       ))
                                     )}
                                   </div>
                                 </div>
-                                {idx < groupedSections.majorGroup.length - 1 && (
-                                  <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
-                                )}
                               </div>
                             ))}
-                          </div>
+                          </>
+                        )} 
+
+                        {/* 주전공/심화전공/연구 그룹 */}
+                        {groupedSections.majorGroup.length > 0 && (
+                          <>
+                            {groupedSections.basicGroup.length > 0 && (
+                              <div className="mt-4"></div>
+                            )}
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                              {groupedSections.majorGroup.map((s, idx) => (
+                                <div key={s.id}>
+                                  <div className="p-4">
+                                    <h3 className="font-medium text-base mb-3">{s.title}</h3>
+                                    <div className="space-y-2">
+                                      {s.courses.length === 0 ? (
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                      ) : (
+                                        s.courses.map((c) => (
+                                          <div
+                                            key={c.courseId}
+                                            className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
+                                          >
+                                            <p className="font-medium text-sm">{c.course.title}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                              {c.course.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
+                                            </p>
+                                          </div>
+                                        ))
+                                      )}
+                                    </div>
+                                  </div>
+                                  {idx < groupedSections.majorGroup.length - 1 && (
+                                    <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </>
                         )}
                         
-                        {/* 나머지 섹션들 */}
+                        {/* 복전, 부전, 융전, 교필, 인선 */}
                         {groupedSections.otherSections.length > 0 && (
                           <>
                             {groupedSections.majorGroup.length > 0 && (
@@ -547,12 +1107,12 @@ export default function SimulationPage() {
                                     ) : (
                                       s.courses.map((c) => (
                                         <div
-                                          key={c.id}
+                                          key={c.courseId}
                                           className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                         >
-                                          <p className="font-medium text-sm">{c.name}</p>
+                                          <p className="font-medium text-sm">{c.course.title}</p>
                                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {c.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
+                                            {c.course.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
                                           </p>
                                         </div>
                                       ))
@@ -563,6 +1123,27 @@ export default function SimulationPage() {
                             ))}
                           </>
                         )}
+
+                        {groupedSections.miscSections.map((s) => s.courses.length === 0 ? null : (
+                          <div key={s.id} className="mt-4">
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                              <h3 className="font-medium text-base mb-3">{s.title}</h3>
+                              <div className="space-y-2">
+                                {s.courses.map((c) => (
+                                  <div
+                                    key={c.courseId}
+                                    className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
+                                  >
+                                    <p className="font-medium text-sm">{c.course.title}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      {c.course.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </>
                     )}
                   </div>
@@ -583,7 +1164,7 @@ export default function SimulationPage() {
                         <button
                           type="button"
                           onClick={() => setRightPanelOpen(true)}
-                          className="flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors border border-gray-200 dark:border-gray-700"
+                          className="flex-shrink-0 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors border border-gray-200 dark:border-gray-700"
                           title="패널 펼치기"
                         >
                           <svg
@@ -604,9 +1185,30 @@ export default function SimulationPage() {
                         </p>
                       ) : (
                         <>
+                          {/* 기초과목 */}
+                          {groupedSections.basicGroup.length > 0 && (
+                            <>
+                              {groupedSections.basicGroup.map((s, idx) => (
+                                <div key={s.id} className={idx > 0 ? 'mt-4' : ''}>
+                                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                                    <h3 className="font-medium text-base mb-2">{s.title}</h3>
+                                    <p className="text-lg font-bold">{s.detail}</p>
+                                    <p
+                                      className={`mt-1 text-sm font-medium ${
+                                        s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+                                      }`}
+                                    >
+                                      {s.fulfilled ? '달성' : '미달'}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </>
+                          )}
+
                           {/* 주전공/심화전공/연구 그룹 */}
                           {groupedSections.majorGroup.length > 0 && (
-                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                            <div className={'rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden' + (groupedSections.basicGroup.length > 0 ? ' mt-4' : '')}>
                               {groupedSections.majorGroup.map((s, idx) => (
                                 <div key={s.id}>
                                   <div className="p-4">
@@ -628,12 +1230,9 @@ export default function SimulationPage() {
                             </div>
                           )}
                           
-                          {/* 나머지 섹션들 */}
+                          {/* 복전, 부전, 융전, 교필, 인선 */}
                           {groupedSections.otherSections.length > 0 && (
                             <>
-                              {groupedSections.majorGroup.length > 0 && (
-                                <div className="mt-4"></div>
-                              )}
                               {groupedSections.otherSections.map((s) => (
                                 <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
                                   <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -681,16 +1280,16 @@ export default function SimulationPage() {
                 {rightPanelOpen && (
                   <>
                     <div className="flex-1 min-h-0 overflow-y-auto">
-                      {/* sticky 상단: 모드 전환 + 검색창 */}
-                      <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-gray-700 p-4 flex-shrink-0 space-y-4">
+                      {/* sticky 상단: 모드 전환 */}
+                      <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-gray-700 p-4 flex-shrink-0">
                         <div className="flex gap-2 items-center">
                           <button
                             type="button"
                             onClick={() => setCourseMode('add')}
-                            className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                            className={`flex-1 px-2 py-1 rounded-lg text-sm font-medium transition-colors truncate ${
                               courseMode === 'add'
-                                ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-700'
-                                : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700 border border-transparent'
+                                ? 'border border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
+                                : 'border border-transparent bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700'
                             }`}
                           >
                             과목 추가
@@ -698,18 +1297,18 @@ export default function SimulationPage() {
                           <button
                             type="button"
                             onClick={() => setCourseMode('view')}
-                            className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                            className={`flex-1 px-2 py-1 rounded-lg text-sm font-medium transition-colors truncate ${
                               courseMode === 'view'
-                                ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 border border-violet-200 dark:border-violet-700'
-                                : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-zinc-700 border border-transparent'
+                                ? 'border border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
+                                : 'border border-transparent bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700'
                             }`}
                           >
-                            선택한 과목
+                            수강한 과목<span className="opacity-40 ml-2">{enrollmentsForList.length}</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => setRightPanelOpen(false)}
-                            className="flex-shrink-0 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors border border-gray-200 dark:border-gray-700"
+                            className="flex-shrink-0 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors border border-gray-200 dark:border-gray-700"
                             title="패널 접기"
                           >
                             <svg
@@ -722,222 +1321,81 @@ export default function SimulationPage() {
                             </svg>
                           </button>
                         </div>
-                        {courseMode === 'add' && !isAddFormExpanded && (
-                          <div className="relative">
-                            <Input
-                              type="text"
-                              value={courseSearchQuery}
-                              onChange={setCourseSearchQuery}
-                              placeholder="과목명, 과목코드, 개설학과로 검색..."
-                              size="medium"
-                              className="pr-10"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setIsAddFormExpanded(true)}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                              title="폼 펼치기"
-                            >
-                              <svg
-                                className="w-5 h-5 transition-transform"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                              </svg>
-                            </button>
-                          </div>
-                        )}
                       </div>
 
-                      <div className="p-4">
+                      <div className="p-6 pt-0">
                         {courseMode === 'add' ? (
-                          <div className="space-y-4">
-                            {/* 통합검색 결과 (폼이 접혀있을 때만 표시) */}
-                            {!isAddFormExpanded && (
-                              <div className="space-y-2 h-full flex flex-col overflow-y-hidden">
-                                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  검색 결과 ({filteredCourses.length})
-                                </h3>
-                                <div className="space-y-2 overflow-y-auto">
-                                  {filteredCourses.length === 0 ? (
-                                    <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
-                                      {courseSearchQuery ? '검색 결과가 없습니다.' : '검색어를 입력하거나 과목을 직접 추가하세요.'}
-                                    </p>
-                                  ) : (
-                                    filteredCourses.map((course) => (
-                                      <div
-                                        key={course.id}
-                                        className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-zinc-800"
-                                      >
-                                        <div className="flex-1 min-w-0">
-                                          <p className="font-medium truncate">{course.title || course.name}</p>
-                                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                                            {course.code && `${course.code} | `}
-                                            {course.department && `${deptName(course.department)} | `}
-                                            {course.category || '구분 없음'}
-                                          </p>
-                                        </div>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            if (simulationCourses.find((c) => c.id === course.id)) {
-                                              setSimulationCourses(simulationCourses.filter((c) => c.id !== course.id));
-                                            } else {
-                                              setSimulationCourses([
-                                                ...simulationCourses,
-                                                {
-                                                  id: course.id,
-                                                  name: course.title || course.name,
-                                                  code: course.code || '',
-                                                  department: course.department || '',
-                                                  category: course.category || '',
-                                                  credit: course.credit || 3,
-                                                },
-                                              ]);
-                                            }
-                                          }}
-                                          className={`ml-3 px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap ${
-                                            simulationCourses.find((c) => c.id === course.id)
-                                              ? 'bg-red-600 text-white hover:bg-red-700'
-                                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700 border border-gray-300 dark:border-gray-600'
-                                          }`}
-                                        >
-                                          {simulationCourses.find((c) => c.id === course.id) ? '제거' : '추가'}
-                                        </button>
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* 과목 추가 폼 (접을 수 있음) */}
-                            {isAddFormExpanded && (
-                              <div className="space-y-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-zinc-800/50">
-                                <div className="relative">
-                                  {/* 과목명 */}
-                                  <div className="flex flex-col grow gap-2">
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목명</label>
-                                    <Input
-                                      type="text"
-                                      value={newCourse.name}
-                                      onChange={(value) => setNewCourse({ ...newCourse, name: value })}
-                                      placeholder="예: 컴퓨터네트워크"
-                                      size="medium"
-                                    />
-                                  </div>
-                                  {/* 폼 접기 버튼 */}
-                                  <button
-                                    type="button"
-                                    onClick={() => setIsAddFormExpanded(false)}
-                                    className="absolute top-[-1rem] right-[-1rem] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                                    title="폼 접기"
-                                  >
-                                    <svg
-                                      className="w-5 h-5 transition-transform rotate-180"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                  </button>
-                                </div>
-
-                                {/* 과목코드, 개설학과, 과목구분 (한 줄 3분할) */}
-                                <div className="grid grid-cols-3 gap-3">
-                                  <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목코드</label>
-                                    <Input
-                                      type="text"
-                                      value={newCourse.code}
-                                      onChange={(value) => setNewCourse({ ...newCourse, code: value })}
-                                      placeholder="예: CS.30300"
-                                      size="small"
-                                    />
-                                  </div>
-                                  <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">개설학과</label>
-                                    <DepartmentDropdown
-                                      value={newCourse.department}
-                                      onChange={(value) => setNewCourse({ ...newCourse, department: value === 'none' ? '' : value })}
-                                      mode="course"
-                                      size="small"
-                                      allowNone={true}
-                                    />
-                                  </div>
-                                  <div className="flex flex-col gap-2">
-                                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">과목구분</label>
-                                    <CourseCategoryDropdown
-                                      value={newCourse.category}
-                                      onChange={(newValue) => setNewCourse({ ...newCourse, category: newValue })}
-                                      size="small"
-                                    />
-                                  </div>
-                                </div>
-
-                                {/* 추가 버튼 */}
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (!newCourse.name.trim()) {
-                                      alert('과목명을 입력해주세요.');
-                                      return;
-                                    }
-                                    const newId = Date.now(); // 임시 ID
-                                    const courseToAdd = {
-                                      id: newId,
-                                      name: newCourse.name,
-                                      code: newCourse.code || '',
-                                      department: newCourse.department || '',
-                                      category: newCourse.category || '',
-                                      credit: 3, // 기본값, 나중에 입력받을 수 있음
-                                    };
-                                    setSimulationCourses([...simulationCourses, courseToAdd]);
-                                    setNewCourse({ name: '', code: '', department: '', category: '' });
-                                    setIsAddFormExpanded(false);
-                                  }}
-                                  className="w-full px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700 border border-gray-300 dark:border-gray-600 rounded-lg font-medium transition-colors"
-                                >
-                                  과목 추가
-                                </button>
-                              </div>
-                            )}
-                          </div>
+                          <AddCoursePanel
+                            searchQuery={courseSearchQuery}
+                            onSearchQueryChange={setCourseSearchQuery}
+                            searchResults={searchResults}
+                            selectedCourseIds={selectedCourseIds}
+                            onSelectionChange={setSelectedCourseIds}
+                            addYear={addYear}
+                            onAddYearChange={setAddYear}
+                            addSemester={addSemester}
+                            onAddSemesterChange={setAddSemester}
+                            addGrade={addGrade}
+                            onAddGradeChange={setAddGrade}
+                            onAddSelected={handleAddSelected}
+                            onDragStart={(course) => setDraggedCourse(course)}
+                            filterDepartment={filterDepartment}
+                            onFilterDepartmentChange={setFilterDepartment}
+                            filterCategory={filterCategory}
+                            onFilterCategoryChange={setFilterCategory}
+                          />
                         ) : (
-                          /* 선택한 과목 보기 */
-                          <div className="space-y-2">
-                            {simulationCourses.length === 0 ? (
-                              <p className="text-sm text-gray-500 dark:text-gray-400 py-8 text-center">
-                                추가된 과목이 없습니다.
+                          <>
+                            <div className="text-sm text-center my-4 px-4 text-gray-500 space-y-2">
+                              <p>
+                                시뮬레이션에 사용할 과목들을 지정합니다. 아직 듣지 않았지만 들을 예정인 과목을 추가하거나, 재수강 예정인 과목의 성적을 변경하여 시뮬레이션을 진행합니다.
                               </p>
-                            ) : (
-                              simulationCourses.map((course) => (
-                                <div
-                                  key={course.id}
-                                  className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-violet-50 dark:bg-violet-900/20"
-                                >
-                                  <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate">{course.name}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                                      {course.code && `${course.code} | `}
-                                      {course.department && `${deptName(course.department)} | `}
-                                      {course.category || '구분 없음'} | {course.credit || 3}학점
-                                    </p>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => setSimulationCourses(simulationCourses.filter((c) => c.id !== course.id))}
-                                    className="ml-3 px-3 py-1.5 text-red-600 hover:text-red-700 text-sm font-medium whitespace-nowrap"
-                                  >
-                                    삭제
-                                  </button>
-                                </div>
-                              ))
-                            )}
-                          </div>
+                              <p>
+                                이곳에서 과목을 추가하거나 삭제하더라도 프로필에 저장된 수강 내역은 변경되지 않습니다.
+                              </p>
+                            </div>
+                            <EnrollmentsList
+                              enrollments={enrollmentsForList}
+                              semesterGroups={semesterGroups}
+                              sortedSemesterKeys={sortedSemesterKeys}
+                              onGradeChange={(enrollment, grade) => {
+                                const cs = simulationCourses.find(
+                                  (c) =>
+                                    c.courseId === enrollment.courseId &&
+                                    c.enrolledYear === enrollment.enrolledYear &&
+                                    c.enrolledSemester === enrollment.enrolledSemester
+                                );
+                                if (cs) {
+                                  handleGradeChange(cs, grade);
+                                }
+                              }}
+                              onRemove={(enrollment) => {
+                                const cs = simulationCourses.find(
+                                  (c) =>
+                                    c.courseId === enrollment.courseId &&
+                                    c.enrolledYear === enrollment.enrolledYear &&
+                                    c.enrolledSemester === enrollment.enrolledSemester
+                                );
+                                if (cs) {
+                                  handleRemove(cs);
+                                }
+                              }}
+                              onDragStart={(e, enrollment, semesterKey) => {
+                                const cs = simulationCourses.find(
+                                  (c) =>
+                                    c.courseId === enrollment.courseId &&
+                                    c.enrolledYear === enrollment.enrolledYear &&
+                                    c.enrolledSemester === enrollment.enrolledSemester
+                                );
+                                if (cs) {
+                                  handleDragStart(e, cs, semesterKey);
+                                }
+                              }}
+                              onDrop={handleDrop}
+                              onDropOutside={handleDropOutside}
+                              findNearestPastSemester={findNearestPastSemester}
+                            />
+                          </>
                         )}
                       </div>
                     </div>
@@ -1030,6 +1488,15 @@ export default function SimulationPage() {
                       }
 
                       try {
+                        // CourseSimulation[]를 RawCourseSimulation[]로 변환
+                        const rawCourses: RawCourseSimulation[] = simulationCourses.map((cs) => ({
+                          courseId: cs.courseId,
+                          enrolledYear: cs.enrolledYear,
+                          enrolledSemester: cs.enrolledSemester,
+                          grade: cs.grade,
+                          recognizedAs: cs.recognizedAs,
+                        }));
+
                         // 시뮬레이션 저장 API 호출
                         const response = await fetch(`${API}/simulation`, {
                           method: 'POST',
@@ -1042,45 +1509,28 @@ export default function SimulationPage() {
                             major: filters.major,
                             doubleMajors: filters.doubleMajors,
                             minors: filters.minors,
-                            courses: simulationCourses,
+                            advancedMajor: filters.advancedMajor,
+                            individuallyDesignedMajor: filters.individuallyDesignedMajor,
+                            courses: rawCourses,
                           }),
                         });
 
                         const data = await response.json();
 
                         if (data.success) {
-                          // 과목 추가 옵션이 체크되어 있으면 프로필의 enrollments에 추가
-                          if (addToEnrollments && simulationCourses.length > 0) {
-                            const profileResponse = await fetch(`${API}/profile?userId=${encodeURIComponent(userId)}`, {
-                              credentials: 'include',
-                            });
-                            const profileData = await profileResponse.json();
-
-                            if (profileData.success && profileData.profile) {
-                              const currentEnrollments = Array.isArray(profileData.profile.enrollments)
-                                ? profileData.profile.enrollments
-                                : [];
-
-                              const newEnrollments = [
-                                ...currentEnrollments,
-                                ...simulationCourses.map((course) => ({
-                                  courseId: course.id,
-                                  courseName: course.name,
-                                  credit: course.credit,
-                                  grade: course.grade || null,
-                                })),
-                              ];
-
-                              await fetch(`${API}/profile`, {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'include',
-                                body: JSON.stringify({
-                                  userId,
-                                  enrollments: newEnrollments,
-                                }),
-                              });
-                            }
+                          // 시뮬레이션 목록 새로고침
+                          const simulationsRes = await fetch(`${API}/simulation?userId=${encodeURIComponent(userId)}`, {
+                            credentials: 'include',
+                          });
+                          const simulationsData = await simulationsRes.json();
+                          if (simulationsData.success) {
+                            const sims = (simulationsData.simulations || []).map((sim: any) => ({
+                              id: sim.id,
+                              name: sim.title,
+                              date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
+                              canGraduate: false, // TODO: 졸업가능 여부 계산 로직 추가 필요
+                            }));
+                            setPreviousSimulations(sims);
                           }
 
                           alert('시뮬레이션이 저장되었습니다.');

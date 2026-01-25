@@ -94,7 +94,7 @@ export default function EnrollmentsList({
             }}
           >
             <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-700 dark:bg-zinc-800">
-              <h3 className="font-medium text-gray-800 dark:text-gray-200">
+              <h3 className="font-medium text-gray-800 dark:text-gray-200 truncate">
                 {year}년 {SEMESTER_LABELS[semester as Semester]}
               </h3>
             </div>
@@ -126,7 +126,7 @@ export default function EnrollmentsList({
                         {enrollment.course.code}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                       {enrollment.course.department}
                       {enrollment.course.category && ` · ${enrollment.course.category}`}
                       {enrollment.course.au > 0 ? ` · ${enrollment.course.au}AU` : ` · ${enrollment.course.credit}학점`}
