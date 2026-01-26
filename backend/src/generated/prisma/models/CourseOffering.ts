@@ -255,7 +255,7 @@ export type CourseOfferingOrderByWithRelationInput = {
 
 export type CourseOfferingWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  code_title_category_credit_au?: Prisma.CourseOfferingCodeTitleCategoryCreditAuCompoundUniqueInput
+  code_title_category_tags_credit_au?: Prisma.CourseOfferingCodeTitleCategoryTagsCreditAuCompoundUniqueInput
   AND?: Prisma.CourseOfferingWhereInput | Prisma.CourseOfferingWhereInput[]
   OR?: Prisma.CourseOfferingWhereInput[]
   NOT?: Prisma.CourseOfferingWhereInput | Prisma.CourseOfferingWhereInput[]
@@ -266,7 +266,7 @@ export type CourseOfferingWhereUniqueInput = Prisma.AtLeast<{
   tags?: Prisma.StringNullableListFilter<"CourseOffering">
   credit?: Prisma.IntFilter<"CourseOffering"> | number
   au?: Prisma.IntFilter<"CourseOffering"> | number
-}, "id" | "code_title_category_credit_au">
+}, "id" | "code_title_category_tags_credit_au">
 
 export type CourseOfferingOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -375,10 +375,11 @@ export type CourseOfferingUncheckedUpdateManyInput = {
   au?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
-export type CourseOfferingCodeTitleCategoryCreditAuCompoundUniqueInput = {
+export type CourseOfferingCodeTitleCategoryTagsCreditAuCompoundUniqueInput = {
   code: string
   title: string
   category: string
+  tags: string[]
   credit: number
   au: number
 }
