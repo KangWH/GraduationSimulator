@@ -2,7 +2,7 @@
   "info": {
     "dept": "PH",
     "type": "BE_Double_False",
-    "year": "2023"
+    "year": "2016"
   },
   "requirements": [ 
     {
@@ -12,6 +12,16 @@
       "targets": [
         {
           "categories": ["BE"]
+        }
+      ]
+    }, 
+    {
+      "type": "REQUIRE_MIN_SUBJECTS_AMONG",
+      "description": "일반물리학실험II를 포함하여 이수",
+      "subjects": 1,
+      "targets": [
+        {
+          "codes": ["PH.10052"]
         }
       ]
     }

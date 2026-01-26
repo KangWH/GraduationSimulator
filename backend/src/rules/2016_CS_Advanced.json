@@ -1,8 +1,8 @@
 {
   "info": {
-    "dept": "PH",
+    "dept": "CS",
     "type": "Advanced",
-    "year": "2023"
+    "year": "2016"
   },
   "requirements": {
     "type": "REQUIRE_MIN_CREDITS_AMONG", 
@@ -10,8 +10,8 @@
     "credits": 12,
     "targets": [
       {
-        "categories": ["ME", "MR"],
-        "departments": ["PH"]
+        "categories": ["ME"],
+        "firstdigits": [3, 4]
       }
     ]
   }
