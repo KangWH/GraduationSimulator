@@ -1,0 +1,17 @@
+{
+  "info": {
+    "dept": "EE",
+    "type": "Research",
+    "year": "2023"
+  },
+  "requirements": {
+      "type": "REQUIRE_MIN_CREDITS_AMONG", 
+      "description": "연구 3학점 이상 이수",
+      "credits": 3,
+      "targets": [
+        {
+          "codes": ["EE.91100", "EE.91000"]
+        }
+      ]
+  }
+}
