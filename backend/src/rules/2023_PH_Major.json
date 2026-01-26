@@ -1,0 +1,31 @@
+{
+  "info": {
+    "dept": "PH",
+    "type": "Major",
+    "year": "2023"
+  },
+  "requirements": [ 
+    {
+      "type": "REQUIRE_MIN_CREDITS_AMONG", 
+      "description": "전공필수 19학점 이상 이수",
+      "credits": 19,
+      "targets": [
+        {
+          "categories": ["MR"], 
+          "departments": ["PH"]
+        }
+      ]
+    }, 
+    {
+      "type": "REQUIRE_MIN_CREDITS_AMONG", 
+      "description": "전공선택 24학점 이상 이수",
+      "credits": 24,
+      "targets": [
+        {
+          "categories": ["ME"],
+          "departments": ["PH"]
+        }
+      ]
+    }
+  ]
+}
