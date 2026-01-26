@@ -1,0 +1,27 @@
+{
+  "info": {
+    "dept": "CS",
+    "type": "BE_Double_True",
+    "year": "2023"
+  },
+  "requirements": [ 
+    {
+      "type": "REQUIRE_MIN_CREDITS_AMONG", 
+      "description": "기초선택 3학점 이상 이수",
+      "credits": 3,
+      "targets": [
+        {
+          "categories": ["BE"]
+        }
+      ]
+    }, 
+    {
+      "type": "REQUIRE_MIN_SUBJECTS_AMONG", 
+      "description": "전산학부 지정 기초선택 과목인 선형대수학개론을 반드시 포함하여 이수",
+      "subjects": 1,
+      "targets": [
+        {"codes": ["MAS.10009", "MAS.10010"]}
+      ]
+    }
+  ]
+}

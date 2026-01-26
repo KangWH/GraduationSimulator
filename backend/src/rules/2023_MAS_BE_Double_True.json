@@ -1,7 +1,7 @@
 {
   "info": {
     "dept": "MAS",
-    "type": "BE_Yes_Double",
+    "type": "BE_Double_True",
     "year": "2023"
   },
   "requirements": [ 
