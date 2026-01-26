@@ -1,0 +1,42 @@
+[
+  {
+    "description": "영어 4과목 수강",
+    "type": "MIN_COURSES_AMONG",
+    "value": 4,
+    "targets": [
+      {
+        "codes": ["HSS.10022", "HSS.10023", "HSS.10024", "HSS.10025"]
+      }
+    ]
+  },
+  {
+    "description": "논술 과목 수강",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["HSS.10001"]
+      }
+    ]
+  },
+  {
+    "description": "인성/리더십 2AU 수강",
+    "type": "MIN_AU_AMONG",
+    "value": 2,
+    "targets": [
+      {
+        "codes": ["HSS.10072", "HSS.10073", "HSS.10074", "HSS.10175"]
+      }
+    ]
+  },
+  {
+    "description": "즐거운 대학생활·신나는 대학생활 이수",
+    "type": "MIN_AU_AMONG",
+    "value": 2,
+    "tagets": [
+      {
+        "codes": ["HSS.10099", "HSS.10195"]
+      }
+    ]
+  }
+]

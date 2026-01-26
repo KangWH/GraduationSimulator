@@ -136,7 +136,8 @@ export type CourseOfferingScalarFieldEnum = (typeof CourseOfferingScalarFieldEnu
 export const GeneralEdRequirementScalarFieldEnum = {
   id: 'id',
   year: 'year',
-  logicTree: 'logicTree'
+  type: 'type',
+  requirements: 'requirements'
 } as const
 
 export type GeneralEdRequirementScalarFieldEnum = (typeof GeneralEdRequirementScalarFieldEnum)[keyof typeof GeneralEdRequirementScalarFieldEnum]
@@ -146,7 +147,8 @@ export const MajorRequirementScalarFieldEnum = {
   id: 'id',
   year: 'year',
   department: 'department',
-  logicTree: 'logicTree'
+  type: 'type',
+  requirements: 'requirements'
 } as const
 
 export type MajorRequirementScalarFieldEnum = (typeof MajorRequirementScalarFieldEnum)[keyof typeof MajorRequirementScalarFieldEnum]

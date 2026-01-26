@@ -1,0 +1,16 @@
+[
+  {
+    "description": "21학점 이상 이수",
+    "type": "MIN_CREDITS_AMONG",
+    "value": 21,
+    "targets": [
+      {
+        "category": "HSE"
+      },
+      {
+        "caegory": "OE",
+        "tags": ["인선"]
+      }
+    ]
+  }
+]

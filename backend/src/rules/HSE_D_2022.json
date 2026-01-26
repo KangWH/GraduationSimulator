@@ -1,0 +1,23 @@
+[
+  {
+    "description": "12학점 이상 이수",
+    "type": "MIN_CREDITS_AMONG",
+    "value": 12,
+    "targets": [
+      {
+        "category": "HSE"
+      }
+    ]
+  },
+  {
+    "description": "핵심교과목을 1과목 이상 포함하여 이수",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "category": "HSE",
+        "tags": ["핵심"]
+      }
+    ]
+  }
+]
