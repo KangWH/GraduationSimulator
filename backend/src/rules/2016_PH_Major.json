@@ -1,9 +1,8 @@
 {
   "info": {
     "dept": "PH",
-    "type": "Double",
-    "year": "2023", 
-    "maxDoubleCountCredits": 0
+    "type": "Major",
+    "year": "2016"
   },
   "requirements": [ 
     {
@@ -19,8 +18,8 @@
     }, 
     {
       "type": "REQUIRE_MIN_CREDITS_AMONG", 
-      "description": "전공선택 21학점 이상 이수",
-      "credits": 21,
+      "description": "전공선택 24학점 이상 이수",
+      "credits": 24,
       "targets": [
         {
           "categories": ["ME"],

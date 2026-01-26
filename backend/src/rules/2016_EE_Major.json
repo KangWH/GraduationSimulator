@@ -1,36 +1,24 @@
 {
   "info": {
     "dept": "EE",
-    "type": "Double",
-    "year": "2023", 
-    "maxDoubleCountCredits": 6
+    "type": "Major",
+    "year": "2016"
   },
   "requirements": [ 
     {
       "type": "REQUIRE_MIN_CREDITS_AMONG", 
-      "description": "전공필수 15학점 이상 이수",
-      "credits": 15,
+      "description": "전공필수 18학점 이수",
+      "credits": 18,
       "targets": [
         {
-          "categories": ["MR"], 
-          "departments": ["EE"]
-        }
-      ]
-    }, 
-    {
-      "type": "REQUIRE_MIN_SUBJECTS_AMONG", 
-      "description": "전공필수 전자설계 및 실험(3), 전자디자인 랩(3) 필수 이수",
-      "subjects": 2,
-      "targets": [
-        {
-          "codes": ["EE.30005", "EE.40005"]
+          "codes": ["EE.20001", "EE.20002", "EE.20004", "EE.20009", "EE.30005", "EE.40005"]
         }
       ]
     }, 
     {
       "type": "REQUIRE_MIN_CREDITS_AMONG", 
-      "description": "전공과목 40학점 이상 이수",
-      "credits": 40,
+      "description": "전공과목 50학점 이상 이수",
+      "credits": 50,
       "targets": [
         {
           "categories": ["ME", "MR"],
