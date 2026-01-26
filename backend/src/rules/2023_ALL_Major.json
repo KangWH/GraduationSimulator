@@ -4,27 +4,36 @@
     "type": "Major",
     "year": "2023"
   },
-  "requirements": {
-    "type": "CONDITION_COMPOSER", 
-    "operation": "AND",
-    "conditions": [
+  "requirements": [
     {
       "type": "REQUIRE_MIN_CREDITS_AMONG", 
-      "description": "Mandatory_English_CREDITS",
+      "description": "교양필수 영어 과목을 7학점 이상 이수",
       "credits": 7,
-      "targets": ["HSS.30093", "HSS.10023", "HSS.30097", "HSS.30091", "HSS.10001"]
+      "targets": [
+        {
+          "codes": ["HSS.30093", "HSS.10023", "HSS.30097", "HSS.30091", "HSS.10001"]
+        }
+      ]
     }, 
     {
       "type": "REQUIRE_MIN_AU_AMONG", 
-      "description": "Mandatory_College_Life_AU",
+      "description": "교양필수 대학생활 과목을 2AU 이상 이수",
       "au": 2,
-      "targets": ["HSS.10195", "HSS.10099"]
+      "targets": [
+        {
+          "codes": ["HSS.10195", "HSS.10099"]
+        }
+      ]
     }, 
     {
       "type": "REQUIRE_MIN_AU_AMONG", 
-      "description": "Mandatory_Leadership_AU",
+      "description": "교양필수 인성/리더십 과목을 2AU 이상 이수",
       "au": 2,
-      "targets": ["HSS.10072", "HSS.10073", "HSS.10074", "HSS.10175"]
+      "targets": [
+        {
+          "codes": ["HSS.10072", "HSS.10073", "HSS.10074", "HSS.10175"]
+        }
+      ]
     }, 
     {
       "type": "REQUIRE_MIN_SUBJECTS_AMONG", 
@@ -62,6 +71,6 @@
           "targets": ["HSS.10187", "HSS.20017", "HSS.20051", "HSS.20059", "HSS.20065", "HSS.20066", "HSS.20069", "HSS.20070", "HSS.20071", "HSS.20073", "HSS.20074", "HSS.20075", "HSS.20076", "HSS.20079", "HSS.20120", "HSS.20153", "HSS.20167", "HSS.20171", "HSS.20186", "HSS.30021", "HSS.30022", "HSS.30024", "HSS.30071", "HSS.30074", "HSS.30075", "HSS.35300", "HSS.39912", "HSS.39919", "HSS.39920", "HSS.39921", "HSS.39944", "HSS.40035", "HSS.40038"]
         }
       ]
-    }]
-  }
+    }
+  ]
 }
