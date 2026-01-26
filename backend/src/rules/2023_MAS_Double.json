@@ -2,41 +2,30 @@
   "info": {
     "dept": "MAS",
     "type": "Double",
-    "year": "2023"
+    "year": "2023",
+    "maxDoubleCountCredits": 6
   },
-  "requirements": {
-    "type": "CONDITION_COMPOSER", 
-    "operation": "AND",
-    "conditions": [
-    {
-      "type": "REQUIRE_MIN_SUBJECTS_AMONG", 
-      "description": "Elective_Basic_SUBJECTS",
-      "subjects": 1,
-      "targets": ["MAS.20001", "MAS.20050", "MAS.20002"]
-    }, 
+  "requirements": [ 
     {
       "type": "REQUIRE_MIN_CREDITS_AMONG", 
-      "description": "Elective_Basic_CREDITS",
-      "credits": 3,
-      "targets": ["PH.10052", "MAS.10009", "MAS.20001", "MAS.20050", "ID.20001", "MS.20011", "IE.10001", "CS.10009", "ID.20002", "MAS.20002", "CH.10003", "CH.10004", "CoE.20003", "NQE.10001", "CE.10001", "BiS.10002", "ME.10006", "AE.10000", "EE.10005", "ED.20000", "CoE.20002", "CoE.20007", "MSB.10001", "BS.10022", "MAS.10010", "MSE.10001", "STP.10010", "BTM.10001", "CBE.10000"]
-    }, 
-    {
-      "type": "REQUIRE_MIN_SUBJECTS_AMONG", 
-      "description": "Elective_Major_SUBJECTS",
-      "subjects": 4,
-      "targets": ["MAS.20012", "MAS.20041", "MAS.30011", "MAS.30021", "MAS.30031", "MAS.30041", "MAS.30055"]
-    }, 
-    {
-      "type": "REQUIRE_MIN_CREDITS_AMONG", 
-      "description": "Elective_Major_CREDITS",
+      "description": "전공선택 40학점 이상 이수",
       "credits": 40,
-      "targets": ["MAS.20010", "MAS.20012", "MAS.20041", "MAS.20042", "MAS.20060", "MAS.20070", "MAS.20075", "MAS.30011", "MAS.30012", "MAS.30021", "MAS.30031", "MAS.30041", "MAS.30050", "MAS.30055", "MAS.30064", "MAS.30065", "MAS.30070", "MAS.30074", "MAS.40010", "MAS.40011", "MAS.40012", "MAS.40020", "MAS.40030", "MAS.40035", "MAS.40040", "MAS.40041", "MAS.40042", "MAS.40043", "MAS.40055", "MAS.40056", "MAS.40064", "MAS.40067", "MAS.40071", "MAS.40072", "MAS.40073", "MAS.40075", "MAS.40076", "MAS.40077", "MAS.40078", "MAS.49900", "MAS.49901"], 
-      "additional_allowance": {
-        "type": "ALLOW_MAX_CREDITS_AMONG", 
-        "description": "Other_Dept_Major_CREDITS",
-        "max_credits": 6, 
-        "targets": ["PH.20012", "PH.20021", "PH.30001", "ME.20021", "ME.20031", "IE.30031", "IE.30041", "IE.20042", "IE.30042", "EE.20002", "EE.20004", "PH.20031", "EE.30021", "CS.20006", "CS.30000", "BiS.42009"]
-      }
-    }]
-  }
+      "targets": [
+        {
+          "categories": ["ME"],
+          "departments": ["MAS"]
+        }
+      ]
+    }, 
+    {
+      "type": "REQUIRE_MIN_SUBJECTS_AMONG", 
+      "description": "필수 전공선택 중에서 4과목 이상을 포함하여 이수",
+      "subjects": 4,
+      "targets": [
+        {
+          "codes": ["MAS.20012", "MAS.20041", "MAS.30011", "MAS.30021", "MAS.30031", "MAS.30041", "MAS.30055"]
+        }
+      ]
+    }
+  ]
 }

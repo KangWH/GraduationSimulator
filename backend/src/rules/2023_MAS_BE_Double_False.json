@@ -1,0 +1,27 @@
+{
+  "info": {
+    "dept": "MAS",
+    "type": "BE_Double_False",
+    "year": "2023"
+  },
+  "requirements": [ 
+    {
+      "type": "REQUIRE_MIN_CREDITS_AMONG", 
+      "description": "기초선택 9학점 이상 이수",
+      "credits": 9,
+      "targets": [
+        {
+          "categories": ["BE"]
+        }
+      ]
+    }, 
+    {
+      "type": "REQUIRE_MIN_SUBJECTS_AMONG", 
+      "description": "수리과학과 지정 기초선택 중에서 2과목 이상을 포함하여 이수",
+      "subjects": 2,
+      "targets": [
+        {"codes": ["MAS.10009", "MAS.20001", "MAS.20050", "MAS.20002", "MAS.10010"]}
+      ]
+    }
+  ]
+}

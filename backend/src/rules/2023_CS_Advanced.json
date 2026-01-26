@@ -1,16 +1,17 @@
 {
   "info": {
-    "dept": "MAS",
+    "dept": "CS",
     "type": "Advanced",
     "year": "2023"
   },
   "requirements": {
     "type": "REQUIRE_MIN_CREDITS_AMONG", 
-    "description": "심화전공 13학점 이상 이수",
-    "credits": 13,
+    "description": "심화전공 12학점 이상 이수",
+    "credits": 12,
     "targets": [
       {
-        "codes": ["MAS.20042", "MAS.30012", "MAS.40030", "MAS.40040"]
+        "categories": ["ME"],
+        "firstdigits": [3, 4]
       }
     ]
   }

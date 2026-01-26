@@ -1,6 +1,6 @@
 {
   "info": {
-    "dept": "MAS",
+    "dept": "CS",
     "type": "Research",
     "year": "2023"
   },
@@ -10,7 +10,7 @@
       "credits": 3,
       "targets": [
         {
-          "codes": ["MAS.91000", "MAS.40091", "MAS.91100"]
+          "codes": ["CS.91100", "CS.91000", "CS.40008"]
         }
       ]
   }
