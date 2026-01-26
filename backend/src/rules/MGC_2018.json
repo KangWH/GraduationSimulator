@@ -33,7 +33,7 @@
     "description": "즐거운 대학생활·신나는 대학생활 이수",
     "type": "MIN_AU_AMONG",
     "value": 2,
-    "tagets": [
+    "targets": [
       {
         "codes": ["HSS.10099", "HSS.10195"]
       }

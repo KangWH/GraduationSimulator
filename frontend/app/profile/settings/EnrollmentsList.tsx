@@ -38,6 +38,7 @@ export default function EnrollmentsList({
 }: EnrollmentsListProps) {
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [collapsedSemesters, setCollapsedSemesters] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     Promise.all([
@@ -61,6 +62,18 @@ export default function EnrollmentsList({
     if (!catId) return '';
     const cat = categories.find((c) => c.id === catId);
     return cat ? cat.name : catId;
+  };
+
+  const toggleSemester = (semesterKey: string) => {
+    setCollapsedSemesters((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(semesterKey)) {
+        newSet.delete(semesterKey);
+      } else {
+        newSet.add(semesterKey);
+      }
+      return newSet;
+    });
   };
 
   if (enrollments.length === 0) {
@@ -103,6 +116,7 @@ export default function EnrollmentsList({
           year === '0' && semester === 'SPRING'
             ? '기이수'
             : `${year}년 ${SEMESTER_LABELS[semester as Semester]}`;
+        const isCollapsed = collapsedSemesters.has(semesterKey);
 
         return (
           <div
@@ -126,9 +140,23 @@ export default function EnrollmentsList({
               onDrop(e, semesterKey);
             }}
           >
-            <h3 className="font-medium text-base mb-3 text-gray-800 dark:text-gray-200">
-              {sectionTitle}
-            </h3>
+            <button
+              onClick={() => toggleSemester(semesterKey)}
+              className="flex items-center gap-2 w-full text-left hover:opacity-70 transition-opacity mb-3"
+            >
+              <svg
+                className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <h3 className="font-medium text-base text-gray-800 dark:text-gray-200">
+                {sectionTitle}
+              </h3>
+            </button>
+            {!isCollapsed && (
             <div className="space-y-2">
               {[...groupEnrollments]
                 .sort((a, b) => (a.course.code || '').localeCompare(b.course.code || ''))
@@ -191,6 +219,7 @@ export default function EnrollmentsList({
                   </div>
                 ))}
             </div>
+            )}
           </div>
         );
       })}

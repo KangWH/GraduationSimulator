@@ -5,10 +5,10 @@
     "value": 21,
     "targets": [
       {
-        "category": "HSE"
+        "categories": ["HSE"]
       },
       {
-        "caegory": "OE",
+        "caegories": ["OE"],
         "tags": ["인선"]
       }
     ]

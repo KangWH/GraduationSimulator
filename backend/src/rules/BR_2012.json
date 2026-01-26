@@ -1,15 +1,17 @@
 [
   {
-    "description": "32학점 이상 이수",
+    "title": "학점 총합",
+    "description": "23학점 이상 이수",
     "type": "MIN_CREDITS_AMONG",
-    "value": 32,
+    "value": 23,
     "targets": [
       {
-        "category": "BR"
+        "categories": ["BR"]
       }
     ]
   },
   {
+    "title": "일반/고급물리학 I",
     "description": "기초물리학 I, 일반물리학 I, 고급물리학 I 중 1과목 이수",
     "type": "MIN_COURSES_AMONG",
     "value": 1,
@@ -31,6 +33,7 @@
     ]
   },
   {
+    "title": "일반/고급물리학 II",
     "description": "기초물리학 II, 일반물리학 II, 고급물리학 II 중 1과목 이수",
     "type": "MIN_COURSES_AMONG",
     "value": 1,
@@ -52,6 +55,7 @@
     ]
   },
   {
+    "title": "일반물리학실험 I",
     "description": "일반물리학실험 I 이수",
     "type": "MIN_COURSES_AMONG",
     "value": 1,
@@ -73,6 +77,7 @@
     ]
   },
   {
+    "title": "일반생물학",
     "description": "기초생물학, 일반생물학 중 1과목 이수",
     "type": "MIN_COURSES_AMONG",
     "value": 1,
@@ -83,6 +88,7 @@
     ]
   },
   {
+    "title": "미적분학 I",
     "description": "미적분학 I, 고급미적분학 I 중 1과목 이수",
     "type": "MIN_COURSES_AMONG",
     "value": 1,
@@ -93,6 +99,7 @@
     ]
   },
   {
+    "title": "미적분학 II",
     "description": "미적분학 II, 고급미적분학 II 중 1과목 이수",
     "type": "MIN_COURSES_AMONG",
     "value": 1,
@@ -103,6 +110,7 @@
     ]
   },
   {
+    "title": "일반화학 I",
     "description": "기초화학, 일반화학 I, 고급화학 중 1과목 이수",
     "type": "MIN_COURSES_AMONG",
     "value": 1,
@@ -124,6 +132,7 @@
     ]
   },
   {
+    "title": "일반화학실험 I",
     "description": "일반화학실험 I, 고급화학실험 I 중 1과목 이수",
     "type": "MIN_COURSES_AMONG",
     "value": 1,
@@ -134,10 +143,11 @@
     ]
   },
   {
+    "title": "프로그래밍기초",
     "description": "프로그래밍기초, 고급프로그래밍 중 1과목 이수",
     "type": "MIN_COURSES_AMONG",
     "value": 1,
-    "tagets": [
+    "targets": [
       {
         "codes": ["CS.10001"]
       }

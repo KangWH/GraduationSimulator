@@ -1,17 +1,19 @@
 import { Course, Grade, Semester } from "../profile/settings/types";
+import { CourseCondition } from "./conditionTester";
 
 export type CreditType =
   | { type: 'BASIC_REQUIRED'; }
   | { type: 'BASIC_ELECTIVE'; }
   | { type: 'MANDATORY_GENERAL_COURSES'; }
-  | { type: 'HUMANITIES_SOCIAL_ELECTIVE'; }
-  | { type: 'MAJOR'; department: string; }
+  | { type: 'HUMANITIES_SOCIETY_ELECTIVE'; }
+  | { type: 'MAJOR' }
   | { type: 'DOUBLE_MAJOR'; department: string; }
   | { type: 'MINOR'; department: string; }
   | { type: 'ADVANCED_MAJOR'; }
   | { type: 'INDIVIDUALLY_DESIGNED_MAJOR'; }
   | { type: 'RESEARCH'; }
   | { type: 'OTHER_ELECTIVE'; }
+  | { type: 'UNRECOGNIZED'; }
   | null;
 
 export interface CourseSimulation {
@@ -21,6 +23,7 @@ export interface CourseSimulation {
   enrolledSemester: Semester;
   grade: Grade;
   recognizedAs: CreditType;
+  internalRecognizedAs: CreditType;
 }
 
 export interface RawCourseSimulation {
@@ -29,4 +32,15 @@ export interface RawCourseSimulation {
   enrolledSemester: Semester;
   grade: Grade;
   recognizedAs: CreditType;
+}
+
+export interface Requirement {
+  title: string;
+  description: string;
+  type: string;
+  value?: number;
+  currentValue?: number;
+  targets?: CourseCondition[];
+  constraints?: any[];
+  fulfilled: boolean;
 }
