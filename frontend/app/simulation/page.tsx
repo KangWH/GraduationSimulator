@@ -52,6 +52,8 @@ export default function SimulationPage() {
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [addToEnrollments, setAddToEnrollments] = useState(false);
+  const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // 과목 추가/선택 모드
   const [courseMode, setCourseMode] = useState<'add' | 'view'>('add');
@@ -68,6 +70,7 @@ export default function SimulationPage() {
   const [addYear, setAddYear] = useState(new Date().getFullYear());
   const [addSemester, setAddSemester] = useState<Semester>('SPRING');
   const [addGrade, setAddGrade] = useState<Grade>('A+');
+  const [addAsPriorCredit, setAddAsPriorCredit] = useState(false);
   const [filterDepartment, setFilterDepartment] = useState<string>('none');
   const [filterCategory, setFilterCategory] = useState<string>('none');
   const [draggedEnrollment, setDraggedEnrollment] = useState<CourseSimulation | null>(null);
@@ -75,12 +78,29 @@ export default function SimulationPage() {
   const [draggedCourse, setDraggedCourse] = useState<any | null>(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
+  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+
   useEffect(() => {
-    fetch('http://localhost:4000/departments')
-      .then((r) => r.json())
-      .then((arr: Dept[]) => setDepts(arr))
-      .catch(() => {});
+    Promise.all([
+      fetch(`${API}/departments`).then((r) => r.json()),
+      fetch(`${API}/courseCategories`).then((r) => r.json()),
+    ]).then(([depts, cats]) => {
+      setDepts(Array.isArray(depts) ? depts : []);
+      setCategories(Array.isArray(cats) ? cats : []);
+    }).catch(() => {});
   }, []);
+
+  const getDepartmentName = (deptId: string | undefined): string => {
+    if (!deptId) return '';
+    const dept = depts.find((d) => d.id === deptId);
+    return dept ? dept.name : deptId;
+  };
+
+  const getCategoryName = (catId: string | undefined): string => {
+    if (!catId) return '';
+    const cat = categories.find((c) => c.id === catId);
+    return cat ? cat.name : catId;
+  };
 
   // 프로필 정보 로드 및 필터 초기화
   useEffect(() => {
@@ -184,19 +204,20 @@ export default function SimulationPage() {
     const enrollments: Enrollment[] = [];
     for (const raw of rawEnrollments) {
       try {
-        const courseRes = await fetch(`${API}/courses?code=${encodeURIComponent(raw.courseId)}`);
+        // courseId는 이제 UUID (고유 ID)
+        const courseRes = await fetch(`${API}/courses?id=${encodeURIComponent(raw.courseId)}`);
         const courses = await courseRes.json();
         const course = Array.isArray(courses) && courses.length > 0 ? courses[0] : null;
         if (course) {
           enrollments.push({
-            courseId: raw.courseId,
+            courseId: raw.courseId, // UUID 저장
             course: {
               id: course.id || raw.courseId,
-              code: course.code || raw.courseId,
+              code: course.code || '',
               title: course.title || '',
               department: course.department || '',
               category: course.category || '',
-              credit: course.credit || 3,
+              credit: course.credit || 0,
               au: course.au || 0,
             },
             enrolledYear: raw.enrolledYear,
@@ -280,6 +301,157 @@ export default function SimulationPage() {
       recognizedAs: determineRecognizedAs(e.course, profileData),
     }));
   }
+
+  // RawCourseSimulation[]를 CourseSimulation[]로 변환
+  async function convertRawSimulationsToCourseSimulations(
+    rawSimulations: RawCourseSimulation[],
+    profileData: Profile
+  ): Promise<CourseSimulation[]> {
+    const courseSimulations: CourseSimulation[] = [];
+    for (const raw of rawSimulations) {
+      try {
+        // courseId는 이제 UUID (고유 ID)
+        const courseRes = await fetch(`${API}/courses?id=${encodeURIComponent(raw.courseId)}`);
+        const courses = await courseRes.json();
+        const course = Array.isArray(courses) && courses.length > 0 ? courses[0] : null;
+        if (course) {
+          courseSimulations.push({
+            courseId: raw.courseId, // UUID 저장
+            course: {
+              id: course.id || raw.courseId,
+              code: course.code || '',
+              title: course.title || '',
+              department: course.department || '',
+              category: course.category || '',
+              credit: course.credit || 0,
+              au: course.au || 0,
+            },
+            enrolledYear: raw.enrolledYear,
+            enrolledSemester: raw.enrolledSemester,
+            grade: raw.grade,
+            recognizedAs: raw.recognizedAs,
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to fetch course ${raw.courseId}:`, error);
+      }
+    }
+    return courseSimulations;
+  }
+
+  // 저장된 시뮬레이션 로드
+  const loadSimulation = useCallback(async (simulationId: string) => {
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    if (!userId || !profile) return;
+
+    try {
+      const res = await fetch(`${API}/simulation/${simulationId}?userId=${encodeURIComponent(userId)}`, {
+        credentials: 'include',
+      });
+      const data = await res.json();
+
+      if (!data.success || !data.simulation) {
+        alert(data.message || '시뮬레이션을 불러오는데 실패했습니다.');
+        return;
+      }
+
+      const sim = data.simulation;
+
+      // 필터 업데이트
+      setFilters({
+        requirementYear: sim.referenceYear || new Date().getFullYear(),
+        major: sim.major || '',
+        doubleMajors: Array.isArray(sim.doubleMajors) ? sim.doubleMajors : [],
+        minors: Array.isArray(sim.minors) ? sim.minors : [],
+        advancedMajor: sim.advancedMajor || false,
+        individuallyDesignedMajor: sim.individuallyDesignedMajor || false,
+      });
+
+      // courses 파싱 및 변환
+      let rawCourses: RawCourseSimulation[] = [];
+      if (sim.courses) {
+        if (Array.isArray(sim.courses)) {
+          rawCourses = sim.courses as RawCourseSimulation[];
+        } else if (typeof sim.courses === 'string') {
+          try {
+            const parsed = JSON.parse(sim.courses);
+            rawCourses = Array.isArray(parsed) ? (parsed as RawCourseSimulation[]) : [];
+          } catch {
+            rawCourses = [];
+          }
+        }
+      }
+
+      // CourseSimulation[]로 변환
+      const courseSimulations = await convertRawSimulationsToCourseSimulations(rawCourses, profile);
+      setSimulationCourses(courseSimulations);
+      setCurrentSimulationId(simulationId);
+    } catch (error) {
+      console.error('시뮬레이션 로드 오류:', error);
+      alert('시뮬레이션을 불러오는 중 오류가 발생했습니다.');
+    }
+  }, [profile]);
+
+  // 자동 저장 함수
+  const autoSave = useCallback(async () => {
+    if (!currentSimulationId || !profile) return;
+
+    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
+    if (!userId) return;
+
+    // RawCourseSimulation[]로 변환
+    const rawCourses: RawCourseSimulation[] = simulationCourses.map((cs) => ({
+      courseId: cs.courseId,
+      enrolledYear: cs.enrolledYear,
+      enrolledSemester: cs.enrolledSemester,
+      grade: cs.grade,
+      recognizedAs: cs.recognizedAs,
+    }));
+
+    try {
+      const res = await fetch(`${API}/simulation/${currentSimulationId}?userId=${encodeURIComponent(userId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          userId,
+          referenceYear: filters.requirementYear,
+          major: filters.major,
+          doubleMajors: filters.doubleMajors,
+          minors: filters.minors,
+          advancedMajor: filters.advancedMajor,
+          individuallyDesignedMajor: filters.individuallyDesignedMajor,
+          courses: rawCourses,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success) {
+        console.error('자동 저장 실패:', data.message);
+      }
+    } catch (error) {
+      console.error('자동 저장 오류:', error);
+    }
+  }, [currentSimulationId, profile, simulationCourses, filters]);
+
+  // simulationCourses나 filters 변경 시 자동 저장 (debounce)
+  useEffect(() => {
+    if (!currentSimulationId) return;
+
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      autoSave();
+    }, 1000); // 1초 후 자동 저장
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [simulationCourses, filters, currentSimulationId, autoSave]);
 
   // 학기별로 그룹화
   function groupBySemester(simulations: CourseSimulation[]): Map<string, CourseSimulation[]> {
@@ -393,15 +565,17 @@ export default function SimulationPage() {
     }
 
     const newCourses = [...simulationCourses];
-    const targetSemester = { year: addYear, semester: addSemester };
+    const targetSemester = addAsPriorCredit
+      ? { year: 0, semester: 'SPRING' as Semester }
+      : { year: addYear, semester: addSemester };
 
     let addedCount = 0;
     selectedCourseIds.forEach((courseId) => {
       if (!courseId) return;
 
+      // selectedCourseIds에는 course.id 또는 course.code가 들어갈 수 있음 (AddCoursePanel에서 설정)
       const course = searchResults.find((c) => {
-        const cId = c.id || c.code || '';
-        return cId === courseId || c.id === courseId || c.code === courseId;
+        return c.id === courseId || c.code === courseId;
       });
 
       if (!course) {
@@ -409,7 +583,12 @@ export default function SimulationPage() {
         return;
       }
 
-      const finalCourseId = course.code || course.id || courseId;
+      // 저장 시에는 고유 ID 사용
+      const finalCourseId = course.id || courseId;
+      if (!finalCourseId) {
+        console.warn(`Course has no id:`, course);
+        return;
+      }
 
       // 중복 체크
       const isDuplicate = newCourses.some(
@@ -426,16 +605,16 @@ export default function SimulationPage() {
 
       const courseObj: Course = {
         id: course.id || finalCourseId,
-        code: course.code || finalCourseId,
+        code: course.code || '',
         title: course.title || '',
         department: course.department || '',
         category: course.category || '',
-        credit: course.credit || 3,
+        credit: course.credit || 0,
         au: course.au || 0,
       };
 
       newCourses.push({
-        courseId: finalCourseId,
+        courseId: finalCourseId, // UUID 저장
         course: courseObj,
         enrolledYear: targetSemester.year,
         enrolledSemester: targetSemester.semester,
@@ -452,7 +631,7 @@ export default function SimulationPage() {
 
     setSimulationCourses(newCourses);
     updateSelectedCourseIds(new Set());
-  }, [selectedCourseIds, searchResults, simulationCourses, profile, addYear, addSemester, addGrade, updateSelectedCourseIds]);
+  }, [selectedCourseIds, searchResults, simulationCourses, profile, addYear, addSemester, addGrade, addAsPriorCredit, updateSelectedCourseIds]);
 
   // 성적 변경
   const handleGradeChange = useCallback(
@@ -524,20 +703,25 @@ export default function SimulationPage() {
           simulationCourses.length === 0
             ? findNearestPastSemester()
             : { year: parseInt(targetYear), semester: targetSemester as Semester };
-        const courseCode = draggedCourse.code || draggedCourse.id || '';
+        const courseId = draggedCourse.id;
+        if (!courseId) {
+          console.warn('Dragged course has no id:', draggedCourse);
+          setDraggedCourse(null);
+          return;
+        }
         const courseObj: Course = {
-          id: draggedCourse.id || courseCode,
-          code: draggedCourse.code || courseCode,
+          id: draggedCourse.id,
+          code: draggedCourse.code || '',
           title: draggedCourse.title || '',
           department: draggedCourse.department || '',
           category: draggedCourse.category || '',
-          credit: draggedCourse.credit || 3,
+          credit: draggedCourse.credit || 0,
           au: draggedCourse.au || 0,
         };
 
         const isDuplicate = simulationCourses.some(
           (c) =>
-            c.courseId === courseCode &&
+            c.courseId === courseId &&
             c.enrolledYear === targetSemesterObj.year &&
             c.enrolledSemester === targetSemesterObj.semester
         );
@@ -550,7 +734,7 @@ export default function SimulationPage() {
 
         const defaultGrade = (draggedCourse.au || 0) > 0 ? 'S' : 'A+';
         const newCourse: CourseSimulation = {
-          courseId: courseCode,
+          courseId: courseId, // UUID 저장
           course: courseObj,
           enrolledYear: targetSemesterObj.year,
           enrolledSemester: targetSemesterObj.semester,
@@ -603,6 +787,67 @@ export default function SimulationPage() {
     grade: cs.grade,
   }));
 
+  // 섹션의 학점과 AU 총합을 계산하는 함수
+  const calculateSectionCredits = useCallback((courses: CourseSimulation[]): string => {
+    const totalCredit = courses.reduce((sum, c) => sum + (c.course.credit || 0), 0);
+    const totalAu = courses.reduce((sum, c) => sum + (c.course.au || 0), 0);
+    
+    if (totalAu > 0) {
+      return `${totalCredit}학점 · ${totalAu}AU`;
+    }
+    return `${totalCredit}학점`;
+  }, []);
+
+  // 성적을 숫자로 변환하는 함수
+  const gradeToNumber = useCallback((grade: Grade): number | null => {
+    switch (grade) {
+      case 'A+': return 4.3;
+      case 'A0': return 4.0;
+      case 'A-': return 3.7;
+      case 'B+': return 3.3;
+      case 'B0': return 3.0;
+      case 'B-': return 2.7;
+      case 'C+': return 2.3;
+      case 'C0': return 2.0;
+      case 'C-': return 1.7;
+      case 'D+': return 1.3;
+      case 'D0': return 1.0;
+      case 'D-': return 0.7;
+      case 'F': return 0.0;
+      default:
+        return null;
+    }
+  }, []);
+
+  // 총 이수학점, AU, 평점 계산
+  const totalStats = useMemo(() => {
+    const totalCredit = simulationCourses.filter(c => c.grade !== 'F' && c.grade !== 'U' && c.grade !== 'NR' && c.grade !== 'W').reduce((sum, c) => sum + (c.course.credit || 0), 0);
+    const totalAu = simulationCourses.filter(c => c.grade !== 'F' && c.grade !== 'U' && c.grade !== 'NR' && c.grade !== 'W').reduce((sum, c) => sum + (c.course.au || 0), 0);
+    
+    // 평점 계산: F, W, U, NR, S, P는 제외, 학점이 0보다 큰 과목만 포함
+    let totalGradePoints = 0;
+    let totalCreditsForGPA = 0;
+    
+    simulationCourses.forEach((c) => {
+      const credit = c.course.credit || 0;
+      if (credit > 0) {
+        const gradeNum = gradeToNumber(c.grade);
+        if (gradeNum !== null) {
+          totalGradePoints += credit * gradeNum;
+          totalCreditsForGPA += credit;
+        }
+      }
+    });
+    
+    const gpa = totalCreditsForGPA > 0 ? totalGradePoints / totalCreditsForGPA : 0;
+    
+    return {
+      totalCredit,
+      totalAu,
+      gpa: gpa.toFixed(2),
+    };
+  }, [simulationCourses, gradeToNumber]);
+
   const sections = useMemo((): Section[] => {
     const out: Section[] = [];
     const majorName = filters.major ? deptName(filters.major) : '';
@@ -629,8 +874,8 @@ export default function SimulationPage() {
     if (filters.major) {
       out.push({
         id: `MAJOR_${filters.major}`,
-        title: `${majorName}`,
-        titleElements: [majorName, '전공'],
+        title: `주전공: ${majorName}`,
+        titleElements: ['주전공', majorName],
         courses: unWithdrawnCourses.filter(c => (c.recognizedAs?.type === 'MAJOR' && c.recognizedAs?.department === filters.major)),
         fulfilled: false,
         detail: 'a'
@@ -638,8 +883,8 @@ export default function SimulationPage() {
       if (filters.advancedMajor) {
         out.push({
           id: `ADVANCED_MAJOR_${filters.major}`,
-          title: `${majorName} (심화전공)`,
-          titleElements: [majorName, '심화전공'],
+          title: '심화전공',
+          titleElements: ['심화전공'],
           courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'ADVANCED_MAJOR'),
           fulfilled: false,
           detail: 'a',
@@ -649,8 +894,8 @@ export default function SimulationPage() {
     if (filters.major) {
       out.push({
         id: `RESEARCH_${filters.major}`,
-        title: `${majorName} (연구)`,
-        titleElements: [majorName, '연구'],
+        title: '연구',
+        titleElements: ['연구'],
         courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'RESEARCH'),
         fulfilled: false,
         detail: 'a',
@@ -660,8 +905,8 @@ export default function SimulationPage() {
     (filters.doubleMajors || []).forEach(id => {
       out.push({
         id: `DOUBLE_MAJOR_${id}`,
-        title: `${deptName(id)} (복수전공)`,
-        titleElements: [deptName(id), '복수전공'],
+        title: `복수전공: ${deptName(id)}`,
+        titleElements: ['복수전공', deptName(id)],
         courses: unWithdrawnCourses.filter(c => (c.recognizedAs?.type === 'DOUBLE_MAJOR' && c.recognizedAs?.department === id)),
         fulfilled: false,
         detail: 'a',
@@ -671,8 +916,8 @@ export default function SimulationPage() {
     (filters.minors || []).forEach(id => {
       out.push({
         id: `MINOR_${id}`,
-        title: `${deptName(id)} (부전공)`,
-        titleElements: [deptName(id), '부전공'],
+        title: `부전공: ${deptName(id)}`,
+        titleElements: ['부전공', deptName(id)],
         courses: unWithdrawnCourses.filter(c => (c.recognizedAs?.type === 'MINOR' && c.recognizedAs?.department === id)),
         fulfilled: false,
         detail: '',
@@ -786,7 +1031,7 @@ export default function SimulationPage() {
             </svg>
           </button>
           {sidebarOpen && (
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap min-w-0 truncate">졸업시뮬레이터</h2>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap min-w-0 truncate" style={{ fontFamily: 'var(--font-logo)' }}>grad.log</h2>
           )}
         </div>
 
@@ -800,19 +1045,22 @@ export default function SimulationPage() {
           <button
             onClick={() => {
               if (profile) {
+                setCurrentSimulationId(null);
                 initializeSimulationData(profile);
               }
             }}
-            className={`w-full flex items-center gap-3 rounded-lg transition-colors ${
-              sidebarOpen
-                ? 'bg-violet-600 text-white hover:bg-violet-700 px-4 py-3'
-                : 'bg-violet-600 text-white hover:bg-violet-700 justify-center p-2'
-            }`}
+            className={`w-full flex items-center gap-2 rounded-lg transition-colors ${
+              currentSimulationId === null
+                ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300'
+                : sidebarOpen
+                ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                : ''
+            } ${sidebarOpen ? 'px-3 py-2' : 'justify-center p-2'}`}
           >
-            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            {sidebarOpen && <span className="whitespace-nowrap min-w-0 truncate">새로운 시뮬레이션</span>}
+            {sidebarOpen && <span className="text-sm whitespace-nowrap min-w-0 truncate">새로운 시뮬레이션</span>}
           </button>
 
           {/* 이전 시뮬레이션 조회 */}
@@ -831,11 +1079,14 @@ export default function SimulationPage() {
                 previousSimulations.map((sim) => (
                   <div
                     key={sim.id}
-                    className={`w-full flex items-center gap-3 rounded-lg text-left transition-colors ${
-                      sidebarOpen
+                    onClick={() => loadSimulation(sim.id)}
+                    className={`w-full flex items-center gap-3 rounded-lg text-left transition-all cursor-pointer ${
+                      currentSimulationId === sim.id
+                        ? ('bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 transition-all' + (sidebarOpen ? '' : ' p-2 justify-center'))
+                        : sidebarOpen
                         ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 px-4 py-2'
                         : 'justify-center p-2'
-                    }`}
+                    } ${sidebarOpen ? 'px-4 py-2' : ''}`}
                   >
                     <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -845,7 +1096,7 @@ export default function SimulationPage() {
                         <p className="text-sm font-medium truncate">{sim.name}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{sim.date}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {sim.canGraduate ? '✅ 졸업 가능' : '❌ 졸업 불가능'}
+                          {sim.canGraduate ? '졸업 가능' : '졸업 불가능'}
                         </p>
                       </div>
                     )}
@@ -864,6 +1115,12 @@ export default function SimulationPage() {
                             .then((data) => {
                               if (data.success) {
                                 setPreviousSimulations((prev) => prev.filter((s) => s.id !== sim.id));
+                                if (currentSimulationId === sim.id) {
+                                  setCurrentSimulationId(null);
+                                  if (profile) {
+                                    initializeSimulationData(profile);
+                                  }
+                                }
                               } else {
                                 alert(data.message || '삭제에 실패했습니다.');
                               }
@@ -944,9 +1201,9 @@ export default function SimulationPage() {
       {/* 메인 컨텐츠 */}
       <div className="flex-1 flex flex-col overflow-y-auto">
         {/* 상단 바 (sticky) */}
-        <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-gray-700 py-4 flex-shrink-0">
+        <div className="bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex-1 overflow-x-auto">
+            <div className="flex-1 py-4 overflow-x-auto">
               <div className="px-6 flex items-center gap-4 min-w-max">
                 <div className="flex flex-col gap-1">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
@@ -1027,14 +1284,14 @@ export default function SimulationPage() {
                 </div>
               </div>
             </div>
-            {/* 저장 버튼 */}
+            {/* 다른 이름으로 저장 버튼 */}
             <div className="flex-shrink-0 pr-6">
               <button
                 type="button"
                 onClick={() => setIsSaveModalOpen(true)}
-                className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg font-medium transition-colors whitespace-nowrap"
+                className="px-3 py-2 border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg transition-colors hover:bg-gray-50 dark:hover:bg-zinc-800 whitespace-nowrap"
               >
-                저장
+                다른 이름으로 저장
               </button>
             </div>
           </div>
@@ -1051,7 +1308,7 @@ export default function SimulationPage() {
                 className={`${rightPanelOpen ? 'w-1/3' : 'w-1/2'} flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto transition-all duration-300`}
               >
                 <div className="p-4">
-                  <h2 className="text-xl font-semibold mb-4">요건별 인정 과목</h2>
+                  <h2 className="text-xl font-semibold mb-4">수업별 학점 인정 분야</h2>
                   <div>
                     {sections.length === 0 ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
@@ -1065,7 +1322,10 @@ export default function SimulationPage() {
                             {groupedSections.basicGroup.map((s, i) => (
                               <div key={s.id} className={i > 0 ? 'mt-4' : ''}>
                                 <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                                  <h3 className="font-medium text-base mb-3">{s.title}</h3>
+                                  <div className="flex justify-between text-sm items-baseline mb-3">
+                                    <h3 className="font-medium text-base">{s.title}</h3>
+                                    <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
+                                  </div>
                                   <div className="space-y-2">
                                     {s.courses.length === 0 ? (
                                       <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
@@ -1077,7 +1337,7 @@ export default function SimulationPage() {
                                         >
                                           <p className="font-medium text-sm">{c.course.title}</p>
                                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {c.course.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
+                                            {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}{c.grade != null ? ` · ${c.grade}` : ''}
                                           </p>
                                         </div>
                                       ))
@@ -1099,7 +1359,10 @@ export default function SimulationPage() {
                               {groupedSections.majorGroup.map((s, idx) => (
                                 <div key={s.id}>
                                   <div className="p-4">
-                                    <h3 className="font-medium text-base mb-3">{s.title}</h3>
+                                    <div className="flex justify-between text-sm items-baseline mb-3">
+                                      <h3 className="font-medium text-base">{s.title}</h3>
+                                      <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
+                                    </div>
                                     <div className="space-y-2">
                                       {s.courses.length === 0 ? (
                                         <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
@@ -1111,7 +1374,7 @@ export default function SimulationPage() {
                                           >
                                             <p className="font-medium text-sm">{c.course.title}</p>
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                              {c.course.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
+                                              {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}{c.grade != null ? ` · ${c.grade}` : ''}
                                             </p>
                                           </div>
                                         ))
@@ -1136,7 +1399,10 @@ export default function SimulationPage() {
                             {groupedSections.otherSections.map((s) => (
                               <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
                                 <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                                  <h3 className="font-medium text-base mb-3">{s.title}</h3>
+                                  <div className="flex justify-between text-sm items-baseline mb-3">
+                                    <h3 className="font-medium text-base">{s.title}</h3>
+                                    <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
+                                  </div>
                                   <div className="space-y-2">
                                     {s.courses.length === 0 ? (
                                       <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
@@ -1148,7 +1414,7 @@ export default function SimulationPage() {
                                         >
                                           <p className="font-medium text-sm">{c.course.title}</p>
                                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {c.course.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
+                                          {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}{c.grade != null ? ` · ${c.grade}` : ''}
                                           </p>
                                         </div>
                                       ))
@@ -1163,7 +1429,10 @@ export default function SimulationPage() {
                         {groupedSections.miscSections.map((s) => s.courses.length === 0 ? null : (
                           <div key={s.id} className="mt-4">
                             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                              <h3 className="font-medium text-base mb-3">{s.title}</h3>
+                              <div className="flex justify-between text-sm items-baseline mb-3">
+                                <h3 className="font-medium text-base">{s.title}</h3>
+                                <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
+                              </div>
                               <div className="space-y-2">
                                 {s.courses.map((c) => (
                                   <div
@@ -1172,7 +1441,7 @@ export default function SimulationPage() {
                                   >
                                     <p className="font-medium text-sm">{c.course.title}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                                      {c.course.credit}학점{c.grade != null ? ` · ${c.grade}` : ''}
+                                      {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}{c.grade != null ? ` · ${c.grade}` : ''}
                                     </p>
                                   </div>
                                 ))}
@@ -1296,11 +1565,15 @@ export default function SimulationPage() {
                     <div className="flex items-center gap-6 flex-1">
                       <div>
                         <span className="text-xs text-gray-500 dark:text-gray-400">총 이수학점</span>
-                        <p className="text-lg font-semibold">0 / 130</p>
+                        <p className="text-lg font-semibold">{totalStats.totalCredit} / 130</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">총 AU</span>
+                        <p className="text-lg font-semibold">{totalStats.totalAu} / 8</p>
                       </div>
                       <div>
                         <span className="text-xs text-gray-500 dark:text-gray-400">평점</span>
-                        <p className="text-lg font-semibold">0.00</p>
+                        <p className="text-lg font-semibold">{totalStats.gpa}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -1373,6 +1646,8 @@ export default function SimulationPage() {
                             onAddSemesterChange={setAddSemester}
                             addGrade={addGrade}
                             onAddGradeChange={setAddGrade}
+                            addAsPriorCredit={addAsPriorCredit}
+                            onAddAsPriorCreditChange={setAddAsPriorCredit}
                             onAddSelected={handleAddSelected}
                             onDragStart={(course) => setDraggedCourse(course)}
                             filterDepartment={filterDepartment}

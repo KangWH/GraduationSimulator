@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Select } from '../../components/formFields';
 import type { Enrollment, Semester, Grade } from './types';
+import { API } from '../../lib/api';
 
 const VALID_GRADES: Grade[] = ['A+', 'A0', 'A-', 'B+', 'B0', 'B-', 'C+', 'C0', 'C-', 'D+', 'D0', 'D-', 'F', 'S', 'U', 'P', 'NR', 'W'];
 const SEMESTER_LABELS: Record<Semester, string> = {
@@ -34,6 +36,33 @@ export default function EnrollmentsList({
   onDropOutside,
   findNearestPastSemester,
 }: EnrollmentsListProps) {
+  const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
+  const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${API}/departments`).then((r) => r.json()),
+      fetch(`${API}/courseCategories`).then((r) => r.json()),
+    ]).then(([depts, cats]) => {
+      setDepartments(Array.isArray(depts) ? depts : []);
+      setCategories(Array.isArray(cats) ? cats : []);
+    }).catch((error) => {
+      console.error('Failed to load departments/categories:', error);
+    });
+  }, []);
+
+  const getDepartmentName = (deptId: string | undefined): string => {
+    if (!deptId) return '';
+    const dept = departments.find((d) => d.id === deptId);
+    return dept ? dept.name : deptId;
+  };
+
+  const getCategoryName = (catId: string | undefined): string => {
+    if (!catId) return '';
+    const cat = categories.find((c) => c.id === catId);
+    return cat ? cat.name : catId;
+  };
+
   if (enrollments.length === 0) {
     return (
       <div
@@ -66,15 +95,19 @@ export default function EnrollmentsList({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {sortedSemesterKeys.map((semesterKey) => {
         const [year, semester] = semesterKey.split('-');
         const groupEnrollments = semesterGroups.get(semesterKey) || [];
+        const sectionTitle =
+          year === '0' && semester === 'SPRING'
+            ? '기이수'
+            : `${year}년 ${SEMESTER_LABELS[semester as Semester]}`;
 
         return (
           <div
             key={semesterKey}
-            className="rounded-lg border border-gray-200 dark:border-gray-700 transition-colors overflow-hidden"
+            className="rounded-lg border border-gray-200 p-4 dark:border-gray-700 transition-colors"
             onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -93,72 +126,70 @@ export default function EnrollmentsList({
               onDrop(e, semesterKey);
             }}
           >
-            <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 dark:border-gray-700 dark:bg-zinc-800">
-              <h3 className="font-medium text-gray-800 dark:text-gray-200 truncate">
-                {year}년 {SEMESTER_LABELS[semester as Semester]}
-              </h3>
-            </div>
-            <div className="space-y-2 p-4">
-              {[...groupEnrollments].sort((a, b) => {
-                const codeA = a.course.code || '';
-                const codeB = b.course.code || '';
-                return codeA.localeCompare(codeB);
-              }).map((enrollment, idx) => (
-                <div
-                  key={`${enrollment.courseId}-${enrollment.enrolledYear}-${enrollment.enrolledSemester}-${idx}`}
-                  draggable
-                  onDragStart={(e) => {
-                    onDragStart(e, enrollment, semesterKey);
-                    e.dataTransfer.effectAllowed = 'move';
-                    (e.currentTarget as HTMLElement).style.opacity = '0.5';
-                  }}
-                  onDragEnd={(e) => {
-                    (e.currentTarget as HTMLElement).style.opacity = '1';
-                  }}
-                  className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-3 py-2 cursor-move dark:border-gray-700 dark:bg-zinc-900 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <p className="font-medium text-gray-900 dark:text-white truncate">
-                        {enrollment.course.title}
+            <h3 className="font-medium text-base mb-3 text-gray-800 dark:text-gray-200">
+              {sectionTitle}
+            </h3>
+            <div className="space-y-2">
+              {[...groupEnrollments]
+                .sort((a, b) => (a.course.code || '').localeCompare(b.course.code || ''))
+                .map((enrollment, idx) => (
+                  <div
+                    key={`${enrollment.courseId}-${enrollment.enrolledYear}-${enrollment.enrolledSemester}-${idx}`}
+                    draggable
+                    onDragStart={(e) => {
+                      onDragStart(e, enrollment, semesterKey);
+                      e.dataTransfer.effectAllowed = 'move';
+                      (e.currentTarget as HTMLElement).style.opacity = '0.5';
+                    }}
+                    onDragEnd={(e) => {
+                      (e.currentTarget as HTMLElement).style.opacity = '1';
+                    }}
+                    className="flex items-center justify-between gap-4 rounded p-2 bg-gray-50 cursor-move dark:bg-zinc-800"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                          {enrollment.course.title}
+                        </p>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 font-mono shrink-0">
+                          {enrollment.course.code}
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                        {getDepartmentName(enrollment.course.department)}
+                        {enrollment.course.category && ` · ${getCategoryName(enrollment.course.category)}`}
+                        {enrollment.course.au > 0
+                          ? ` · ${enrollment.course.au}AU`
+                          : ` · ${enrollment.course.credit}학점`}
                       </p>
-                      <span className="text-sm text-gray-500 dark:text-gray-400 font-mono shrink-0">
-                        {enrollment.course.code}
-                      </span>
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {enrollment.course.department}
-                      {enrollment.course.category && ` · ${enrollment.course.category}`}
-                      {enrollment.course.au > 0 ? ` · ${enrollment.course.au}AU` : ` · ${enrollment.course.credit}학점`}
-                    </p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Select
+                        value={enrollment.grade}
+                        onChange={(v) => onGradeChange(enrollment, v as Grade)}
+                        size="small"
+                        className="w-24"
+                      >
+                        {VALID_GRADES.map((grade) => (
+                          <option key={grade} value={grade}>
+                            {grade}
+                          </option>
+                        ))}
+                      </Select>
+                      <button
+                        type="button"
+                        onClick={() => onRemove(enrollment)}
+                        className="rounded p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 transition-colors"
+                        title="삭제"
+                        aria-label="삭제"
+                      >
+                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Select
-                      value={enrollment.grade}
-                      onChange={(v) => onGradeChange(enrollment, v as Grade)}
-                      size="small"
-                      className="w-24"
-                    >
-                      {VALID_GRADES.map((grade) => (
-                        <option key={grade} value={grade}>
-                          {grade}
-                        </option>
-                      ))}
-                    </Select>
-                    <button
-                      type="button"
-                      onClick={() => onRemove(enrollment)}
-                      className="rounded-md p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 transition-colors"
-                      title="삭제"
-                      aria-label="삭제"
-                    >
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         );

@@ -9,7 +9,19 @@ const router = express.Router();
 // 개설 과목 검색
 router.get('/', async (req, res) => {
   try {
-    const { query, title, code, category, department } = req.query;
+    const { query, title, code, category, department, id } = req.query;
+
+    // id로 조회하는 경우 (단일 과목 조회)
+    if (id && typeof id === 'string') {
+      const course = await prisma.courseOffering.findUnique({
+        where: { id },
+      });
+      if (course) {
+        return res.json([course]);
+      } else {
+        return res.json([]);
+      }
+    }
 
     const conditions: any[] = [];
 

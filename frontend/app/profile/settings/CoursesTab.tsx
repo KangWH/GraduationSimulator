@@ -25,19 +25,20 @@ async function convertToEnrollments(rawEnrollments: RawEnrollment[]): Promise<En
   const enrollments: Enrollment[] = [];
   for (const raw of rawEnrollments) {
     try {
-      const courseRes = await fetch(`${API}/courses?code=${encodeURIComponent(raw.courseId)}`);
+      // courseId는 이제 UUID (고유 ID)
+      const courseRes = await fetch(`${API}/courses?id=${encodeURIComponent(raw.courseId)}`);
       const courses = await courseRes.json();
       const course = Array.isArray(courses) && courses.length > 0 ? courses[0] : null;
       if (course) {
         enrollments.push({
-          courseId: raw.courseId,
+          courseId: raw.courseId, // UUID 저장
           course: {
             id: course.id || raw.courseId,
-            code: course.code || raw.courseId,
+            code: course.code || '',
             title: course.title || '',
             department: course.department || '',
             category: course.category || '',
-            credit: course.credit || 3,
+            credit: course.credit || 0,
             au: course.au || 0,
           },
           enrolledYear: raw.enrolledYear,
@@ -116,6 +117,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   const [addYear, setAddYear] = useState(new Date().getFullYear());
   const [addSemester, setAddSemester] = useState<Semester>('SPRING');
   const [addGrade, setAddGrade] = useState<Grade>('A+');
+  const [addAsPriorCredit, setAddAsPriorCredit] = useState(false);
   const [filterDepartment, setFilterDepartment] = useState<string>('none');
   const [filterCategory, setFilterCategory] = useState<string>('none');
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -286,16 +288,17 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
     }
 
     const newEnrollments = [...enrollments];
-    // 클릭으로 추가할 때는 항상 폼에 지정한 학기 사용
-    const targetSemester = { year: addYear, semester: addSemester };
+    const targetSemester = addAsPriorCredit
+      ? { year: 0, semester: 'SPRING' as Semester }
+      : { year: addYear, semester: addSemester };
 
     let addedCount = 0;
     selectedCourseIds.forEach((courseId) => {
       if (!courseId) return; // 빈 문자열 체크
       
+      // selectedCourseIds에는 course.id 또는 course.code가 들어갈 수 있음 (AddCoursePanel에서 설정)
       const course = searchResults.find((c) => {
-        const cId = c.id || c.code || '';
-        return cId === courseId || c.id === courseId || c.code === courseId;
+        return c.id === courseId || c.code === courseId;
       });
       
       if (!course) {
@@ -303,8 +306,12 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         return;
       }
 
-      // 로드 시 /courses?code= 로 조회하므로 항상 code 사용
-      const finalCourseId = course.code || course.id || courseId;
+      // 저장 시에는 고유 ID 사용
+      const finalCourseId = course.id || courseId;
+      if (!finalCourseId) {
+        console.warn(`Course has no id:`, course);
+        return;
+      }
       
       // 중복 체크 (같은 과목이 같은 학기에 이미 있는지)
       const isDuplicate = newEnrollments.some(
@@ -320,14 +327,14 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
       }
 
       newEnrollments.push({
-        courseId: finalCourseId,
+        courseId: finalCourseId, // UUID 저장
         course: {
           id: course.id || finalCourseId,
-          code: course.code || finalCourseId,
+          code: course.code || '',
           title: course.title || '',
           department: course.department || '',
           category: course.category || '',
-          credit: course.credit || 3,
+          credit: course.credit || 0,
           au: course.au || 0,
         },
         enrolledYear: targetSemester.year,
@@ -345,7 +352,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
     setEnrollments(newEnrollments);
     updateSelectedCourseIds(new Set());
     saveEnrollments(newEnrollments);
-  }, [selectedCourseIds, searchResults, enrollments, addYear, addSemester, addGrade, saveEnrollments]);
+  }, [selectedCourseIds, searchResults, enrollments, addYear, addSemester, addGrade, addAsPriorCredit, saveEnrollments]);
 
   // 성적 변경
   const handleGradeChange = useCallback(
@@ -422,18 +429,23 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
           enrollments.length === 0
             ? findNearestPastSemester()
             : { year: parseInt(targetYear), semester: targetSemester as Semester };
-        const courseCode = draggedCourse.code || draggedCourse.id || '';
+        const courseId = draggedCourse.id;
+        if (!courseId) {
+          console.warn('Dragged course has no id:', draggedCourse);
+          setDraggedCourse(null);
+          return;
+        }
         const au = draggedCourse.au || 0;
         const defaultGrade = au > 0 ? 'S' : 'A+';
         const newEnrollment: Enrollment = {
-          courseId: courseCode,
+          courseId: courseId, // UUID 저장
           course: {
-            id: draggedCourse.id || courseCode,
-            code: draggedCourse.code || courseCode,
+            id: draggedCourse.id,
+            code: draggedCourse.code || '',
             title: draggedCourse.title || '',
             department: draggedCourse.department || '',
             category: draggedCourse.category || '',
-            credit: draggedCourse.credit || 3,
+            credit: draggedCourse.credit || 0,
             au,
           },
           enrolledYear: targetSemesterObj.year,
@@ -534,6 +546,8 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                 onAddSemesterChange={setAddSemester}
                 addGrade={addGrade}
                 onAddGradeChange={setAddGrade}
+                addAsPriorCredit={addAsPriorCredit}
+                onAddAsPriorCreditChange={setAddAsPriorCredit}
                 onAddSelected={handleAddSelected}
                 onDragStart={(course) => setDraggedCourse(course)}
                 filterDepartment={filterDepartment}
@@ -578,6 +592,8 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                 onAddSemesterChange={setAddSemester}
                 addGrade={addGrade}
                 onAddGradeChange={setAddGrade}
+                addAsPriorCredit={addAsPriorCredit}
+                onAddAsPriorCreditChange={setAddAsPriorCredit}
                 onAddSelected={handleAddSelected}
                 onDragStart={(course) => setDraggedCourse(course)}
                 filterDepartment={filterDepartment}
