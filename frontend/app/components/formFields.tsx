@@ -49,17 +49,18 @@ interface NumberInputProps {
   value: any;
   onChange: (newValue: any) => void;
   type?: 'number';
+  disabled?: boolean;
   required?: boolean;
   placeholder?: string;
   size?: FieldSize;
   className?: string;
 }
 
-export function NumberInput({ id, name, min = '0', max = '100', step = '1', value, onChange, type = 'number', required = false, placeholder, size = 'medium', className }: NumberInputProps) {
+export function NumberInput({ id, name, min = '0', max = '100', step = '1', value, onChange, type = 'number', disabled = false, required = false, placeholder, size = 'medium', className }: NumberInputProps) {
   return (
     <div
       className={
-        "flex flex-row w-full bg-white dark:bg-black shadow-sm border border-gray-300 dark:border-zinc-700 focus-within:border-violet-500 rounded-md overflow-hidden" + (className ? " " + className : "")
+        "flex flex-row w-full shadow-sm border border-gray-300 dark:border-zinc-700 focus-within:border-violet-500 rounded-md overflow-hidden " + (disabled ? 'bg-gray-100 text-gray-500 disabled:bg-zinc-900 ' : 'bg-white dark:bg-black ') + (className ? className : "")
       }
     >
       <input
@@ -71,6 +72,7 @@ export function NumberInput({ id, name, min = '0', max = '100', step = '1', valu
         step={step}
         value={value}
         onChange={(e) => {onChange(e.target.value)}}
+        disabled={disabled}
         required={required}
         placeholder={placeholder}
         className={"grow outline-none appearance-none " + fieldSizeClassNames[size] /* + " pr-0" */}
@@ -90,13 +92,14 @@ interface SelectProps {
   name?: string;
   value: any;
   onChange: (newValue: any) => void;
+  disabled?: boolean;
   required?: boolean;
   size?: FieldSize;
   className?: string;
   children?: ReactNode;
 }
 
-export function Select({ id, name, value, onChange, required, size = 'medium', className, children }: SelectProps) {
+export function Select({ id, name, value, onChange, disabled = false, required = false, size = 'medium', className, children }: SelectProps) {
   return (
     <div className="relative flex w-full items-center">
       <select
@@ -104,9 +107,10 @@ export function Select({ id, name, value, onChange, required, size = 'medium', c
         name={name}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
         required={required}
         className={
-          "w-full bg-white dark:bg-black shadow-sm border border-gray-300 dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none pr-8 "
+          "w-full bg-white dark:bg-black shadow-sm border border-gray-300 dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none pr-8 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-zinc-900 "
           + fieldSizeClassNames[size]
           + (className ? " " + className : "")
         }

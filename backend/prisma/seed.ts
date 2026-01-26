@@ -23,7 +23,7 @@ async function main() {
         category: data.category,
         credit: parseInt(data.credit),
         au: parseInt(data.au),
-        tags: data.tags ? [data.tags.trim()] : [],
+        tags: data.tags ? data.tags.trim().split('|').map((text: string) => text.trim()) : [],
       });
     })
     .on('end', async () => {

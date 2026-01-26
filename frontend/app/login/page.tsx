@@ -44,8 +44,9 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
       <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900">
         <div>
-          <h1 className="text-3xl font-bold text-center">졸업시뮬레이터</h1>
-          <h2 className="mt-2 text-xl text-center text-gray-600 dark:text-gray-400">
+          <h1 className="text-3xl font-bold text-center" style={{ fontFamily: 'var(--font-logo)' }}>grad.log</h1>
+          <p className="text-center mt-4">KAIST 졸업 사정 시뮬레이터</p>
+          <h2 className="mt-8 text-xl text-center text-gray-600 dark:text-gray-400">
             로그인
           </h2>
         </div>

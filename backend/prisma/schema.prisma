@@ -41,16 +41,18 @@ model Profile {
 
 // 시뮬레이션 내역
 model Simulation {
-  id            String   @id @default(uuid())
-  profileId     String
-  profile       Profile  @relation("ProfileToSimulation", fields: [profileId], references: [id])
-  title         String
-  updatedAt     DateTime
-  referenceYear Int
-  major         String
-  doubleMajors  String[]
-  minors        String[]
-  courses       Json
+  id                        String   @id @default(uuid())
+  profileId                 String
+  profile                   Profile  @relation("ProfileToSimulation", fields: [profileId], references: [id])
+  title                     String
+  updatedAt                 DateTime
+  referenceYear             Int
+  major                     String
+  doubleMajors              String[]
+  minors                    String[]
+  advancedMajor             Boolean
+  individuallyDesignedMajor Boolean
+  courses                   Json
 }
 
 // 과목 개설 내역

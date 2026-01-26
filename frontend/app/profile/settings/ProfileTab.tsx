@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Input, NumberInput } from '../../components/formFields';
-import { DepartmentDropdown, MultipleDepartmentDropdown } from '../../components/DepartmentDropeown';
+import { DepartmentDropdown, MultipleDepartmentDropdown } from '../../components/DepartmentDropdown';
 import { API } from '../../lib/api';
 import type { Profile } from './types';
 

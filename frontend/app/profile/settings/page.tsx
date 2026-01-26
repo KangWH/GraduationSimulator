@@ -81,7 +81,7 @@ export default function ProfileSettingsPage() {
   ];
 
   return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-black">
+    <div className="flex h-screen bg-zinc-50 dark:bg-black overflow-hidden">
       <aside className="w-56 flex-shrink-0 border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-zinc-900">
         <div className="border-b border-gray-200 p-4 dark:border-gray-700">
           <Link href="/simulation" className="text-sm text-violet-600 hover:underline dark:text-violet-400">
@@ -105,8 +105,8 @@ export default function ProfileSettingsPage() {
         </nav>
       </aside>
 
-      <main className="flex-1 overflow-y-auto p-6 md:p-8">
-        <div className={"mx-auto max-w-2xl " + (tab === 'courses' ? 'lg:max-w-6xl' : '')}>
+      <main className={"flex-1 p-6 md:p-8" + (tab === 'courses' ? ' overflow-hidden' : ' overflow-y-auto')}>
+        <div className={"mx-auto max-w-2xl " + (tab === 'courses' ? 'h-full lg:max-w-6xl overflow-hidden' : '')}>
           {tab === 'account' && (
             <AccountTab
               user={user}
