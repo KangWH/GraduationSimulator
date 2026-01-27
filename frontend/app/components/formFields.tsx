@@ -33,7 +33,7 @@ export function Input({ id, name, value, onChange, type = 'text', required = fal
       required={required}
       placeholder={placeholder}
       className={
-        "w-full bg-white dark:bg-black shadow-sm dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none "
+        "w-full bg-white dark:bg-black shadow-sm dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none min-h-[44px] sm:min-h-0 "
         + fieldSizeClassNames[size] + (className ? " " + className : "")
       }
     />
@@ -60,7 +60,7 @@ export function NumberInput({ id, name, min = '0', max = '100', step = '1', valu
   return (
     <div
       className={
-        "flex flex-row w-full shadow-sm focus-within:border-violet-500 rounded-md overflow-hidden " + (disabled ? 'bg-gray-100 text-gray-500 disabled:bg-zinc-900 ' : 'bg-white dark:bg-black ') + (className ? className : "")
+        "flex flex-row w-full shadow-sm focus-within:border-violet-500 rounded-md overflow-hidden min-h-[44px] sm:min-h-0 " + (disabled ? 'bg-gray-100 text-gray-500 disabled:bg-zinc-900 ' : 'bg-white dark:bg-black ') + (className ? className : "")
       }
     >
       <input
@@ -110,7 +110,7 @@ export function Select({ id, name, value, onChange, disabled = false, required =
         disabled={disabled}
         required={required}
         className={
-          "w-full bg-white dark:bg-black shadow-sm focus:border-violet-500 rounded-md outline-none appearance-none pr-8 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-zinc-900 "
+          "w-full bg-white dark:bg-black shadow-sm focus:border-violet-500 rounded-md outline-none appearance-none pr-8 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-zinc-900 min-h-[44px] sm:min-h-0 "
           + fieldSizeClassNames[size]
           + (className ? " " + className : "")
         }
@@ -167,20 +167,90 @@ export function MultipleSelect({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // 팝오버 위치 계산 (트리거 기준)
+  // 팝오버 위치 계산 (트리거 기준) - 모바일 최적화 및 화면 밖 방지
   const updatePopoverPosition = () => {
     if (!triggerRef.current || typeof document === 'undefined') return;
     const rect = triggerRef.current.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
-    const spaceBelow = viewportHeight - rect.bottom - 4;
-    const spaceAbove = rect.top - 4;
-    const maxHeight = Math.max(spaceBelow, spaceAbove, 200); // 최소 200px
+    const viewportWidth = window.innerWidth;
+    const isMobile = viewportWidth < 640; // sm 브레이크포인트
+    
+    const padding = 8; // 화면 가장자리 여유 공간
+    const gap = 4; // 트리거와 팝오버 사이 간격
+    
+    // 모바일: 화면 전체 너비 사용, 데스크톱: 트리거 너비
+    const popoverWidth = isMobile 
+      ? Math.min(viewportWidth - padding * 2, 400) 
+      : Math.min(rect.width, viewportWidth - padding * 2);
+    
+    let popoverLeft: number;
+    let popoverTop: number;
+    let maxHeight: number;
+    const minHeight = isMobile ? 300 : 200;
+    
+    if (isMobile) {
+      // 모바일: 화면 중앙에 고정 배치
+      popoverLeft = (viewportWidth - popoverWidth) / 2;
+      
+      // 수직 중앙 배치 (최대 높이를 고려)
+      const maxPopoverHeight = Math.min(viewportHeight - padding * 2, 500);
+      const centerTop = (viewportHeight - maxPopoverHeight) / 2;
+      
+      popoverTop = Math.max(padding, centerTop);
+      maxHeight = Math.min(maxPopoverHeight, viewportHeight - popoverTop * 2);
+    } else {
+      // 데스크톱: 트리거 기준 배치
+      popoverLeft = rect.left;
+      
+      // 오른쪽으로 나가는 경우 조정
+      if (popoverLeft + popoverWidth > viewportWidth - padding) {
+        popoverLeft = Math.max(padding, viewportWidth - popoverWidth - padding);
+      }
+      
+      // 왼쪽으로 나가는 경우 조정
+      if (popoverLeft < padding) {
+        popoverLeft = padding;
+      }
+      
+      // 사용 가능한 공간 계산
+      const spaceBelow = viewportHeight - rect.bottom - gap - padding;
+      const spaceAbove = rect.top - gap - padding;
+      
+      // 아래쪽에 배치할 수 있는지 확인
+      const canFitBelow = spaceBelow >= minHeight;
+      const canFitAbove = spaceAbove >= minHeight;
+      
+      if (canFitBelow) {
+        // 아래쪽에 배치
+        popoverTop = rect.bottom + gap;
+        maxHeight = Math.min(spaceBelow, viewportHeight - popoverTop - padding);
+      } else if (canFitAbove && spaceAbove > spaceBelow) {
+        // 위쪽에 배치 (아래 공간이 부족하고 위쪽이 더 넓을 때)
+        maxHeight = Math.min(spaceAbove, viewportHeight - padding * 2);
+        popoverTop = Math.max(padding, rect.top - maxHeight - gap);
+      } else {
+        // 공간이 부족한 경우: 가능한 공간에 맞춤
+        if (spaceBelow >= spaceAbove) {
+          // 아래쪽에 배치하되 화면 안에 맞춤
+          popoverTop = rect.bottom + gap;
+          maxHeight = Math.min(spaceBelow, viewportHeight - popoverTop - padding);
+        } else {
+          // 위쪽에 배치하되 화면 안에 맞춤
+          maxHeight = Math.min(spaceAbove, viewportHeight - padding * 2);
+          popoverTop = Math.max(padding, rect.top - maxHeight - gap);
+        }
+      }
+      
+      // 최종 검증: 화면 밖으로 나가지 않도록 보장
+      popoverTop = Math.max(padding, Math.min(popoverTop, viewportHeight - maxHeight - padding));
+      maxHeight = Math.min(maxHeight, viewportHeight - popoverTop - padding);
+    }
     
     setPopoverStyle({
-      top: rect.bottom + 4,
-      left: rect.left,
-      width: rect.width,
-      maxHeight: Math.min(maxHeight, viewportHeight - 16), // 여유 공간 16px
+      top: popoverTop,
+      left: popoverLeft,
+      width: popoverWidth,
+      maxHeight: Math.max(maxHeight, minHeight), // 최소 높이 보장
     });
   };
 
@@ -257,19 +327,23 @@ export function MultipleSelect({
         name={name}
         onClick={() => setIsOpen(!isOpen)}
         className={
-          'w-full bg-white dark:bg-black shadow-sm focus:border-violet-500 rounded-md outline-none appearance-none text-left flex items-center gap-2 ' +
+          'w-full bg-white dark:bg-black shadow-sm focus:border-violet-500 rounded-md outline-none appearance-none text-left flex items-center gap-2 min-h-[44px] sm:min-h-0 ' +
           fieldSizeClassNames[size]
           + " " + className
           + (isOpen ? ' border-violet-500' : '')
         }
       >
-        <div className="flex-1 flex flex-wrap items-center min-w-8">
+        <div className="flex-1 flex flex-wrap items-center min-w-8 gap-1 sm:gap-2">
           {selectedOptions.length === 0 ? (
             <span className="text-gray-400 dark:text-gray-500">{placeholder}</span>
           ) : selectedOptions.length === 1 ? (
             <span>{selectedOptions[0]?.label || value[0] || placeholder}</span>
           ) : (
-            <span>{selectedOptions[0]?.label || value[0] || ''} 외 {selectedOptions.length}개</span>
+            <span>
+              <span className="hidden sm:inline">{selectedOptions[0]?.label || value[0] || ''} 외 </span>
+              <span className="sm:hidden">{selectedOptions.length}개 선택됨</span>
+              <span className="hidden sm:inline">{selectedOptions.length}개</span>
+            </span>
           )}
         </div>
         <svg
@@ -293,7 +367,7 @@ export function MultipleSelect({
         createPortal(
           <div
             ref={popoverRef}
-            className="fixed z-[9999] bg-white dark:bg-zinc-900 rounded-md shadow-lg overflow-y-auto"
+            className="fixed z-[9999] bg-white dark:bg-zinc-900 rounded-md shadow-lg overflow-y-auto overscroll-contain"
             style={{
               top: popoverStyle.top,
               left: popoverStyle.left,
@@ -306,7 +380,7 @@ export function MultipleSelect({
               <button
                 type="button"
                 onClick={allSelected ? handleDeselectAll : handleSelectAll}
-                className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none"
+                className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-[44px] sm:min-h-0 px-2 -mx-2 rounded active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
               >
                 {allSelected ? '전체 취소' : '전체 선택'}
               </button>
@@ -320,14 +394,14 @@ export function MultipleSelect({
             {/* 옵션 목록 */}
             <div className="py-1">
               {allowNone && (
-                <label className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all active:rounded-lg select-none">
+                <label className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-[44px] active:scale-90 active:rounded-md transition-all">
                   <input
                     type="checkbox"
                     checked={value.length === 0}
                     onChange={() => onChange([])}
-                    className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 mr-3"
+                    className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-3"
                   />
-                  <span className="text-sm">없음</span>
+                  <span className="text-sm flex-1">{placeholder}</span>
                 </label>
               )}
               {options.map((option) => {
@@ -335,15 +409,15 @@ export function MultipleSelect({
                 return (
                   <label
                     key={option.value}
-                    className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all active:rounded-lg select-none"
+                    className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-[44px] active:scale-90 active:rounded-md transition-all"
                   >
                     <input
                       type="checkbox"
                       checked={isChecked}
                       onChange={() => handleToggle(option.value)}
-                      className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 mr-3"
+                      className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-3 flex-shrink-0"
                     />
-                    <span className="text-sm">{option.label}</span>
+                    <span className="text-sm flex-1 break-words">{option.label}</span>
                   </label>
                 );
               })}

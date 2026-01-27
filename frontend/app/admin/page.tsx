@@ -48,47 +48,47 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
-      <div className="bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700">
+      <div className="bg-white dark:bg-zinc-900 dark:border-zinc-700 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold">관리자 페이지</h1>
+          <div className="flex items-center justify-between py-4 border-b border-gray-200 dark:border-zinc-700">
+            <h1 className="text-2xl font-bold flex-shrink-0">관리자 페이지</h1>
+            <div className="flex space-x-1 flex-1 justify-center">
+              <button
+                onClick={() => setActiveTab('courses')}
+                className={`px-4 py-2 text-sm font-medium ${
+                  activeTab === 'courses'
+                    ? 'border-b-2 border-violet-500 text-violet-600 dark:text-violet-400'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                }`}
+              >
+                과목
+              </button>
+              <button
+                onClick={() => setActiveTab('general')}
+                className={`px-4 py-2 text-sm font-medium ${
+                  activeTab === 'general'
+                    ? 'border-b-2 border-violet-500 text-violet-600 dark:text-violet-400'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                }`}
+              >
+                졸업요건(공통)
+              </button>
+              <button
+                onClick={() => setActiveTab('major')}
+                className={`px-4 py-2 text-sm font-medium ${
+                  activeTab === 'major'
+                    ? 'border-b-2 border-violet-500 text-violet-600 dark:text-violet-400'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                }`}
+              >
+                졸업요건(학과별)
+              </button>
+            </div>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              className="px-4 py-2 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex-shrink-0"
             >
               로그아웃
-            </button>
-          </div>
-          <div className="flex space-x-1 border-b border-gray-200 dark:border-zinc-700">
-            <button
-              onClick={() => setActiveTab('courses')}
-              className={`px-4 py-2 text-sm font-medium ${
-                activeTab === 'courses'
-                  ? 'border-b-2 border-violet-500 text-violet-600 dark:text-violet-400'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              과목
-            </button>
-            <button
-              onClick={() => setActiveTab('general')}
-              className={`px-4 py-2 text-sm font-medium ${
-                activeTab === 'general'
-                  ? 'border-b-2 border-violet-500 text-violet-600 dark:text-violet-400'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              졸업요건(공통)
-            </button>
-            <button
-              onClick={() => setActiveTab('major')}
-              className={`px-4 py-2 text-sm font-medium ${
-                activeTab === 'major'
-                  ? 'border-b-2 border-violet-500 text-violet-600 dark:text-violet-400'
-                  : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              졸업요건(학과별)
             </button>
           </div>
         </div>
