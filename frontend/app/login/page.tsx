@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input } from "../components/formFields";
 import { API } from "../lib/api";
+import Logo from "../components/Logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -73,7 +74,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
       <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900">
         <div>
-          <h1 className="text-3xl font-bold text-center" style={{ fontFamily: 'var(--font-logo)', fontWeight: 'var(--font-weight-logo)' }}>grad.log</h1>
+          <h1 className="text-3xl font-bold text-center" style={{ fontFamily: 'var(--font-logo)', fontWeight: 'var(--font-weight-logo)' }}><Logo language="en" /></h1>
           <p className="text-center mt-4">KAIST 졸업 사정 시뮬레이터</p>
           <h2 className="mt-8 text-xl text-center text-gray-600 dark:text-gray-400">
             로그인

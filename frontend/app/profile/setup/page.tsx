@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Input, NumberInput, Select } from '../../components/formFields';
 import { DepartmentDropdown, MultipleDepartmentDropdown } from '../../components/DepartmentDropdown';
 import { API } from '../../lib/api';
+import Logo from '@/app/components/Logo';
 
 export default function ProfileSetupPage() {
   const router = useRouter();
@@ -90,7 +91,7 @@ export default function ProfileSetupPage() {
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black py-12 px-4">
       <div className="w-full max-w-2xl space-y-8 rounded-lg bg-white p-8 shadow-lg dark:bg-zinc-900">
         <div>
-          <h1 className="text-3xl font-bold text-center" style={{ fontFamily: 'var(--font-logo)', fontWeight: 'var(--font-weight-logo)' }}>grad.log</h1>
+          <h1 className="text-3xl font-bold text-center" style={{ fontFamily: 'var(--font-logo)', fontWeight: 'var(--font-weight-logo)' }}><Logo language="en" /></h1>
           <p className="text-center mt-4">KAIST 졸업 사정 시뮬레이터</p>
           <h2 className="mt-8 text-xl text-center text-gray-600 dark:text-gray-400">기본 정보 입력</h2>
           <p className="mt-2 text-sm text-center text-gray-500 dark:text-gray-400">

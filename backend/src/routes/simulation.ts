@@ -105,6 +105,9 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
         major: sim.major,
         doubleMajors: sim.doubleMajors,
         minors: sim.minors,
+        advancedMajor: sim.advancedMajor,
+        individuallyDesignedMajor: sim.individuallyDesignedMajor,
+        courses: sim.courses,
       })),
     });
   } catch (error: any) {

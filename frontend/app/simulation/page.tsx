@@ -122,11 +122,14 @@ export default function SimulationPage() {
       fetch(`${API}/simulation`, { credentials: 'include' })
         .then((r) => r.json());
 
-    Promise.all([loadProfile(), loadMe(), loadSimulations()])
-      .then(([profileRes, meRes, simulationsRes]) => {
+    (async () => {
+      try {
+        const [profileRes, meRes, simulationsRes] = await Promise.all([loadProfile(), loadMe(), loadSimulations()]);
+        
         // 인증 실패 시 로그인 페이지로 리다이렉트
         if (!meRes.success) {
           router.push('/login');
+          setProfileLoaded(true);
           return;
         }
 
@@ -149,22 +152,355 @@ export default function SimulationPage() {
         if (meRes.success && meRes.user) {
           setUserName((prev) => prev || meRes.user.email || '');
         }
-        if (simulationsRes.success) {
+        if (simulationsRes.success && profileRes.success && profileRes.profile) {
+          const p = profileRes.profile as Profile;
+          // 각 시뮬레이션의 canGraduate 계산
+          const simsWithCanGraduate = await Promise.all(
+            (simulationsRes.simulations || []).map(async (sim: any) => {
+              try {
+                // RawCourseSimulation[] 파싱
+                let rawCourses: RawCourseSimulation[] = [];
+                if (sim.courses) {
+                  if (Array.isArray(sim.courses)) {
+                    rawCourses = sim.courses as RawCourseSimulation[];
+                  } else if (typeof sim.courses === 'string') {
+                    try {
+                      const parsed = JSON.parse(sim.courses);
+                      rawCourses = Array.isArray(parsed) ? (parsed as RawCourseSimulation[]) : [];
+                    } catch {
+                      rawCourses = [];
+                    }
+                  }
+                }
+
+                // CourseSimulation[]로 변환
+                const courseSimulations = await convertRawSimulationsToCourseSimulations(rawCourses, p);
+
+                // 총 이수학점, AU, 평점 계산
+                const totalCredit = courseSimulations.filter(c => c.grade !== 'F' && c.grade !== 'U' && c.grade !== 'NR' && c.grade !== 'W').reduce((sum, c) => sum + (c.course.credit || 0), 0);
+                const totalAu = courseSimulations.filter(c => c.grade !== 'F' && c.grade !== 'U' && c.grade !== 'NR' && c.grade !== 'W').reduce((sum, c) => sum + (c.course.au || 0), 0);
+                
+                let totalGradePoints = 0;
+                let totalCreditsForGPA = 0;
+                courseSimulations.forEach((c) => {
+                  const credit = c.course.credit || 0;
+                  if (credit > 0) {
+                    let gradeNum: number | null = null;
+                    switch (c.grade) {
+                      case 'A+': gradeNum = 4.3; break;
+                      case 'A0': gradeNum = 4.0; break;
+                      case 'A-': gradeNum = 3.7; break;
+                      case 'B+': gradeNum = 3.3; break;
+                      case 'B0': gradeNum = 3.0; break;
+                      case 'B-': gradeNum = 2.7; break;
+                      case 'C+': gradeNum = 2.3; break;
+                      case 'C0': gradeNum = 2.0; break;
+                      case 'C-': gradeNum = 1.7; break;
+                      case 'D+': gradeNum = 1.3; break;
+                      case 'D0': gradeNum = 1.0; break;
+                      case 'D-': gradeNum = 0.7; break;
+                      case 'F': gradeNum = 0.0; break;
+                    }
+                    if (gradeNum !== null) {
+                      totalGradePoints += credit * gradeNum;
+                      totalCreditsForGPA += credit;
+                    }
+                  }
+                });
+                const gpa = totalCreditsForGPA > 0 ? totalGradePoints / totalCreditsForGPA : 0;
+
+                // requirements 불러오기
+                const simFilters = {
+                  requirementYear: sim.referenceYear || new Date().getFullYear(),
+                  major: sim.major || '',
+                  doubleMajors: Array.isArray(sim.doubleMajors) ? sim.doubleMajors : [],
+                  minors: Array.isArray(sim.minors) ? sim.minors : [],
+                  advancedMajor: sim.advancedMajor || false,
+                  individuallyDesignedMajor: sim.individuallyDesignedMajor || false,
+                };
+
+                let requirements: RequirementsProps = { basicRequired: [], basicElective: [], mandatoryGeneralCourses: [], humanitiesSocietyElective: [], major: [], doubleMajors: {}, minors: {} };
+                
+                const promises: Promise<{ type: string; department?: string; data: Requirement[] }>[] = [];
+                promises.push((async () => {
+                  const res = await fetch(`${API}/rules/general?year=${p.admissionYear}&type=BR`);
+                  const data = await res.json();
+                  return { type: 'basicRequired', data: (data.requirements || []) as Requirement[] };
+                })());
+                promises.push((async () => {
+                  const res = await fetch(`${API}/rules/major?year=${p.admissionYear}&department=${p.major}&type=${simFilters.doubleMajors.length > 0 ? 'BE_D' : 'BE'}`);
+                  const data = await res.json();
+                  return { type: 'basicElective', data: (data.requirements || []) as Requirement[] };
+                })());
+                if (simFilters.major) {
+                  promises.push((async () => {
+                    const res = await fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${simFilters.major}&type=Major`);
+                    const data = await res.json();
+                    return { type: 'major', data: (data.requirements || []) as Requirement[] };
+                  })());
+                }
+                (simFilters.doubleMajors || []).forEach((d: string) => {
+                  promises.push((async () => {
+                    const res = await fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${d}&type=DoubleMajor`);
+                    const data = await res.json();
+                    return { type: 'doubleMajor', department: d, data: (data.requirements || []) as Requirement[] };
+                  })());
+                });
+                (simFilters.minors || []).forEach((d: string) => {
+                  promises.push((async () => {
+                    const res = await fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${d}&type=Minor`);
+                    const data = await res.json();
+                    return { type: 'minor', department: d, data: (data.requirements || []) as Requirement[] };
+                  })());
+                });
+                if (simFilters.advancedMajor) {
+                  promises.push((async () => {
+                    const res = await fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${simFilters.major}&type=AdvancedMajor`);
+                    const data = await res.json();
+                    return { type: 'advancedMajor', data: (data.requirements || []) as Requirement[] };
+                  })());
+                }
+                promises.push((async () => {
+                  const res = await fetch(`${API}/rules/major?year=${p.admissionYear}&department=${simFilters.major}&type=${simFilters.doubleMajors.length > 0 ? 'RS_D' : 'RS'}`);
+                  const data = await res.json();
+                  return { type: 'research', data: (data.requirements || []) as Requirement[] };
+                })());
+                if (simFilters.individuallyDesignedMajor) {
+                  promises.push((async () => {
+                    const res = await fetch(`${API}/rules/general?year=${p.admissionYear}&type=IDM`);
+                    const data = await res.json();
+                    return { type: 'individuallyDesignedMajor', data: (data.requirements || []) as Requirement[] };
+                  })());
+                }
+                promises.push((async () => {
+                  const res = await fetch(`${API}/rules/general?year=${p.admissionYear}&type=MGC`);
+                  const data = await res.json();
+                  return { type: 'mandatoryGeneralCourses', data: (data.requirements || []) as Requirement[] };
+                })());
+                promises.push((async () => {
+                  const res = await fetch(`${API}/rules/general?year=${p.admissionYear}&type=${simFilters.doubleMajors.length > 0 ? 'HSE_D' : 'HSE'}`);
+                  const data = await res.json();
+                  return { type: 'humanitiesSocietyElective', data: (data.requirements || []) as Requirement[] };
+                })());
+
+                const results = await Promise.allSettled(promises);
+                results.forEach((result) => {
+                  if (result.status !== 'fulfilled') return;
+                  switch (result.value.type) {
+                    case 'basicRequired':
+                      requirements.basicRequired = result.value.data;
+                      break;
+                    case 'basicElective':
+                      requirements.basicElective = result.value.data;
+                      break;
+                    case 'mandatoryGeneralCourses':
+                      requirements.mandatoryGeneralCourses = result.value.data;
+                      break;
+                    case 'humanitiesSocietyElective':
+                      requirements.humanitiesSocietyElective = result.value.data;
+                      break;
+                    case 'major':
+                      requirements.major = result.value.data;
+                      break;
+                    case 'doubleMajor':
+                      if (!requirements.doubleMajors) requirements.doubleMajors = {};
+                      requirements.doubleMajors[result.value.department!] = result.value.data;
+                      break;
+                    case 'minor':
+                      if (!requirements.minors) requirements.minors = {};
+                      requirements.minors[result.value.department!] = result.value.data;
+                      break;
+                    case 'advancedMajor':
+                      requirements.advanced = result.value.data;
+                      break;
+                    case 'individuallyDesignedMajor':
+                      requirements.individuallyDesignedMajor = result.value.data;
+                      break;
+                    case 'research':
+                      requirements.research = result.value.data;
+                      break;
+                  }
+                });
+
+                // classifyCourses 실행
+                const { enrolledCourses } = classifyCourses(courseSimulations, requirements, simFilters.major);
+
+                // sections 생성 및 fulfilled 계산
+                const computedSections: Section[] = [];
+                
+                computedSections.push({
+                  id: 'BASIC_REQUIRED',
+                  title: '기초필수',
+                  titleElements: ['기초필수'],
+                  courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED'),
+                  fulfilled: false
+                });
+                computedSections.push({
+                  id: 'BASIC_ELECTIVE',
+                  title: '기초선택',
+                  titleElements: ['기초선택'],
+                  courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE'),
+                  fulfilled: false
+                });
+
+                if (simFilters.major) {
+                  computedSections.push({
+                    id: `MAJOR_${simFilters.major}`,
+                    title: `주전공`,
+                    titleElements: ['주전공'],
+                    courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR'),
+                    fulfilled: false
+                  });
+                  if (simFilters.advancedMajor) {
+                    computedSections.push({
+                      id: 'ADVANCED_MAJOR',
+                      title: '심화전공',
+                      titleElements: ['심화전공'],
+                      courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR'),
+                      fulfilled: false
+                    });
+                  }
+                }
+                if (simFilters.major) {
+                  computedSections.push({
+                    id: `RESEARCH_${simFilters.major}`,
+                    title: '연구',
+                    titleElements: ['연구'],
+                    courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'RESEARCH'),
+                    fulfilled: false
+                  });
+                }
+
+                (simFilters.doubleMajors || []).forEach((id: string) => {
+                  computedSections.push({
+                    id: `DOUBLE_MAJOR_${id}`,
+                    title: `복수전공`,
+                    titleElements: ['복수전공'],
+                    courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id)),
+                    fulfilled: false
+                  });
+                });
+
+                (simFilters.minors || []).forEach((id: string) => {
+                  computedSections.push({
+                    id: `MINOR_${id}`,
+                    title: `부전공`,
+                    titleElements: ['부전공'],
+                    courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id)),
+                    fulfilled: false,
+                  });
+                });
+
+                if (simFilters.individuallyDesignedMajor) {
+                  computedSections.push({
+                    id: 'INDIVIDUALLY_DESIGNED_MAJOR',
+                    title: '자유융합전공',
+                    titleElements: ['자유융합전공'],
+                    courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR'),
+                    fulfilled: false
+                  });
+                }
+
+                computedSections.push({
+                  id: 'MANDATORY_GENERAL_COURSES',
+                  title: '교양필수',
+                  titleElements: ['교양필수'],
+                  courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES'),
+                  fulfilled: false
+                });
+                computedSections.push({
+                  id: 'HUMANITIES_SOCIETY_ELECTIVE',
+                  title: '인문사회선택',
+                  titleElements: ['인문사회선택'],
+                  courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE'),
+                  fulfilled: false
+                });
+
+                // 각 섹션의 requirements 설정 및 fulfilled 계산
+                const updatedSections = computedSections.map((section) => {
+                  let sectionRequirements: Requirement[] = [];
+                  
+                  if (section.id === 'BASIC_REQUIRED') {
+                    sectionRequirements = requirements.basicRequired || [];
+                  } else if (section.id === 'BASIC_ELECTIVE') {
+                    sectionRequirements = requirements.basicElective || [];
+                  } else if (section.id.startsWith('MAJOR_') && simFilters.major) {
+                    sectionRequirements = requirements.major || [];
+                  } else if (section.id === 'ADVANCED_MAJOR' && simFilters.major && simFilters.advancedMajor) {
+                    sectionRequirements = requirements.advanced || [];
+                  } else if (section.id.startsWith('RESEARCH_') && simFilters.major) {
+                    sectionRequirements = requirements.research || [];
+                  } else if (section.id.startsWith('DOUBLE_MAJOR_')) {
+                    const department = section.id.replace('DOUBLE_MAJOR_', '');
+                    sectionRequirements = requirements.doubleMajors?.[department] || [];
+                  } else if (section.id.startsWith('MINOR_')) {
+                    const department = section.id.replace('MINOR_', '');
+                    sectionRequirements = requirements.minors?.[department] || [];
+                  } else if (section.id === 'INDIVIDUALLY_DESIGNED_MAJOR') {
+                    sectionRequirements = requirements.individuallyDesignedMajor || [];
+                  } else if (section.id === 'MANDATORY_GENERAL_COURSES') {
+                    sectionRequirements = requirements.mandatoryGeneralCourses || [];
+                  } else if (section.id === 'HUMANITIES_SOCIETY_ELECTIVE') {
+                    sectionRequirements = requirements.humanitiesSocietyElective || [];
+                  }
+
+                  sectionRequirements.forEach(r => {
+                    r.fulfilled = r.value === undefined ? true : (r.currentValue || 0) >= (r.value || 0);
+                  });
+
+                  const fulfilled = sectionRequirements.length === 0 || sectionRequirements.every(r => r.fulfilled);
+
+                  return { ...section, requirements: sectionRequirements, fulfilled };
+                });
+
+                // canGraduate 계산
+                const requiredSections = updatedSections.filter(s => s.id !== 'OTHER_ELECTIVE' && s.id !== 'UNCLASSIFIED');
+                const allSectionsFulfilled = requiredSections.length > 0 && requiredSections.every(s => s.fulfilled);
+                const creditRequirementMet = totalCredit >= 138;
+                const auRequirementMet = totalAu >= 4;
+                const gpaRequirementMet = gpa >= 2.0;
+                const hasAdvancedMajor = simFilters.advancedMajor;
+                const hasIndividuallyDesignedMajor = simFilters.individuallyDesignedMajor;
+                const hasDoubleMajor = simFilters.doubleMajors && simFilters.doubleMajors.length > 0;
+                const hasMinor = simFilters.minors && simFilters.minors.length > 0;
+                const specializationRequirementMet = hasAdvancedMajor || hasIndividuallyDesignedMajor || hasDoubleMajor || hasMinor;
+                
+                const canGraduate = allSectionsFulfilled && creditRequirementMet && auRequirementMet && gpaRequirementMet && specializationRequirementMet;
+
+                return {
+                  id: sim.id,
+                  name: sim.title,
+                  date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
+                  canGraduate,
+                };
+              } catch (error) {
+                console.error(`Failed to calculate canGraduate for simulation ${sim.id}:`, error);
+                return {
+                  id: sim.id,
+                  name: sim.title,
+                  date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
+                  canGraduate: false,
+                };
+              }
+            })
+          );
+          setPreviousSimulations(simsWithCanGraduate);
+        } else if (simulationsRes.success) {
           const sims = (simulationsRes.simulations || []).map((sim: any) => ({
             id: sim.id,
             name: sim.title,
             date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
-            canGraduate: false, // TODO: 졸업가능 여부 계산 로직 추가 필요
+            canGraduate: false,
           }));
           setPreviousSimulations(sims);
         }
         setProfileLoaded(true);
-      })
-      .catch(() => {
+      } catch (error) {
         // 인증 오류 시 로그인 페이지로 리다이렉트
         router.push('/login');
         setProfileLoaded(true);
-      });
+      }
+    })();
   }, [profileLoaded, router]);
 
   // 초기 시뮬레이션 데이터 생성
@@ -1351,6 +1687,31 @@ export default function SimulationPage() {
 
   const [sections, setSections] = useState<Section[]>(baseSections.map(s => ({ ...s, requirements: [] })));
 
+  // 졸업 가능 여부 계산
+  const canGraduate = useMemo(() => {
+    // 1. 자유선택이나 미분류 섹션을 제외하고 모든 섹션이 fulfilled === true
+    const requiredSections = sections.filter(s => s.id !== 'OTHER_ELECTIVE' && s.id !== 'UNCLASSIFIED');
+    const allSectionsFulfilled = requiredSections.length > 0 && requiredSections.every(s => s.fulfilled);
+
+    // 2. 전체 이수학점이 138 이상
+    const creditRequirementMet = totalStats.totalCredit >= 138;
+
+    // 3. AU가 4 이상
+    const auRequirementMet = totalStats.totalAu >= 4;
+
+    // 4. 평점이 2.0 이상
+    const gpaRequirementMet = parseFloat(totalStats.gpa) >= 2.0;
+
+    // 5. 자유융합전공이나 심화전공을 하거나 복전이나 부전을 1개 이상의 학과에서 해야 함
+    const hasAdvancedMajor = filters.advancedMajor;
+    const hasIndividuallyDesignedMajor = filters.individuallyDesignedMajor;
+    const hasDoubleMajor = filters.doubleMajors && filters.doubleMajors.length > 0;
+    const hasMinor = filters.minors && filters.minors.length > 0;
+    const specializationRequirementMet = hasAdvancedMajor || hasIndividuallyDesignedMajor || hasDoubleMajor || hasMinor;
+
+    return allSectionsFulfilled && creditRequirementMet && auRequirementMet && gpaRequirementMet && specializationRequirementMet;
+  }, [sections, totalStats, filters]);
+
   // baseSections가 변경되면 sections 업데이트 (requirements는 792-945행의 useEffect에서 처리)
   useEffect(() => {
     // requirements는 792-945행의 useEffect에서 처리되므로, 여기서는 courses만 업데이트
@@ -1393,9 +1754,12 @@ export default function SimulationPage() {
     <div className="flex h-screen bg-zinc-50 dark:bg-black">
       {/* 사이드바 */}
       <aside
+        // className={`${
+        //   sidebarOpen ? 'w-64' : 'w-14'
+        // } transition-all duration-300 bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden flex-shrink-0`}
         className={`${
           sidebarOpen ? 'w-64' : 'w-14'
-        } transition-all duration-300 bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden flex-shrink-0`}
+        } relative z-300 transition-all duration-300 bg-white dark:bg-zinc-900 flex flex-col overflow-hidden flex-shrink-0 shadow-lg shadow-black/25`}
       >
         {/* 사이드바 토글 버튼 - 좌상단 햄버거 */}
         <div
@@ -2260,20 +2624,22 @@ export default function SimulationPage() {
                     <div className="flex items-center gap-6 flex-1">
                       <div>
                         <span className="text-xs text-gray-500 dark:text-gray-400">총 이수학점</span>
-                        <p className="text-lg font-semibold">{totalStats.totalCredit} / 138</p>
+                        <p className="text-lg font-semibold">{totalStats.totalCredit} <span className="text-xs text-gray-400 dark:text-gray-500">/ 138</span></p>
                       </div>
                       <div>
                         <span className="text-xs text-gray-500 dark:text-gray-400">총 AU</span>
-                        <p className="text-lg font-semibold">{totalStats.totalAu} / 4</p>
+                        <p className="text-lg font-semibold">{totalStats.totalAu} <span className="text-xs text-gray-400 dark:text-gray-500">/ 4</span></p>
                       </div>
                       <div>
                         <span className="text-xs text-gray-500 dark:text-gray-400">평점</span>
-                        <p className="text-lg font-semibold">{totalStats.gpa} / 2.0</p>
+                        <p className="text-lg font-semibold">{totalStats.gpa} <span className="text-xs text-gray-400 dark:text-gray-500">/ 2.0</span></p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">졸업 가능 여부</span>
-                      <p className="text-2xl font-bold text-red-600">불가능</p>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">시뮬레이션 결과</span>
+                      <p className={`text-2xl font-bold ${canGraduate ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        졸업 {canGraduate ? '가능' : '불가능'}
+                      </p>
                     </div>
                   </div>
                 </div>
