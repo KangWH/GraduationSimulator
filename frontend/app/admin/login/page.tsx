@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "../../components/formFields";
+import { API } from "@/app/lib/api";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -11,7 +12,7 @@ export default function AdminLoginPage() {
 
   const loginHandler = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    fetch('http://localhost:4000/admin/login', {
+    fetch(`${API}/admin/login`, {
       method: 'POST',
       body: JSON.stringify({ adminId, adminPassword }),
       headers: {

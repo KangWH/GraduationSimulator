@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FieldSize, Select, MultipleSelect, Option } from './formFields';
+import { API } from '../lib/api';
 
 interface CourseCategoryData {
   id: string;
@@ -23,7 +24,7 @@ export function CourseCategoryDropdown({ id, name, value, onChange, required = f
   const [data, setData] = useState<CourseCategoryData[]>([]);
 
   useEffect(() => {
-    fetch('http://localhost:4000/courseCategories')
+    fetch(`${API}/courseCategories`)
     .then(res => res.json())
     .then(data => {
       setData(data as CourseCategoryData[])
@@ -68,7 +69,7 @@ export function MultipleDepartmentDropdown({ id, name, value, onChange, required
   const [data, setData] = useState<CourseCategoryData[]>([]);
 
   useEffect(() => {
-    fetch('http://localhost:4000/departments')
+    fetch(`${API}/departments`)
     .then(res => res.json())
     .then(data => {
       setData(data as CourseCategoryData[])

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input, Select, NumberInput } from '../components/formFields';
 import { DepartmentDropdown } from '../components/DepartmentDropdown';
+import { API } from '../lib/api';
 
 type Tab = 'courses' | 'general' | 'major';
 
@@ -130,7 +131,7 @@ function CoursesTab() {
     formData.append('csv', file);
 
     try {
-      const res = await fetch('http://localhost:4000/admin/courses/upload', {
+      const res = await fetch(`${API}/admin/courses/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -213,7 +214,7 @@ function GeneralEdRequirementsTab() {
 
   const loadRequirements = async () => {
     try {
-      const res = await fetch('http://localhost:4000/admin/general-ed-requirements');
+      const res = await fetch(`${API}/admin/general-ed-requirements`);
       const data = await res.json();
       if (data.success) {
         setRequirements(data.data);
@@ -243,8 +244,8 @@ function GeneralEdRequirementsTab() {
     e.preventDefault();
     try {
       const url = editingId
-        ? `http://localhost:4000/admin/general-ed-requirements/${editingId}`
-        : 'http://localhost:4000/admin/general-ed-requirements';
+        ? `${API}/admin/general-ed-requirements/${editingId}`
+        : `${API}/admin/general-ed-requirements`;
       const method = editingId ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -276,7 +277,7 @@ function GeneralEdRequirementsTab() {
     if (!confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/admin/general-ed-requirements/${id}`, {
+      const res = await fetch(`${API}/admin/general-ed-requirements/${id}`, {
         method: 'DELETE',
       });
 
@@ -443,7 +444,7 @@ function MajorRequirementsTab() {
 
   const loadRequirements = async () => {
     try {
-      const res = await fetch('http://localhost:4000/admin/major-requirements');
+      const res = await fetch(`${API}/admin/major-requirements`);
       const data = await res.json();
       if (data.success) {
         setRequirements(data.data);
@@ -474,8 +475,8 @@ function MajorRequirementsTab() {
     e.preventDefault();
     try {
       const url = editingId
-        ? `http://localhost:4000/admin/major-requirements/${editingId}`
-        : 'http://localhost:4000/admin/major-requirements';
+        ? `${API}/admin/major-requirements/${editingId}`
+        : `${API}/admin/major-requirements`;
       const method = editingId ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -508,7 +509,7 @@ function MajorRequirementsTab() {
     if (!confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-      const res = await fetch(`http://localhost:4000/admin/major-requirements/${id}`, {
+      const res = await fetch(`${API}/admin/major-requirements/${id}`, {
         method: 'DELETE',
       });
 
