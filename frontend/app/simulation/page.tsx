@@ -1751,25 +1751,22 @@ export default function SimulationPage() {
 
 
   return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-black">
+    <div className="flex h-screen bg-zinc-50 dark:bg-black select-none">
       {/* 사이드바 */}
       <aside
-        // className={`${
-        //   sidebarOpen ? 'w-64' : 'w-14'
-        // } transition-all duration-300 bg-white dark:bg-zinc-900 border-r border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden flex-shrink-0`}
         className={`${
           sidebarOpen ? 'w-64' : 'w-14'
-        } relative z-300 transition-all duration-300 bg-white dark:bg-zinc-900 flex flex-col overflow-hidden flex-shrink-0 shadow-lg shadow-black/25`}
+        } relative z-300 transition-all duration-300 bg-white dark:bg-zinc-900 flex flex-col overflow-hidden flex-shrink-0 shadow-[0.1rem_0_1rem_rgba(0,0,0,0.1)] dark:shadow-[0.2rem_0_2rem_rgba(255,255,255,0.2)]`}
       >
         {/* 사이드바 토글 버튼 - 좌상단 햄버거 */}
         <div
-          className={`flex items-center gap-2 border-b border-gray-200 dark:border-gray-700 overflow-hidden transition-all ${
-            sidebarOpen ? 'p-4' : 'px-2 py-3'
+          className={`flex items-center gap-2 overflow-hidden transition-all ${
+            sidebarOpen ? 'p-4' : 'px-3 py-3'
           }`}
         >
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 flex-shrink-0"
+            className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 flex-shrink-0 active:scale-90 transition-all"
             aria-label={sidebarOpen ? '메뉴 접기' : '메뉴 펼치기'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1783,8 +1780,8 @@ export default function SimulationPage() {
 
         {/* 메인 메뉴 */}
         <div
-          className={`flex-1 overflow-y-auto overflow-x-hidden space-y-2 ${
-            sidebarOpen ? 'p-4' : 'px-2 py-3'
+          className={`flex-1 overflow-y-auto overflow-x-hidden space-y-2 transition-all ${
+            sidebarOpen ? 'px-4' : 'px-2'
           }`}
         >
           {/* 새로운 시뮬레이션 */}
@@ -1795,11 +1792,11 @@ export default function SimulationPage() {
                 initializeSimulationData(profile);
               }
             }}
-            className={`w-full flex items-center gap-2 rounded-lg transition-colors ${
+            className={`w-full flex items-center gap-2 rounded-lg active:scale-90 transition-all select-none hover:bg-gray-100 dark:hover:bg-zinc-800 ${
               currentSimulationId === null
                 ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300'
                 : sidebarOpen
-                ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                ? 'text-gray-700 dark:text-gray-300'
                 : ''
             } ${sidebarOpen ? 'px-3 py-2' : 'justify-center p-2'}`}
           >
@@ -1825,8 +1822,8 @@ export default function SimulationPage() {
                 previousSimulations.map((sim) => (
                   <div
                     key={sim.id}
-                    onClick={() => loadSimulation(sim.id)}
-                    className={`w-full flex items-center gap-3 rounded-lg text-left transition-all cursor-pointer ${
+                    onClick={() => currentSimulationId === sim.id ? null : loadSimulation(sim.id)}
+                    className={`w-full flex items-center gap-3 rounded-lg text-left active:scale-90 transition-all cursor-pointer ${
                       currentSimulationId === sim.id
                         ? ('bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 transition-all' + (sidebarOpen ? '' : ' p-2 justify-center'))
                         : sidebarOpen
@@ -1896,20 +1893,20 @@ export default function SimulationPage() {
 
         {/* 하단 메뉴: 계정 이름 + 로그아웃 */}
         <div
-          className={`border-t border-gray-200 dark:border-gray-700 overflow-hidden transition-all ${
+          className={`overflow-hidden transition-all ${
             sidebarOpen ? 'p-4 space-y-2' : 'px-2 py-3 space-y-2'
           }`}
         >
           <div
-            className={`flex items-center gap-3 rounded-lg transition-colors ${
+            className={`flex items-center gap-3 rounded-lg transition-all ${
               sidebarOpen ? 'w-full' : 'justify-center'
             }`}
           >
             <Link
               href="/profile/settings"
-              className={`flex items-center gap-3 rounded-lg transition-colors flex-1 min-w-0 transition-all ${
+              className={`flex items-center gap-3 rounded-lg flex-1 min-w-0 active:scale-90 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all ${
                 sidebarOpen
-                  ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 px-4 py-2'
+                  ? 'text-gray-700 dark:text-gray-300 px-4 py-2'
                   : 'justify-center p-2'
               }`}
               title={sidebarOpen ? undefined : userName || '프로필 설정'}
@@ -1937,7 +1934,7 @@ export default function SimulationPage() {
                   }
                   router.push('/login');
                 }}
-                className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-950/30 transition-colors"
+                className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-950/30 active:scale-90 transition-all"
                 title="로그아웃"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1952,7 +1949,7 @@ export default function SimulationPage() {
       {/* 메인 컨텐츠 */}
       <div className="flex-1 flex flex-col overflow-y-auto">
         {/* 상단 바 (sticky) */}
-        <div className="bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex-1 py-4 overflow-x-auto">
               <div className="px-6 flex items-center gap-4 min-w-max">
@@ -2040,7 +2037,7 @@ export default function SimulationPage() {
               <button
                 type="button"
                 onClick={() => setIsSaveModalOpen(true)}
-                className="px-3 py-2 border border-gray-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg transition-colors hover:bg-gray-50 dark:hover:bg-zinc-800 whitespace-nowrap"
+                className="px-3 py-2 bg-white dark:bg-zinc-900 text-sm shadow-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg active:scale-90 transition-all hover:bg-gray-50 dark:hover:bg-zinc-800 whitespace-nowrap"
               >
                 다른 이름으로 저장
               </button>
@@ -2050,7 +2047,8 @@ export default function SimulationPage() {
 
         {/* 3분할 카드 래퍼 */}
         <div className="grow flex flex-col min-h-0 p-4 overflow-hidden">
-          <div className="flex-1 flex flex-col min-h-0 rounded-xl shadow-lg overflow-hidden bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-700">
+          <div className="flex-1 flex flex-col min-h-0 rounded-xl shadow-xl overflow-hidden bg-white dark:bg-zinc-900">
+          {/* <div className="flex-1 flex flex-col min-h-0 rounded-xl overflow-hidden"> */}
             <div className="flex-1 flex min-h-0">
               {/* 좌측: 섹션별 요건 계산에 사용된 과목 */}
               <div
@@ -2061,10 +2059,10 @@ export default function SimulationPage() {
                     <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>수업별 학점 인정 분야</h2>
                     <button
                       onClick={() => setGradeBlindMode(!gradeBlindMode)}
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all"
                       title={gradeBlindMode ? '성적 표시' : '성적 숨기기'}
                     >
-                      <svg
+                      {/* <svg
                         className={`w-4 h-4 ${gradeBlindMode ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300'}`}
                         fill="none"
                         stroke="currentColor"
@@ -2075,7 +2073,7 @@ export default function SimulationPage() {
                         ) : (
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         )}
-                      </svg>
+                      </svg> */}
                       <span className="text-xs text-gray-600 dark:text-gray-300">
                         {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
                       </span>
@@ -2090,63 +2088,65 @@ export default function SimulationPage() {
                       <>
                         {/* 기초과목 그룹 */}
                         {groupedSections.basicGroup.length > 0 && (
-                          <>
+                          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                          {/* <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg"> */}
                             {groupedSections.basicGroup.map((s, i) => {
                               const isCollapsed = collapsedSections.has(s.id);
                               return (
-                                <div key={s.id} className={i > 0 ? 'mt-4' : ''}>
-                                <div className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${isCollapsed ? 'pb-2' : ''}`}>
-                                  <div className="flex justify-between text-sm items-baseline mb-3">
+                                <div key={s.id}>
+                                  <div className="px-3 py-4">
                                     <button
                                       onClick={() => toggleSection(s.id)}
-                                      className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                      className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
                                     >
                                       <svg
-                                        className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                        className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
                                       >
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                       </svg>
-                                      <h3 className="font-medium text-base">{s.title}</h3>
+                                      <h3 className="font-medium text-base flex-1">{s.title}</h3>
+                                      <p className="text-gray-600 dark:text-gray-400 text-sm">{calculateSectionCredits(s.courses)}</p>
                                     </button>
-                                    <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
+                                    <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                      <div className="space-y-2">
+                                        {s.courses.length === 0 ? (
+                                          <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                        ) : (
+                                          s.courses.map((c) => (
+                                            <div
+                                              key={c.courseId}
+                                              className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
+                                            >
+                                              <div className="flex items-center font-medium text-sm gap-2">
+                                                <p>{c.course.title}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                {!gradeBlindMode && (
+                                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                    {c.grade}
+                                                  </span>
+                                                )}
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                  {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
+                                                </p>
+                                              </div>
+                                            </div>
+                                          ))
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
-                                  {!isCollapsed && (
-                                  <div className="space-y-2">
-                                    {s.courses.length === 0 ? (
-                                      <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
-                                    ) : (
-                                      s.courses.map((c) => (
-                                        <div
-                                          key={c.courseId}
-                                          className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                        >
-                                          <div className="flex items-center font-medium text-sm gap-2">
-                                            <p>{c.course.title}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
-                                          </div>
-                                          <div className="flex items-center gap-2">
-                                            {!gradeBlindMode && (
-                                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                {c.grade}
-                                              </span>
-                                            )}
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                              {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      ))
-                                    )}
-                                  </div>
+                                  {i < groupedSections.basicGroup.length - 1 && (
+                                    <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
                                   )}
                                 </div>
-                              </div>
-                            );
+                              );
                             })}
-                          </>
+                          </div>
                         )} 
 
                         {/* 주전공/심화전공/연구 그룹 */}
@@ -2160,60 +2160,58 @@ export default function SimulationPage() {
                                 const isCollapsed = collapsedSections.has(s.id);
                                 return (
                                   <div key={s.id}>
-                                  <div className={`p-4 ${isCollapsed ? 'pb-2' : ''}`}>
-                                    <div className="flex justify-between text-sm items-baseline mb-3">
+                                    <div className="px-3 py-4">
                                       <button
                                         onClick={() => toggleSection(s.id)}
-                                        className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                        className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
                                       >
                                         <svg
-                                          className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                          className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
                                           fill="none"
                                           stroke="currentColor"
                                           viewBox="0 0 24 24"
                                         >
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                         </svg>
-                                        <h3 className="font-medium text-base">{s.title}</h3>
+                                        <h3 className="font-medium text-base flex-1">{s.title}</h3>
+                                        <p className="text-gray-600 dark:text-gray-400 text-sm">{calculateSectionCredits(s.courses)}</p>
                                       </button>
-                                      <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
+                                      <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                        <div className="space-y-2">
+                                          {s.courses.length === 0 ? (
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                          ) : (
+                                            s.courses.map((c) => (
+                                              <div
+                                                key={c.courseId}
+                                                className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
+                                              >
+                                                <div className="flex items-center font-medium text-sm gap-2">
+                                                  <p>{c.course.title}</p>
+                                                  <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                  {!gradeBlindMode && (
+                                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                      {c.grade}
+                                                    </span>
+                                                  )}
+                                                  {c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">중복인정</span>
+                                                  )}
+                                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            ))
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                    {!isCollapsed && (
-                                    <div className="space-y-2">
-                                      {s.courses.length === 0 ? (
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
-                                      ) : (
-                                        s.courses.map((c) => (
-                                          <div
-                                            key={c.courseId}
-                                            className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                          >
-                                            <div className="flex items-center font-medium text-sm gap-2">
-                                              <p>{c.course.title}</p>
-                                              <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              {!gradeBlindMode && (
-                                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                  {c.grade}
-                                                </span>
-                                              )}
-                                              {c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
-                                                <span className="text-xs text-gray-500 dark:text-gray-400">중복인정</span>
-                                              )}
-                                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                              </p>
-                                            </div>
-                                          </div>
-                                        ))
-                                      )}
-                                    </div>
+                                    {idx < groupedSections.majorGroup.length - 1 && (
+                                      <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
                                     )}
-                                  </div>
-                                  {idx < groupedSections.majorGroup.length - 1 && (
-                                    <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
-                                  )}
                                   </div>
                                 );
                               })}
@@ -2231,30 +2229,87 @@ export default function SimulationPage() {
                               const isCollapsed = collapsedSections.has(s.id);
                               return (
                                 <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
-                                <div className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${isCollapsed ? 'pb-2' : ''}`}>
-                                  <div className="flex justify-between text-sm items-baseline mb-3">
-                                    <button
-                                      onClick={() => toggleSection(s.id)}
-                                      className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
-                                    >
-                                      <svg
-                                        className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
+                                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                    <div className="px-3 py-4">
+                                      <button
+                                        onClick={() => toggleSection(s.id)}
+                                        className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
                                       >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                      </svg>
-                                      <h3 className="font-medium text-base">{s.title}</h3>
-                                    </button>
-                                    <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
+                                        <svg
+                                          className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                        <h3 className="font-medium text-base flex-1">{s.title}</h3>
+                                        <p className="text-gray-600 dark:text-gray-400 text-sm">{calculateSectionCredits(s.courses)}</p>
+                                      </button>
+                                      <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                        <div className="space-y-2">
+                                          {s.courses.length === 0 ? (
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                          ) : (
+                                            s.courses.map((c) => (
+                                              <div
+                                                key={c.courseId}
+                                                className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
+                                              >
+                                                <div className="flex items-center font-medium text-sm gap-2">
+                                                  <p>{c.course.title}</p>
+                                                  <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                  {!gradeBlindMode && (
+                                                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                      {c.grade}
+                                                    </span>
+                                                  )}
+                                                  {c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">중복인정</span>
+                                                  )}
+                                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            ))
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-                                  {!isCollapsed && (
-                                  <div className="space-y-2">
-                                    {s.courses.length === 0 ? (
-                                      <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
-                                    ) : (
-                                      s.courses.map((c) => (
+                                </div>
+                              );
+                            })}
+                          </>
+                        )}
+
+                        {groupedSections.miscSections.map((s) => {
+                          const isCollapsed = collapsedSections.has(s.id);
+                          return s.courses.length === 0 ? null : (
+                            <div key={s.id} className="mt-4">
+                              <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                                <div className="px-3 py-4">
+                                  <button
+                                    onClick={() => toggleSection(s.id)}
+                                    className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
+                                  >
+                                    <svg
+                                      className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                    <h3 className="font-medium text-base flex-1">{s.title}</h3>
+                                    <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
+                                  </button>
+                                  <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                    <div className="space-y-2">
+                                      {s.courses.map((c) => (
                                         <div
                                           key={c.courseId}
                                           className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
@@ -2269,75 +2324,18 @@ export default function SimulationPage() {
                                                 {c.grade}
                                               </span>
                                             )}
-                                            {c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
-                                              <span className="text-xs text-gray-500 dark:text-gray-400">중복인정</span>
-                                            )}
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
                                               {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
                                             </p>
                                           </div>
                                         </div>
-                                      ))
-                                    )}
+                                      ))}
+                                    </div>
                                   </div>
-                                  )}
                                 </div>
                               </div>
-                            );
-                            })}
-                          </>
-                        )}
-
-                        {groupedSections.miscSections.map((s) => {
-                          const isCollapsed = collapsedSections.has(s.id);
-                          return s.courses.length === 0 ? null : (
-                          <div key={s.id} className="mt-4">
-                            <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                              <div className="flex justify-between text-sm items-baseline mb-3">
-                                <button
-                                  onClick={() => toggleSection(s.id)}
-                                  className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
-                                >
-                                  <svg
-                                    className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                  </svg>
-                                  <h3 className="font-medium text-base">{s.title}</h3>
-                                </button>
-                                <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
-                              </div>
-                              {!isCollapsed && (
-                              <div className="space-y-2">
-                                {s.courses.map((c) => (
-                                  <div
-                                    key={c.courseId}
-                                    className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                  >
-                                    <div className="flex items-center font-medium text-sm gap-2">
-                                      <p>{c.course.title}</p>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {!gradeBlindMode && (
-                                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                          {c.grade}
-                                        </span>
-                                      )}
-                                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                              )}
                             </div>
-                          </div>
-                        );
+                          );
                         })}
                       </>
                     )}
@@ -2346,7 +2344,7 @@ export default function SimulationPage() {
               </div>
 
               {/* 가운데: 섹션별 세부 요건 달성 여부 */}
-              <div className={`${rightPanelOpen ? 'w-1/3' : 'w-1/2'} flex-shrink-0 border-r border-gray-200 dark:border-gray-700 flex flex-col min-h-0 transition-all duration-300 relative`}>
+              <div className={`${rightPanelOpen ? 'w-1/3 border-r border-gray-200 dark:border-gray-700' : 'w-1/2'} flex-shrink-0 flex flex-col min-h-0 transition-all duration-300 relative`}>
                 <div
                   className="flex-1 h-full overflow-y-auto"
                 >
@@ -2380,28 +2378,26 @@ export default function SimulationPage() {
                         <>
                           {/* 기초과목 */}
                           {groupedSections.basicGroup.length > 0 && (
-                            <>
+                            <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                               {groupedSections.basicGroup.map((s, idx) => {
                                 const requirements = s.requirements || [];
                                 const isCollapsed = collapsedSections.has(`center-${s.id}`);
                                 return (
-                                  <div key={s.id} className={idx > 0 ? 'mt-4' : ''}>
-                                    <div className={`rounded-lg border border-gray-200 dark:border-gray-700 p-4 ${isCollapsed ? 'pb-2' : ''}`}>
-                                      <div className="flex items-center justify-between mb-2">
-                                        <button
-                                          onClick={() => toggleSection(`center-${s.id}`)}
-                                          className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                  <div key={s.id}>
+                                    <div className="px-3 py-4">
+                                      <button
+                                        onClick={() => toggleSection(`center-${s.id}`)}
+                                        className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
+                                      >
+                                        <svg
+                                          className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
                                         >
-                                          <svg
-                                            className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                          >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                          </svg>
-                                          <h3 className="font-medium text-base">{s.title}</h3>
-                                        </button>
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                        <h3 className="font-medium text-base flex-1">{s.title}</h3>
                                         <p
                                           className={`text-sm font-medium ${
                                             s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
@@ -2409,9 +2405,9 @@ export default function SimulationPage() {
                                         >
                                           {s.fulfilled ? '달성' : '미달'}
                                         </p>
-                                      </div>
-                                      {!isCollapsed && (
-                                        <div className="mt-3">
+                                      </button>
+                                      <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                        <div className="px-1">
                                           {requirements.length > 0 ? (
                                             <div className="space-y-2">
                                               {requirements.map((req, reqIdx) => {
@@ -2443,12 +2439,15 @@ export default function SimulationPage() {
                                             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
                                           )}
                                         </div>
-                                      )}
+                                      </div>
                                     </div>
+                                    {idx < groupedSections.basicGroup.length - 1 && (
+                                      <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                                    )}
                                   </div>
                                 );
                               })}
-                            </>
+                            </div>
                           )}
 
                           {/* 주전공/심화전공/연구 그룹 */}
@@ -2459,29 +2458,27 @@ export default function SimulationPage() {
                                 const isCollapsed = collapsedSections.has(`center-${s.id}`);
                                 return (
                                   <div key={s.id}>
-                                    <div className={`p-4 ${isCollapsed ? 'pb-2' : ''}`}>
-                                      <div className="flex items-center justify-between mb-2">
-                                        <button
-                                          onClick={() => toggleSection(`center-${s.id}`)}
-                                          className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                    <div className="px-3 py-4">
+                                      <button
+                                        onClick={() => toggleSection(`center-${s.id}`)}
+                                        className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 active:scale-96 transition-all rounded"
+                                      >
+                                        <svg
+                                          className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
                                         >
-                                          <svg
-                                            className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                          >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                          </svg>
-                                          <h3 className="font-medium text-base">
-                                            {s.titleElements.length > 1 ? (
-                                              <>
-                                                <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
-                                                <span>{s.titleElements.slice(1).join(' ')}</span>
-                                              </>
-                                            ) : s.titleElements[0]}
-                                          </h3>
-                                        </button>
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                        <h3 className="font-medium text-base flex-1">
+                                          {s.titleElements.length > 1 ? (
+                                            <>
+                                              <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
+                                              <span>{s.titleElements.slice(1).join(' ')}</span>
+                                            </>
+                                          ) : s.titleElements[0]}
+                                        </h3>
                                         <p
                                           className={`text-sm font-medium ${
                                             s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
@@ -2489,9 +2486,9 @@ export default function SimulationPage() {
                                         >
                                           {s.fulfilled ? '달성' : '미달'}
                                         </p>
-                                      </div>
-                                      {!isCollapsed && (
-                                        <div className="mt-3">
+                                      </button>
+                                      <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                        <div className="px-1">
                                           {requirements.length > 0 ? (
                                             <div className="space-y-2">
                                               {requirements.map((req, reqIdx) => {
@@ -2523,7 +2520,7 @@ export default function SimulationPage() {
                                             <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
                                           )}
                                         </div>
-                                      )}
+                                      </div>
                                     </div>
                                     {idx < groupedSections.majorGroup.length - 1 && (
                                       <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
@@ -2542,21 +2539,21 @@ export default function SimulationPage() {
                                 const isCollapsed = collapsedSections.has(`center-${s.id}`);
                                 return (
                                   <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
-                                    <div className={`rounded-lg border border-gray-200 dark:border-gray-700 p-4 ${isCollapsed ? 'pb-2' : ''}`}>
-                                      <div className="flex items-center justify-between mb-2">
+                                    <div className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                      <div className="px-3 py-4">
                                         <button
                                           onClick={() => toggleSection(`center-${s.id}`)}
-                                          className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                          className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
                                         >
                                           <svg
-                                            className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                            className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
                                             fill="none"
                                             stroke="currentColor"
                                             viewBox="0 0 24 24"
                                           >
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                           </svg>
-                                          <h3 className="font-medium text-base">
+                                          <h3 className="font-medium text-base flex-1">
                                             {s.titleElements.length > 1 ? (
                                               <>
                                                 <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
@@ -2564,49 +2561,49 @@ export default function SimulationPage() {
                                               </>
                                             ) : s.titleElements[0]}
                                           </h3>
+                                          <p
+                                            className={`text-sm font-medium ${
+                                              s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                            }`}
+                                          >
+                                            {s.fulfilled ? '달성' : '미달'}
+                                          </p>
                                         </button>
-                                        <p
-                                          className={`text-sm font-medium ${
-                                            s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                                          }`}
-                                        >
-                                          {s.fulfilled ? '달성' : '미달'}
-                                        </p>
-                                      </div>
-                                      {!isCollapsed && (
-                                        <div className="mt-3">
-                                          {requirements.length > 0 ? (
-                                            <div className="space-y-2">
-                                              {requirements.map((req, reqIdx) => {
-                                                const currentValue = req.currentValue || 0;
-                                                const targetValue = req.value || 0;
-                                                const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
-                                                return (
-                                                  <div
-                                                    key={reqIdx}
-                                                    className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
-                                                  >
+                                        <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                          <div className="px-1">
+                                            {requirements.length > 0 ? (
+                                              <div className="space-y-2">
+                                                {requirements.map((req, reqIdx) => {
+                                                  const currentValue = req.currentValue || 0;
+                                                  const targetValue = req.value || 0;
+                                                  const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
+                                                  return (
                                                     <div
-                                                      className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
-                                                      style={{ width: `${percentage}%` }}
-                                                    />
-                                                    <div className="relative flex items-center justify-between">
-                                                      <p className="font-medium text-sm truncate">{req.title || req.description}</p>
-                                                      {req.value != null && (
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                                          {currentValue} / {targetValue}
-                                                        </p>
-                                                      )}
+                                                      key={reqIdx}
+                                                      className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
+                                                    >
+                                                      <div
+                                                        className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
+                                                        style={{ width: `${percentage}%` }}
+                                                      />
+                                                      <div className="relative flex items-center justify-between">
+                                                        <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                                        {req.value != null && (
+                                                          <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                            {currentValue} / {targetValue}
+                                                          </p>
+                                                        )}
+                                                      </div>
                                                     </div>
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
-                                          ) : (
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
-                                          )}
+                                                  );
+                                                })}
+                                              </div>
+                                            ) : (
+                                              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
+                                            )}
+                                          </div>
                                         </div>
-                                      )}
+                                      </div>
                                     </div>
                                   </div>
                                 );
@@ -2619,7 +2616,7 @@ export default function SimulationPage() {
                   </div>
                 </div>
 
-                <div className="absolute bottom-0 w-full flex-shrink-0 bg-gradient-to-t from-white dark:from-black via-white/95 dark:via-black/95 to-transparent backdrop-blur-sm px-4 py-3">
+                <div className="absolute bottom-0 w-full flex-shrink-0 bg-gradient-to-t from-white dark:from-black via-white/90 dark:via-black/90 to-transparent backdrop-blur-sm px-4 py-3">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-6 flex-1">
                       <div>

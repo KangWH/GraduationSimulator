@@ -33,7 +33,7 @@ export function Input({ id, name, value, onChange, type = 'text', required = fal
       required={required}
       placeholder={placeholder}
       className={
-        "w-full bg-white dark:bg-black shadow-sm border border-gray-300 dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none "
+        "w-full bg-white dark:bg-black shadow-sm dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none "
         + fieldSizeClassNames[size] + (className ? " " + className : "")
       }
     />
@@ -60,7 +60,7 @@ export function NumberInput({ id, name, min = '0', max = '100', step = '1', valu
   return (
     <div
       className={
-        "flex flex-row w-full shadow-sm border border-gray-300 dark:border-zinc-700 focus-within:border-violet-500 rounded-md overflow-hidden " + (disabled ? 'bg-gray-100 text-gray-500 disabled:bg-zinc-900 ' : 'bg-white dark:bg-black ') + (className ? className : "")
+        "flex flex-row w-full shadow-sm focus-within:border-violet-500 rounded-md overflow-hidden " + (disabled ? 'bg-gray-100 text-gray-500 disabled:bg-zinc-900 ' : 'bg-white dark:bg-black ') + (className ? className : "")
       }
     >
       <input
@@ -110,7 +110,7 @@ export function Select({ id, name, value, onChange, disabled = false, required =
         disabled={disabled}
         required={required}
         className={
-          "w-full bg-white dark:bg-black shadow-sm border border-gray-300 dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none pr-8 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-zinc-900 "
+          "w-full bg-white dark:bg-black shadow-sm focus:border-violet-500 rounded-md outline-none appearance-none pr-8 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-zinc-900 "
           + fieldSizeClassNames[size]
           + (className ? " " + className : "")
         }
@@ -257,7 +257,7 @@ export function MultipleSelect({
         name={name}
         onClick={() => setIsOpen(!isOpen)}
         className={
-          'w-full bg-white dark:bg-black shadow-sm border border-gray-300 dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none text-left flex items-center gap-2 ' +
+          'w-full bg-white dark:bg-black shadow-sm focus:border-violet-500 rounded-md outline-none appearance-none text-left flex items-center gap-2 ' +
           fieldSizeClassNames[size]
           + " " + className
           + (isOpen ? ' border-violet-500' : '')
@@ -293,7 +293,7 @@ export function MultipleSelect({
         createPortal(
           <div
             ref={popoverRef}
-            className="fixed z-[9999] bg-white dark:bg-zinc-900 border border-gray-300 dark:border-zinc-700 rounded-md shadow-lg overflow-y-auto"
+            className="fixed z-[9999] bg-white dark:bg-zinc-900 rounded-md shadow-lg overflow-y-auto"
             style={{
               top: popoverStyle.top,
               left: popoverStyle.left,
@@ -306,7 +306,7 @@ export function MultipleSelect({
               <button
                 type="button"
                 onClick={allSelected ? handleDeselectAll : handleSelectAll}
-                className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium"
+                className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none"
               >
                 {allSelected ? '전체 취소' : '전체 선택'}
               </button>
@@ -320,7 +320,7 @@ export function MultipleSelect({
             {/* 옵션 목록 */}
             <div className="py-1">
               {allowNone && (
-                <label className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 cursor-pointer">
+                <label className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all active:rounded-lg select-none">
                   <input
                     type="checkbox"
                     checked={value.length === 0}
@@ -335,7 +335,7 @@ export function MultipleSelect({
                 return (
                   <label
                     key={option.value}
-                    className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 cursor-pointer"
+                    className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all active:rounded-lg select-none"
                   >
                     <input
                       type="checkbox"

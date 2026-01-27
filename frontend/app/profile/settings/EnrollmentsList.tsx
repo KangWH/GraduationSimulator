@@ -121,7 +121,7 @@ export default function EnrollmentsList({
         return (
           <div
             key={semesterKey}
-            className={`rounded-lg border border-gray-200 p-4 dark:border-gray-700 transition-colors ${isCollapsed ? 'pb-2' : ''}`}
+            className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors"
             onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -140,24 +140,25 @@ export default function EnrollmentsList({
               onDrop(e, semesterKey);
             }}
           >
-            <button
-              onClick={() => toggleSemester(semesterKey)}
-              className="flex items-center gap-2 w-full text-left hover:opacity-70 transition-opacity mb-3"
-            >
-              <svg
-                className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="px-3 py-4">
+              <button
+                onClick={() => toggleSemester(semesterKey)}
+                className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              <h3 className="font-medium text-base text-gray-800 dark:text-gray-200">
-                {sectionTitle}
-              </h3>
-            </button>
-            {!isCollapsed && (
-            <div className="space-y-2">
+                <svg
+                  className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                <h3 className="font-medium text-base flex-1 text-gray-800 dark:text-gray-200">
+                  {sectionTitle}
+                </h3>
+              </button>
+              <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                <div className="space-y-2">
               {[...groupEnrollments]
                 .sort((a, b) => (a.course.code || '').localeCompare(b.course.code || ''))
                 .map((enrollment, idx) => (
@@ -218,8 +219,9 @@ export default function EnrollmentsList({
                     </div>
                   </div>
                 ))}
+                </div>
+              </div>
             </div>
-            )}
           </div>
         );
       })}

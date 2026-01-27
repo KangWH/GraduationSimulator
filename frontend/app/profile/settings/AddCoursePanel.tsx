@@ -120,7 +120,7 @@ export default function AddCoursePanel({
   return (
     <div className="space-y-4">
       {/* 검색 창 */}
-      <div className="sticky top-0 z-10 -mx-6 px-6 pt-4 pb-4 bg-gradient-to-b from-white via-white/95 to-transparent dark:from-zinc-900 dark:via-zinc-900/95 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 -mx-6 px-6 pt-4 pb-4 bg-gradient-to-b from-white via-white/90 to-transparent dark:from-zinc-900 dark:via-zinc-900/90 backdrop-blur-sm">
         <div className="space-y-2">
           <div className="relative flex items-center gap-2">
             <div className="relative flex-1">
@@ -305,7 +305,7 @@ export default function AddCoursePanel({
 
       {/* 추가 옵션 및 버튼 */}
       {selectedCourseIds.size > 0 && (
-        <div className="sticky bottom-0 z-10 -mx-6 px-6 pt-4 pb-4 bg-gradient-to-t from-white via-white/95 to-transparent backdrop-blur-sm dark:from-zinc-900 dark:via-zinc-900/95 dark:to-transparent">
+        <div className="sticky bottom-0 z-10 -mx-6 px-6 pt-4 pb-4 bg-gradient-to-t from-white via-white/90 to-transparent backdrop-blur-sm dark:from-zinc-900 dark:via-zinc-900/90 dark:to-transparent">
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-zinc-800/50">
             {onAddAsPriorCreditChange && (
               <label className="mb-3 flex cursor-pointer items-center gap-2">
