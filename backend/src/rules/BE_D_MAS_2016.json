@@ -1,0 +1,22 @@
+[ 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "description": "기초선택 3학점 이상 이수",
+    "value": 3,
+    "targets": [
+      {
+        "categories": ["BE"]
+      }
+    ]
+  }, 
+  {
+    "type": "MIN_COURSES_AMONG", 
+    "description": "지정 과목 중 1과목 이상 이수",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["MAS.20001", "MAS.20050", "MAS.20002"]
+      }
+    ]
+  }
+]

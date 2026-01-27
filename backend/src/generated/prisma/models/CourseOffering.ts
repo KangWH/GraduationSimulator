@@ -40,31 +40,40 @@ export type CourseOfferingMinAggregateOutputType = {
   id: string | null
   code: string | null
   title: string | null
+  searchTitle: string | null
   department: string | null
   category: string | null
   credit: number | null
   au: number | null
+  level: string | null
+  crossRecognition: boolean | null
 }
 
 export type CourseOfferingMaxAggregateOutputType = {
   id: string | null
   code: string | null
   title: string | null
+  searchTitle: string | null
   department: string | null
   category: string | null
   credit: number | null
   au: number | null
+  level: string | null
+  crossRecognition: boolean | null
 }
 
 export type CourseOfferingCountAggregateOutputType = {
   id: number
   code: number
   title: number
+  searchTitle: number
   department: number
   category: number
   tags: number
   credit: number
   au: number
+  level: number
+  crossRecognition: number
   _all: number
 }
 
@@ -83,31 +92,40 @@ export type CourseOfferingMinAggregateInputType = {
   id?: true
   code?: true
   title?: true
+  searchTitle?: true
   department?: true
   category?: true
   credit?: true
   au?: true
+  level?: true
+  crossRecognition?: true
 }
 
 export type CourseOfferingMaxAggregateInputType = {
   id?: true
   code?: true
   title?: true
+  searchTitle?: true
   department?: true
   category?: true
   credit?: true
   au?: true
+  level?: true
+  crossRecognition?: true
 }
 
 export type CourseOfferingCountAggregateInputType = {
   id?: true
   code?: true
   title?: true
+  searchTitle?: true
   department?: true
   category?: true
   tags?: true
   credit?: true
   au?: true
+  level?: true
+  crossRecognition?: true
   _all?: true
 }
 
@@ -201,11 +219,14 @@ export type CourseOfferingGroupByOutputType = {
   id: string
   code: string
   title: string
+  searchTitle: string
   department: string
   category: string
   tags: string[]
   credit: number
   au: number
+  level: string
+  crossRecognition: boolean
   _count: CourseOfferingCountAggregateOutputType | null
   _avg: CourseOfferingAvgAggregateOutputType | null
   _sum: CourseOfferingSumAggregateOutputType | null
@@ -235,48 +256,60 @@ export type CourseOfferingWhereInput = {
   id?: Prisma.StringFilter<"CourseOffering"> | string
   code?: Prisma.StringFilter<"CourseOffering"> | string
   title?: Prisma.StringFilter<"CourseOffering"> | string
+  searchTitle?: Prisma.StringFilter<"CourseOffering"> | string
   department?: Prisma.StringFilter<"CourseOffering"> | string
   category?: Prisma.StringFilter<"CourseOffering"> | string
   tags?: Prisma.StringNullableListFilter<"CourseOffering">
   credit?: Prisma.IntFilter<"CourseOffering"> | number
   au?: Prisma.IntFilter<"CourseOffering"> | number
+  level?: Prisma.StringFilter<"CourseOffering"> | string
+  crossRecognition?: Prisma.BoolFilter<"CourseOffering"> | boolean
 }
 
 export type CourseOfferingOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   title?: Prisma.SortOrder
+  searchTitle?: Prisma.SortOrder
   department?: Prisma.SortOrder
   category?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   credit?: Prisma.SortOrder
   au?: Prisma.SortOrder
+  level?: Prisma.SortOrder
+  crossRecognition?: Prisma.SortOrder
 }
 
 export type CourseOfferingWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  code_title_category_credit_au?: Prisma.CourseOfferingCodeTitleCategoryCreditAuCompoundUniqueInput
+  code_title_category_tags_credit_au?: Prisma.CourseOfferingCodeTitleCategoryTagsCreditAuCompoundUniqueInput
   AND?: Prisma.CourseOfferingWhereInput | Prisma.CourseOfferingWhereInput[]
   OR?: Prisma.CourseOfferingWhereInput[]
   NOT?: Prisma.CourseOfferingWhereInput | Prisma.CourseOfferingWhereInput[]
   code?: Prisma.StringFilter<"CourseOffering"> | string
   title?: Prisma.StringFilter<"CourseOffering"> | string
+  searchTitle?: Prisma.StringFilter<"CourseOffering"> | string
   department?: Prisma.StringFilter<"CourseOffering"> | string
   category?: Prisma.StringFilter<"CourseOffering"> | string
   tags?: Prisma.StringNullableListFilter<"CourseOffering">
   credit?: Prisma.IntFilter<"CourseOffering"> | number
   au?: Prisma.IntFilter<"CourseOffering"> | number
-}, "id" | "code_title_category_credit_au">
+  level?: Prisma.StringFilter<"CourseOffering"> | string
+  crossRecognition?: Prisma.BoolFilter<"CourseOffering"> | boolean
+}, "id" | "code_title_category_tags_credit_au">
 
 export type CourseOfferingOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   title?: Prisma.SortOrder
+  searchTitle?: Prisma.SortOrder
   department?: Prisma.SortOrder
   category?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   credit?: Prisma.SortOrder
   au?: Prisma.SortOrder
+  level?: Prisma.SortOrder
+  crossRecognition?: Prisma.SortOrder
   _count?: Prisma.CourseOfferingCountOrderByAggregateInput
   _avg?: Prisma.CourseOfferingAvgOrderByAggregateInput
   _max?: Prisma.CourseOfferingMaxOrderByAggregateInput
@@ -291,94 +324,119 @@ export type CourseOfferingScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
   code?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
   title?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
+  searchTitle?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
   department?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
   category?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
   tags?: Prisma.StringNullableListFilter<"CourseOffering">
   credit?: Prisma.IntWithAggregatesFilter<"CourseOffering"> | number
   au?: Prisma.IntWithAggregatesFilter<"CourseOffering"> | number
+  level?: Prisma.StringWithAggregatesFilter<"CourseOffering"> | string
+  crossRecognition?: Prisma.BoolWithAggregatesFilter<"CourseOffering"> | boolean
 }
 
 export type CourseOfferingCreateInput = {
   id?: string
   code: string
   title: string
+  searchTitle: string
   department: string
   category: string
   tags?: Prisma.CourseOfferingCreatetagsInput | string[]
   credit: number
   au: number
+  level: string
+  crossRecognition: boolean
 }
 
 export type CourseOfferingUncheckedCreateInput = {
   id?: string
   code: string
   title: string
+  searchTitle: string
   department: string
   category: string
   tags?: Prisma.CourseOfferingCreatetagsInput | string[]
   credit: number
   au: number
+  level: string
+  crossRecognition: boolean
 }
 
 export type CourseOfferingUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  searchTitle?: Prisma.StringFieldUpdateOperationsInput | string
   department?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.CourseOfferingUpdatetagsInput | string[]
   credit?: Prisma.IntFieldUpdateOperationsInput | number
   au?: Prisma.IntFieldUpdateOperationsInput | number
+  level?: Prisma.StringFieldUpdateOperationsInput | string
+  crossRecognition?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type CourseOfferingUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  searchTitle?: Prisma.StringFieldUpdateOperationsInput | string
   department?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.CourseOfferingUpdatetagsInput | string[]
   credit?: Prisma.IntFieldUpdateOperationsInput | number
   au?: Prisma.IntFieldUpdateOperationsInput | number
+  level?: Prisma.StringFieldUpdateOperationsInput | string
+  crossRecognition?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type CourseOfferingCreateManyInput = {
   id?: string
   code: string
   title: string
+  searchTitle: string
   department: string
   category: string
   tags?: Prisma.CourseOfferingCreatetagsInput | string[]
   credit: number
   au: number
+  level: string
+  crossRecognition: boolean
 }
 
 export type CourseOfferingUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  searchTitle?: Prisma.StringFieldUpdateOperationsInput | string
   department?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.CourseOfferingUpdatetagsInput | string[]
   credit?: Prisma.IntFieldUpdateOperationsInput | number
   au?: Prisma.IntFieldUpdateOperationsInput | number
+  level?: Prisma.StringFieldUpdateOperationsInput | string
+  crossRecognition?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type CourseOfferingUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   code?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
+  searchTitle?: Prisma.StringFieldUpdateOperationsInput | string
   department?: Prisma.StringFieldUpdateOperationsInput | string
   category?: Prisma.StringFieldUpdateOperationsInput | string
   tags?: Prisma.CourseOfferingUpdatetagsInput | string[]
   credit?: Prisma.IntFieldUpdateOperationsInput | number
   au?: Prisma.IntFieldUpdateOperationsInput | number
+  level?: Prisma.StringFieldUpdateOperationsInput | string
+  crossRecognition?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
-export type CourseOfferingCodeTitleCategoryCreditAuCompoundUniqueInput = {
+export type CourseOfferingCodeTitleCategoryTagsCreditAuCompoundUniqueInput = {
   code: string
   title: string
   category: string
+  tags: string[]
   credit: number
   au: number
 }
@@ -387,11 +445,14 @@ export type CourseOfferingCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   title?: Prisma.SortOrder
+  searchTitle?: Prisma.SortOrder
   department?: Prisma.SortOrder
   category?: Prisma.SortOrder
   tags?: Prisma.SortOrder
   credit?: Prisma.SortOrder
   au?: Prisma.SortOrder
+  level?: Prisma.SortOrder
+  crossRecognition?: Prisma.SortOrder
 }
 
 export type CourseOfferingAvgOrderByAggregateInput = {
@@ -403,20 +464,26 @@ export type CourseOfferingMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   title?: Prisma.SortOrder
+  searchTitle?: Prisma.SortOrder
   department?: Prisma.SortOrder
   category?: Prisma.SortOrder
   credit?: Prisma.SortOrder
   au?: Prisma.SortOrder
+  level?: Prisma.SortOrder
+  crossRecognition?: Prisma.SortOrder
 }
 
 export type CourseOfferingMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   code?: Prisma.SortOrder
   title?: Prisma.SortOrder
+  searchTitle?: Prisma.SortOrder
   department?: Prisma.SortOrder
   category?: Prisma.SortOrder
   credit?: Prisma.SortOrder
   au?: Prisma.SortOrder
+  level?: Prisma.SortOrder
+  crossRecognition?: Prisma.SortOrder
 }
 
 export type CourseOfferingSumOrderByAggregateInput = {
@@ -439,47 +506,59 @@ export type CourseOfferingSelect<ExtArgs extends runtime.Types.Extensions.Intern
   id?: boolean
   code?: boolean
   title?: boolean
+  searchTitle?: boolean
   department?: boolean
   category?: boolean
   tags?: boolean
   credit?: boolean
   au?: boolean
+  level?: boolean
+  crossRecognition?: boolean
 }, ExtArgs["result"]["courseOffering"]>
 
 export type CourseOfferingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   code?: boolean
   title?: boolean
+  searchTitle?: boolean
   department?: boolean
   category?: boolean
   tags?: boolean
   credit?: boolean
   au?: boolean
+  level?: boolean
+  crossRecognition?: boolean
 }, ExtArgs["result"]["courseOffering"]>
 
 export type CourseOfferingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   code?: boolean
   title?: boolean
+  searchTitle?: boolean
   department?: boolean
   category?: boolean
   tags?: boolean
   credit?: boolean
   au?: boolean
+  level?: boolean
+  crossRecognition?: boolean
 }, ExtArgs["result"]["courseOffering"]>
 
 export type CourseOfferingSelectScalar = {
   id?: boolean
   code?: boolean
   title?: boolean
+  searchTitle?: boolean
   department?: boolean
   category?: boolean
   tags?: boolean
   credit?: boolean
   au?: boolean
+  level?: boolean
+  crossRecognition?: boolean
 }
 
-export type CourseOfferingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "title" | "department" | "category" | "tags" | "credit" | "au", ExtArgs["result"]["courseOffering"]>
+export type CourseOfferingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "title" | "searchTitle" | "department" | "category" | "tags" | "credit" | "au" | "level" | "crossRecognition", ExtArgs["result"]["courseOffering"]>
 
 export type $CourseOfferingPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "CourseOffering"
@@ -488,11 +567,14 @@ export type $CourseOfferingPayload<ExtArgs extends runtime.Types.Extensions.Inte
     id: string
     code: string
     title: string
+    searchTitle: string
     department: string
     category: string
     tags: string[]
     credit: number
     au: number
+    level: string
+    crossRecognition: boolean
   }, ExtArgs["result"]["courseOffering"]>
   composites: {}
 }
@@ -919,11 +1001,14 @@ export interface CourseOfferingFieldRefs {
   readonly id: Prisma.FieldRef<"CourseOffering", 'String'>
   readonly code: Prisma.FieldRef<"CourseOffering", 'String'>
   readonly title: Prisma.FieldRef<"CourseOffering", 'String'>
+  readonly searchTitle: Prisma.FieldRef<"CourseOffering", 'String'>
   readonly department: Prisma.FieldRef<"CourseOffering", 'String'>
   readonly category: Prisma.FieldRef<"CourseOffering", 'String'>
   readonly tags: Prisma.FieldRef<"CourseOffering", 'String[]'>
   readonly credit: Prisma.FieldRef<"CourseOffering", 'Int'>
   readonly au: Prisma.FieldRef<"CourseOffering", 'Int'>
+  readonly level: Prisma.FieldRef<"CourseOffering", 'String'>
+  readonly crossRecognition: Prisma.FieldRef<"CourseOffering", 'Boolean'>
 }
     
 

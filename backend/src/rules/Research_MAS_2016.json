@@ -1,0 +1,12 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "description": "연구 3학점 이상 이수",
+    "value": 3,
+    "targets": [
+      {
+        "codes": ["MAS.91000", "MAS.40091", "MAS.91100"]
+      }
+    ]
+  }
+]

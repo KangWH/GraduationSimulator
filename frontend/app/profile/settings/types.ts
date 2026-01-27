@@ -13,6 +13,7 @@ export interface Course {
   category: string;
   credit: number;
   au: number;
+  tags: string[];
 }
 
 export interface Profile {

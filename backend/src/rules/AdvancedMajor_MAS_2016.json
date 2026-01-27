@@ -1,0 +1,12 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "description": "지정 과목 13학점 이수",
+    "value": 13,
+    "targets": [
+      {
+        "codes": ["MAS.20042", "MAS.30012", "MAS.40030", "MAS.40040"]
+      }
+    ]
+  }
+]

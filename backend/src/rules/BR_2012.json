@@ -1,0 +1,156 @@
+[
+  {
+    "title": "학점 총합",
+    "description": "23학점 이상 이수",
+    "type": "MIN_CREDITS_AMONG",
+    "value": 23,
+    "targets": [
+      {
+        "categories": ["BR"]
+      }
+    ]
+  },
+  {
+    "title": "일반/고급물리학 I",
+    "description": "기초물리학 I, 일반물리학 I, 고급물리학 I 중 1과목 이수",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["PH.10041", "PH.10061", "PH.10071"]
+      }
+    ],
+    "constraints": [
+      {
+        "type": "MAX_COURSES_AMONG",
+        "value": 1,
+        "targets": [
+          {
+            "codes": ["PH.10041", "PH.10061", "PH.10071"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "일반/고급물리학 II",
+    "description": "기초물리학 II, 일반물리학 II, 고급물리학 II 중 1과목 이수",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["PH.10042", "PH.10062", "PH.10072"]
+      }
+    ],
+    "constraints": [
+      {
+        "type": "MAX_COURSES_AMONG",
+        "value": 1,
+        "targets": [
+          {
+            "codes": ["PH.10042", "PH.10062", "PH.10072"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "일반물리학실험 I",
+    "description": "일반물리학실험 I 이수",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["PH.10051", "PH.10071"]
+      }
+    ],
+    "constraints": [
+      {
+        "type": "MAX_COURSES_AMONG",
+        "value": 1,
+        "targets": [
+          {
+            "codes": ["PH.10051", "PH.10071"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "일반생물학",
+    "description": "기초생물학, 일반생물학 중 1과목 이수",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["BS.10020"]
+      }
+    ]
+  },
+  {
+    "title": "미적분학 I",
+    "description": "미적분학 I, 고급미적분학 I 중 1과목 이수",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["MAS.10001"]
+      }
+    ]
+  },
+  {
+    "title": "미적분학 II",
+    "description": "미적분학 II, 고급미적분학 II 중 1과목 이수",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["MAS.10002"]
+      }
+    ]
+  },
+  {
+    "title": "일반화학 I",
+    "description": "기초화학, 일반화학 I, 고급화학 중 1과목 이수",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["CH.10001", "CH.10005"]
+      }
+    ],
+    "constraints": [
+      {
+        "type": "MAX_COURSES_AMONG",
+        "value": 1,
+        "targets": [
+          {
+            "codes": ["CH.10001", "CH.10005"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "title": "일반화학실험 I",
+    "description": "일반화학실험 I, 고급화학실험 I 중 1과목 이수",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["CH.10002"]
+      }
+    ]
+  },
+  {
+    "title": "프로그래밍기초",
+    "description": "프로그래밍기초, 고급프로그래밍 중 1과목 이수",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["CS.10001"]
+      }
+    ]
+  }
+]

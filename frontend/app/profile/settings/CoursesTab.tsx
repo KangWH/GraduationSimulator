@@ -40,6 +40,7 @@ async function convertToEnrollments(rawEnrollments: RawEnrollment[]): Promise<En
             category: course.category || '',
             credit: course.credit || 0,
             au: course.au || 0,
+            tags: course.tags || []
           },
           enrolledYear: raw.enrolledYear,
           enrolledSemester: raw.enrolledSemester,
@@ -106,6 +107,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   const [courseMode, setCourseMode] = useState<'add' | 'view'>('add');
   const [courseSearchQuery, setCourseSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
   const selectedCourseIdsRef = useRef<Set<string>>(new Set());
   
@@ -192,12 +194,14 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
 
     if (!hasQuery && !hasDept && !hasCat) {
       setSearchResults([]);
+      setIsSearching(false);
       if (selectedCourseIdsRef.current.size > 0) {
         updateSelectedCourseIds(new Set());
       }
       return;
     }
 
+    setIsSearching(true);
     const timeoutId = setTimeout(() => {
       const params = new URLSearchParams();
       if (hasQuery) {
@@ -220,6 +224,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         .then((courses) => {
           const newResults = Array.isArray(courses) ? courses : [];
           setSearchResults(newResults);
+          setIsSearching(false);
           
           // 검색 결과가 변경되면, 화면에서 사라진 항목은 선택 해제
           const currentSelected = selectedCourseIdsRef.current;
@@ -238,6 +243,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         .catch((error) => {
           console.error('Error fetching courses:', error);
           setSearchResults([]);
+          setIsSearching(false);
           // 에러 발생 시 선택 해제
           if (selectedCourseIdsRef.current.size > 0) {
             updateSelectedCourseIds(new Set());
@@ -245,7 +251,10 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         });
     }, 500); // 디바운스
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      setIsSearching(false);
+    };
   }, [courseSearchQuery, filterDepartment, filterCategory]);
 
   // 서버에 저장
@@ -336,6 +345,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
           category: course.category || '',
           credit: course.credit || 0,
           au: course.au || 0,
+          tags: course.tags || []
         },
         enrolledYear: targetSemester.year,
         enrolledSemester: targetSemester.semester,
@@ -447,6 +457,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             category: draggedCourse.category || '',
             credit: draggedCourse.credit || 0,
             au,
+            tags: draggedCourse.tags || []
           },
           enrolledYear: targetSemesterObj.year,
           enrolledSemester: targetSemesterObj.semester,
@@ -538,6 +549,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                 searchQuery={courseSearchQuery}
                 onSearchQueryChange={setCourseSearchQuery}
                 searchResults={searchResults}
+                isSearching={isSearching}
                 selectedCourseIds={selectedCourseIds}
                 onSelectionChange={updateSelectedCourseIds}
                 addYear={addYear}
@@ -584,6 +596,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                 searchQuery={courseSearchQuery}
                 onSearchQueryChange={setCourseSearchQuery}
                 searchResults={searchResults}
+                isSearching={isSearching}
                 selectedCourseIds={selectedCourseIds}
                 onSelectionChange={updateSelectedCourseIds}
                 addYear={addYear}

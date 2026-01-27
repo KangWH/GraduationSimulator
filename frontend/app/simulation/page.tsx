@@ -8,10 +8,12 @@ import { NumberInput, Select, Input } from '../components/formFields';
 import { CourseCategoryDropdown } from '../components/CourseCategoryDropdown';
 import { API } from '../lib/api';
 import type { Profile, Enrollment, RawEnrollment, Semester, Grade, Course } from '../profile/settings/types';
-import type { CourseSimulation, RawCourseSimulation, CreditType } from './types';
+import type { CourseSimulation, RawCourseSimulation, CreditType, Requirement } from './types';
 import AddCoursePanel from '../profile/settings/AddCoursePanel';
 import EnrollmentsList from '../profile/settings/EnrollmentsList';
 import { group } from 'console';
+import { classifyCourses, RequirementsProps } from './conditionTester';
+import Logo from '../components/Logo';
 
 type Dept = { id: string; name: string };
 type Section = {
@@ -20,7 +22,7 @@ type Section = {
   titleElements: string[];
   courses: CourseSimulation[];
   fulfilled: boolean;
-  detail: string; // e.g. "12 / 36 학점"
+  requirements?: Array<{ title: string; description: string; value?: number; currentValue?: number; }>;
 };
 
 export default function SimulationPage() {
@@ -33,9 +35,6 @@ export default function SimulationPage() {
     canGraduate?: boolean;
   }>>([]);
   const [depts, setDepts] = useState<Dept[]>([]);
-  const leftScrollRef = useRef<HTMLDivElement>(null);
-  const centerScrollRef = useRef<HTMLDivElement>(null);
-  const syncingScrollRef = useRef(false);
 
   const [filters, setFilters] = useState({
     requirementYear: new Date().getFullYear(),
@@ -59,6 +58,7 @@ export default function SimulationPage() {
   const [courseMode, setCourseMode] = useState<'add' | 'view'>('add');
   const [courseSearchQuery, setCourseSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
   const selectedCourseIdsRef = useRef<Set<string>>(new Set());
   
@@ -79,6 +79,10 @@ export default function SimulationPage() {
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const prevSimulationCoursesRef = useRef<CourseSimulation[]>([]);
+  const prevFiltersRef = useRef(filters);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [gradeBlindMode, setGradeBlindMode] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -219,6 +223,7 @@ export default function SimulationPage() {
               category: course.category || '',
               credit: course.credit || 0,
               au: course.au || 0,
+              tags: course.tags || [],
             },
             enrolledYear: raw.enrolledYear,
             enrolledSemester: raw.enrolledSemester,
@@ -254,7 +259,7 @@ export default function SimulationPage() {
     if (category === 'MR' || category === 'ME' || category === 'GE') {
       // 개설학과가 주전공 학과인 경우
       if (department === profileData.major) {
-        return { type: 'MAJOR', department };
+        return { type: 'MAJOR' };
       }
       // 개설학과가 복수전공 학과인 경우
       if (profileData.doubleMajors && profileData.doubleMajors.includes(department)) {
@@ -277,9 +282,9 @@ export default function SimulationPage() {
       return { type: 'MANDATORY_GENERAL_COURSES' };
     }
 
-    // HSE -> HUMANITIES_SOCIAL_ELECTIVE
-    if (category === 'HSE' || category === 'HS') {
-      return { type: 'HUMANITIES_SOCIAL_ELECTIVE' };
+    // HSE -> HUMANITIES_SOCIETY_ELECTIVE
+    if (category === 'HSE') {
+      return { type: 'HUMANITIES_SOCIETY_ELECTIVE' };
     }
 
     // RS -> RESEARCH
@@ -298,7 +303,9 @@ export default function SimulationPage() {
   ): CourseSimulation[] {
     return enrollments.map((e) => ({
       ...e,
-      recognizedAs: determineRecognizedAs(e.course, profileData),
+      // recognizedAs: determineRecognizedAs(e.course, profileData),
+      recognizedAs: null,
+      internalRecognizedAs: null
     }));
   }
 
@@ -325,11 +332,13 @@ export default function SimulationPage() {
               category: course.category || '',
               credit: course.credit || 0,
               au: course.au || 0,
+              tags: course.tags || 0,
             },
             enrolledYear: raw.enrolledYear,
             enrolledSemester: raw.enrolledSemester,
             grade: raw.grade,
             recognizedAs: raw.recognizedAs,
+            internalRecognizedAs: raw.recognizedAs
           });
         }
       } catch (error) {
@@ -500,12 +509,14 @@ export default function SimulationPage() {
 
     if (!hasQuery && !hasDept && !hasCat) {
       setSearchResults([]);
+      setIsSearching(false);
       if (selectedCourseIdsRef.current.size > 0) {
         updateSelectedCourseIds(new Set());
       }
       return;
     }
 
+    setIsSearching(true);
     const timeoutId = setTimeout(() => {
       const params = new URLSearchParams();
       if (hasQuery) {
@@ -528,6 +539,7 @@ export default function SimulationPage() {
         .then((courses) => {
           const newResults = Array.isArray(courses) ? courses : [];
           setSearchResults(newResults);
+          setIsSearching(false);
           
           // 검색 결과가 변경되면, 화면에서 사라진 항목은 선택 해제
           const currentSelected = selectedCourseIdsRef.current;
@@ -546,6 +558,7 @@ export default function SimulationPage() {
         .catch((error) => {
           console.error('Error fetching courses:', error);
           setSearchResults([]);
+          setIsSearching(false);
           // 에러 발생 시 선택 해제
           if (selectedCourseIdsRef.current.size > 0) {
             updateSelectedCourseIds(new Set());
@@ -553,7 +566,10 @@ export default function SimulationPage() {
         });
     }, 500); // 디바운스
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      setIsSearching(false);
+    };
   }, [courseSearchQuery, filterDepartment, filterCategory, updateSelectedCourseIds]);
 
   // 선택된 과목 추가
@@ -611,6 +627,7 @@ export default function SimulationPage() {
         category: course.category || '',
         credit: course.credit || 0,
         au: course.au || 0,
+        tags: course.tags || [],
       };
 
       newCourses.push({
@@ -619,7 +636,9 @@ export default function SimulationPage() {
         enrolledYear: targetSemester.year,
         enrolledSemester: targetSemester.semester,
         grade: addGrade,
-        recognizedAs: determineRecognizedAs(courseObj, profile),
+        recognizedAs: null,
+        // recognizedAs: determineRecognizedAs(courseObj, profile),
+        internalRecognizedAs: null,
       });
       addedCount++;
     });
@@ -717,6 +736,7 @@ export default function SimulationPage() {
           category: draggedCourse.category || '',
           credit: draggedCourse.credit || 0,
           au: draggedCourse.au || 0,
+          tags: draggedCourse.tags || [],
         };
 
         const isDuplicate = simulationCourses.some(
@@ -740,6 +760,7 @@ export default function SimulationPage() {
           enrolledSemester: targetSemesterObj.semester,
           grade: defaultGrade,
           recognizedAs: profile ? determineRecognizedAs(courseObj, profile) : { type: 'OTHER_ELECTIVE' },
+          internalRecognizedAs: null
         };
 
         const newCourses = [...simulationCourses, newCourse];
@@ -778,6 +799,361 @@ export default function SimulationPage() {
     });
   }, [semesterGroups]);
 
+  // simulationCourses 변경 시 internalRecognizedAs 재계산
+  useEffect(() => {
+    const prev = prevSimulationCoursesRef.current;
+    const prevFilters = prevFiltersRef.current;
+    
+    // 배열 길이 변경 체크 (추가/삭제)
+    const lengthChanged = prev.length !== simulationCourses.length;
+    
+    // recognizedAs 속성 변경 체크
+    const recognizedAsChanged = prev.some((p, i) => {
+      const current = simulationCourses[i];
+      if (!current) return true; // 항목이 삭제된 경우
+      
+      // recognizedAs 비교 (깊은 비교 필요)
+      const prevRecognizedAs = JSON.stringify(p.recognizedAs);
+      const currentRecognizedAs = JSON.stringify(current.recognizedAs);
+      return prevRecognizedAs !== currentRecognizedAs;
+    }) || simulationCourses.some((current, i) => {
+      const prevItem = prev[i];
+      if (!prevItem) return true; // 항목이 추가된 경우
+      
+      const prevRecognizedAs = JSON.stringify(prevItem.recognizedAs);
+      const currentRecognizedAs = JSON.stringify(current.recognizedAs);
+      return prevRecognizedAs !== currentRecognizedAs;
+    });
+    
+    // 필터 변경 체크
+    const filtersChanged = JSON.stringify(prevFilters) !== JSON.stringify(filters);
+    
+    // 변경사항이 있는 경우에만 재계산
+    if (lengthChanged || recognizedAsChanged || filtersChanged) {
+      // 필터가 변경되면 ref 업데이트
+      if (filtersChanged) {
+        prevFiltersRef.current = filters;
+      }
+      if (!profile) {
+        prevSimulationCoursesRef.current = simulationCourses;
+        return;
+      }
+
+      let promises: Promise<{ type: string; department?: string; data: Requirement[] }>[] = [];
+      promises.push((async () => {
+        const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=BR`);
+        const data = await res.json();
+        return { type: 'basicRequired', data: (data.requirements || []) as Requirement[] };
+      })());
+      promises.push((async () => {
+        const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${profile?.major}&type=${filters.doubleMajors.length > 0 ? 'BE_D' : 'BE'}`);
+        const data = await res.json();
+        return { type: 'basicElective', data: (data.requirements || []) as Requirement[] };
+      })());
+      promises.push((async () => {
+        const res = await fetch(`${API}/rules/major?year=${filters.requirementYear}&department=${profile?.major}&type=Major`);
+        const data = await res.json();
+        return { type: 'major', data: (data.requirements || []) as Requirement[] };
+      })());
+      (filters.doubleMajors || []).forEach(d => {
+        promises.push((async () => {
+          const res = await fetch(`${API}/rules/major?year=${filters.requirementYear}&department=${d}&type=DoubleMajor`);
+          const data = await res.json();
+          return { type: 'doubleMajor', department: d, data: (data.requirements || []) as Requirement[] };
+        })());
+      });
+      (filters.minors || []).forEach(d => {
+        promises.push((async () => {
+          const res = await fetch(`${API}/rules/major?year=${filters.requirementYear}&department=${d}&type=Minor`);
+          const data = await res.json();
+          return { type: 'minor', department: d, data: (data.requirements || []) as Requirement[] };
+        })());
+      });
+      if (filters.advancedMajor) {
+        promises.push((async () => {
+          const res = await fetch(`${API}/rules/major?year=${filters.requirementYear}&department=${profile?.major}&type=AdvancedMajor`);
+          const data = await res.json();
+          return { type: 'advancedMajor', data: (data.requirements || []) as Requirement[] };
+        })());
+      }
+      promises.push((async () => {
+        const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${profile?.major}&type=${filters.doubleMajors.length > 0 ? 'RS_D' : 'RS'}`);
+        const data = await res.json();
+        return { type: 'research', data: (data.requirements || []) as Requirement[] };
+      })());
+      if (filters.individuallyDesignedMajor) {
+        promises.push((async () => {
+          const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=IDM`);
+          const data = await res.json();
+          return { type: 'individuallyDesignedMajor', data: (data.requirements || []) as Requirement[] };
+        })());
+      }
+      promises.push((async () => {
+        const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=MGC`);
+        const data = await res.json();
+        return { type: 'mandatoryGeneralCourses', data: (data.requirements || []) as Requirement[] };
+      })());
+      promises.push((async () => {
+        const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=${filters.doubleMajors.length > 0 ? 'HSE_D' : 'HSE'}`);
+        const data = await res.json();
+        return { type: 'humanitiesSocietyElective', data: (data.requirements || []) as Requirement[] };
+      })());
+
+      Promise.allSettled(promises)
+        .then((results) => {
+          let requirements: RequirementsProps = { basicRequired: [], basicElective: [], mandatoryGeneralCourses: [], humanitiesSocietyElective: [], major: [], doubleMajors: {}, minors: {} };
+
+          results.forEach((result) => {
+            if (result.status !== 'fulfilled')
+              return;
+
+            switch (result.value.type) {
+              case 'basicRequired':
+                requirements.basicRequired = result.value.data;
+                break;
+              case 'basicElective':
+                requirements.basicElective = result.value.data;
+                break;
+              case 'mandatoryGeneralCourses':
+                requirements.mandatoryGeneralCourses = result.value.data;
+                break;
+              case 'humanitiesSocietyElective':
+                requirements.humanitiesSocietyElective = result.value.data;
+                break;
+              case 'major':
+                requirements.major = result.value.data;
+                break;
+              case 'doubleMajor':
+                requirements.doubleMajors![result.value.department!] = result.value.data
+                break;
+              case 'minor':
+                requirements.minors![result.value.department!] = result.value.data;
+                break;
+              case 'advancedMajor':
+                requirements.advanced = result.value.data;
+                break;
+              case 'individuallyDesignedMajor':
+                requirements.individuallyDesignedMajor = result.value.data;
+                break;
+              case 'research':
+                requirements.research = result.value.data;
+            }
+          });
+
+          const { enrolledCourses, requirements: evaluatedRequirements } = classifyCourses(simulationCourses, requirements, filters.major);
+          setSimulationCourses(enrolledCourses);
+          prevSimulationCoursesRef.current = enrolledCourses;
+
+          // baseSections를 직접 계산 (useEffect 내부에서)
+          const deptName = (id: string) => {
+            const dept = depts.find((d) => d.id === id);
+            return dept ? dept.name : id;
+          };
+          const computedBaseSections: Section[] = [];
+          const majorName = filters.major ? deptName(filters.major) : '';
+
+          computedBaseSections.push({
+            id: 'BASIC_REQUIRED',
+            title: '기초필수',
+            titleElements: ['기초필수'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED'),
+            fulfilled: false
+          });
+          computedBaseSections.push({
+            id: 'BASIC_ELECTIVE',
+            title: '기초선택',
+            titleElements: ['기초선택'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE'),
+            fulfilled: false
+          });
+
+          if (filters.major) {
+            computedBaseSections.push({
+              id: `MAJOR_${filters.major}`,
+              title: `주전공: ${majorName}`,
+              titleElements: ['주전공', majorName],
+              courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'MAJOR') || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR')),
+              fulfilled: false
+            });
+            if (filters.advancedMajor) {
+              computedBaseSections.push({
+                id: `ADVANCED_MAJOR`,
+                title: '심화전공',
+                titleElements: ['심화전공'],
+                courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR'),
+                fulfilled: false
+              });
+            }
+          }
+          if (filters.major) {
+            computedBaseSections.push({
+              id: `RESEARCH_${filters.major}`,
+              title: '연구',
+              titleElements: ['연구'],
+              courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'RESEARCH'),
+              fulfilled: false
+            });
+          }
+
+          (filters.doubleMajors || []).forEach(id => {
+            computedBaseSections.push({
+              id: `DOUBLE_MAJOR_${id}`,
+              title: `복수전공: ${deptName(id)}`,
+              titleElements: ['복수전공', deptName(id)],
+              courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id)),
+              fulfilled: false
+            });
+          });
+
+          (filters.minors || []).forEach(id => {
+            computedBaseSections.push({
+              id: `MINOR_${id}`,
+              title: `부전공: ${deptName(id)}`,
+              titleElements: ['부전공', deptName(id)],
+              courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id)),
+              fulfilled: false,
+            });
+          });
+
+          if (filters.individuallyDesignedMajor) {
+            computedBaseSections.push({
+              id: 'INDIVIDUALLY_DESIGNED_MAJOR',
+              title: '자유융합전공',
+              titleElements: ['자유융합전공'],
+              courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR'),
+              fulfilled: false
+            });
+          }
+
+          computedBaseSections.push({
+            id: 'MANDATORY_GENERAL_COURSES',
+            title: '교양필수',
+            titleElements: ['교양필수'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES'),
+            fulfilled: false
+          });
+          computedBaseSections.push({
+            id: 'HUMANITIES_SOCIETY_ELECTIVE',
+            title: '인문사회선택',
+            titleElements: ['인문사회선택'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE'),
+            fulfilled: false
+          });
+
+          computedBaseSections.push({
+            id: 'OTHER_ELECTIVE',
+            title: '자유선택',
+            titleElements: ['자유선택'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'OTHER_ELECTIVE'),
+            fulfilled: false
+          });
+          computedBaseSections.push({
+            id: 'UNCLASSIFIED',
+            title: '미분류',
+            titleElements: ['미분류'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs === undefined),
+            fulfilled: false
+          });
+
+          // baseSections를 기반으로 모든 섹션의 requirements 설정
+          const updatedSections = computedBaseSections.map((section) => {
+            let sectionRequirements: Requirement[] = [];
+            
+            if (section.id === 'BASIC_REQUIRED') {
+              sectionRequirements = requirements.basicRequired || [];
+            } else if (section.id === 'BASIC_ELECTIVE') {
+              sectionRequirements = requirements.basicElective || [];
+            } else if (section.id.startsWith('MAJOR_') && filters.major) {
+              sectionRequirements = requirements.major || [];
+            } else if (section.id === 'ADVANCED_MAJOR' && filters.major && filters.advancedMajor) {
+              sectionRequirements = requirements.advanced || [];
+            } else if (section.id.startsWith('RESEARCH_') && filters.major) {
+              sectionRequirements = requirements.research || [];
+            } else if (section.id.startsWith('DOUBLE_MAJOR_')) {
+              const department = section.id.replace('DOUBLE_MAJOR_', '');
+              sectionRequirements = requirements.doubleMajors?.[department] || [];
+            } else if (section.id.startsWith('MINOR_')) {
+              const department = section.id.replace('MINOR_', '');
+              sectionRequirements = requirements.minors?.[department] || [];
+            } else if (section.id === 'INDIVIDUALLY_DESIGNED_MAJOR') {
+              sectionRequirements = requirements.individuallyDesignedMajor || [];
+            } else if (section.id === 'MANDATORY_GENERAL_COURSES') {
+              sectionRequirements = requirements.mandatoryGeneralCourses || [];
+            } else if (section.id === 'HUMANITIES_SOCIETY_ELECTIVE') {
+              sectionRequirements = requirements.humanitiesSocietyElective || [];
+            }
+
+            // requirements fulfilled 계산 (currentValue는 classifyCourses에서 이미 계산됨)
+            sectionRequirements.forEach(r => {
+              r.fulfilled = r.value === undefined ? true : (r.currentValue || 0) >= (r.value || 0);
+            });
+
+            const fulfilled = sectionRequirements.length === 0 || sectionRequirements.every(r => r.fulfilled);
+
+            return {
+              ...section,
+              courses: enrolledCourses.filter(c => {
+                if (section.id === 'BASIC_REQUIRED') {
+                  return c.internalRecognizedAs?.type === 'BASIC_REQUIRED';
+                } else if (section.id === 'BASIC_ELECTIVE') {
+                  return c.internalRecognizedAs?.type === 'BASIC_ELECTIVE';
+                } else if (section.id.startsWith('MAJOR_') && filters.major) {
+                  return c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR';
+                } else if (section.id === 'ADVANCED_MAJOR' && filters.major && filters.advancedMajor) {
+                  return c.internalRecognizedAs?.type === 'ADVANCED_MAJOR';
+                } else if (section.id.startsWith('RESEARCH_') && filters.major) {
+                  return c.internalRecognizedAs?.type === 'RESEARCH';
+                } else if (section.id.startsWith('DOUBLE_MAJOR_')) {
+                  const department = section.id.replace('DOUBLE_MAJOR_', '');
+                  return (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department);
+                } else if (section.id.startsWith('MINOR_')) {
+                  const department = section.id.replace('MINOR_', '');
+                  return c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === department;
+                } else if (section.id === 'INDIVIDUALLY_DESIGNED_MAJOR') {
+                  return c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR';
+                } else if (section.id === 'MANDATORY_GENERAL_COURSES') {
+                  return c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES';
+                } else if (section.id === 'HUMANITIES_SOCIETY_ELECTIVE') {
+                  return c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE';
+                } else if (section.id === 'OTHER_ELECTIVE') {
+                  return c.internalRecognizedAs?.type === 'OTHER_ELECTIVE';
+                } else if (section.id === 'UNCLASSIFIED') {
+                  return c.internalRecognizedAs === undefined;
+                }
+                return false;
+              }),
+              requirements: sectionRequirements,
+              fulfilled: fulfilled
+            };
+          });
+
+          setSections(updatedSections);
+          
+          // 달성된 섹션을 기본으로 접기
+          const fulfilledSectionIds = new Set<string>();
+          updatedSections.forEach((s) => {
+            if (s.fulfilled) {
+              fulfilledSectionIds.add(`center-${s.id}`);
+            }
+          });
+          setCollapsedSections((prev) => {
+            const newSet = new Set(prev);
+            // 기존에 수동으로 접은 섹션은 유지하고, 달성된 섹션만 추가
+            fulfilledSectionIds.forEach((id) => {
+              if (!prev.has(id)) {
+                newSet.add(id);
+              }
+            });
+            return newSet;
+          });
+        });
+    } else {
+      // 변경사항이 없어도 ref는 최신 상태로 유지
+      prevSimulationCoursesRef.current = simulationCourses;
+      prevFiltersRef.current = filters;
+    }
+  }, [simulationCourses, filters, profile, depts]);
+
   // CourseSimulation[]를 Enrollment[]로 변환 (EnrollmentsList 컴포넌트 사용을 위해)
   const enrollmentsForList: Enrollment[] = simulationCourses.map((cs) => ({
     courseId: cs.courseId,
@@ -796,6 +1172,19 @@ export default function SimulationPage() {
       return `${totalCredit}학점 · ${totalAu}AU`;
     }
     return `${totalCredit}학점`;
+  }, []);
+
+  // 섹션 접기/펼치기 토글
+  const toggleSection = useCallback((sectionId: string) => {
+    setCollapsedSections((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId);
+      } else {
+        newSet.add(sectionId);
+      }
+      return newSet;
+    });
   }, []);
 
   // 성적을 숫자로 변환하는 함수
@@ -848,7 +1237,7 @@ export default function SimulationPage() {
     };
   }, [simulationCourses, gradeToNumber]);
 
-  const sections = useMemo((): Section[] => {
+  const baseSections = useMemo((): Section[] => {
     const out: Section[] = [];
     const majorName = filters.major ? deptName(filters.major) : '';
 
@@ -858,17 +1247,15 @@ export default function SimulationPage() {
       id: 'BASIC_REQUIRED',
       title: '기초필수',
       titleElements: ['기초필수'],
-      courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'BASIC_REQUIRED'),
-      fulfilled: false,
-      detail: '0/0학점'
+      courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED'),
+      fulfilled: false
     });
     out.push({
       id: 'BASIC_ELECTIVE',
       title: '기초선택',
       titleElements: ['기초선택'],
-      courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'BASIC_ELECTIVE'),
-      fulfilled: false,
-      detail: 'a'
+      courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE'),
+      fulfilled: false
     });
 
     if (filters.major) {
@@ -876,18 +1263,16 @@ export default function SimulationPage() {
         id: `MAJOR_${filters.major}`,
         title: `주전공: ${majorName}`,
         titleElements: ['주전공', majorName],
-        courses: unWithdrawnCourses.filter(c => (c.recognizedAs?.type === 'MAJOR' && c.recognizedAs?.department === filters.major)),
-        fulfilled: false,
-        detail: 'a'
+        courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR'),
+        fulfilled: false
       });
       if (filters.advancedMajor) {
         out.push({
-          id: `ADVANCED_MAJOR_${filters.major}`,
+          id: `ADVANCED_MAJOR`,
           title: '심화전공',
           titleElements: ['심화전공'],
-          courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'ADVANCED_MAJOR'),
-          fulfilled: false,
-          detail: 'a',
+          courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR'),
+          fulfilled: false
         });
       }
     }
@@ -896,9 +1281,8 @@ export default function SimulationPage() {
         id: `RESEARCH_${filters.major}`,
         title: '연구',
         titleElements: ['연구'],
-        courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'RESEARCH'),
-        fulfilled: false,
-        detail: 'a',
+        courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'RESEARCH'),
+        fulfilled: false
       });
     }
 
@@ -907,9 +1291,8 @@ export default function SimulationPage() {
         id: `DOUBLE_MAJOR_${id}`,
         title: `복수전공: ${deptName(id)}`,
         titleElements: ['복수전공', deptName(id)],
-        courses: unWithdrawnCourses.filter(c => (c.recognizedAs?.type === 'DOUBLE_MAJOR' && c.recognizedAs?.department === id)),
-        fulfilled: false,
-        detail: 'a',
+        courses: simulationCourses.filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id)),
+        fulfilled: false
       });
     });
 
@@ -918,9 +1301,8 @@ export default function SimulationPage() {
         id: `MINOR_${id}`,
         title: `부전공: ${deptName(id)}`,
         titleElements: ['부전공', deptName(id)],
-        courses: unWithdrawnCourses.filter(c => (c.recognizedAs?.type === 'MINOR' && c.recognizedAs?.department === id)),
+        courses: simulationCourses.filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id)),
         fulfilled: false,
-        detail: '',
       });
     });
 
@@ -929,9 +1311,8 @@ export default function SimulationPage() {
         id: 'INDIVIDUALLY_DESIGNED_MAJOR',
         title: '자유융합전공',
         titleElements: ['자유융합전공'],
-        courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR'),
-        fulfilled: false,
-        detail: '',
+        courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR'),
+        fulfilled: false
       });
     }
 
@@ -939,38 +1320,51 @@ export default function SimulationPage() {
       id: 'MANDATORY_GENERAL_COURSES',
       title: '교양필수',
       titleElements: ['교양필수'],
-      courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'MANDATORY_GENERAL_COURSES'),
-      fulfilled: false,
-      detail: '',
+      courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES'),
+      fulfilled: false
     });
     out.push({
-      id: 'HUMANITIES_SOCIAL_ELECTIVE',
+      id: 'HUMANITIES_SOCIETY_ELECTIVE',
       title: '인문사회선택',
       titleElements: ['인문사회선택'],
-      courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'HUMANITIES_SOCIAL_ELECTIVE'),
-      fulfilled: false,
-      detail: '',
+      courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE'),
+      fulfilled: false
     });
 
     out.push({
       id: 'OTHER_ELECTIVE',
       title: '자유선택',
       titleElements: ['자유선택'],
-      courses: unWithdrawnCourses.filter(c => c.recognizedAs?.type === 'OTHER_ELECTIVE'),
-      fulfilled: false,
-      detail: '',
+      courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'OTHER_ELECTIVE'),
+      fulfilled: false
     });
     out.push({
       id: 'UNCLASSIFIED',
       title: '미분류',
       titleElements: ['미분류'],
-      courses: unWithdrawnCourses.filter(c => c.recognizedAs === null),
-      fulfilled: false,
-      detail: '',
+      courses: simulationCourses.filter(c => c.internalRecognizedAs === undefined),
+      fulfilled: false
     });
 
     return out;
   }, [filters, simulationCourses, depts]);
+
+  const [sections, setSections] = useState<Section[]>(baseSections.map(s => ({ ...s, requirements: [] })));
+
+  // baseSections가 변경되면 sections 업데이트 (requirements는 792-945행의 useEffect에서 처리)
+  useEffect(() => {
+    // requirements는 792-945행의 useEffect에서 처리되므로, 여기서는 courses만 업데이트
+    setSections(prevSections => {
+      return baseSections.map(baseSection => {
+        const existingSection = prevSections.find(s => s.id === baseSection.id);
+        return {
+          ...baseSection,
+          requirements: existingSection?.requirements || [],
+          fulfilled: existingSection?.fulfilled ?? false
+        };
+      });
+    });
+  }, [baseSections]);
 
   // 섹션을 그룹화: 주전공/심화전공/연구를 하나의 그룹으로
   const groupedSections = useMemo(() => {
@@ -982,7 +1376,7 @@ export default function SimulationPage() {
     sections.forEach((s) => {
       if (s.id.match(/^BASIC_/)) {
         basicGroup.push(s);
-      } else if (s.id.match(/^MAJOR_/) || s.id.match(/^ADVANCED_MAJOR_/) || s.id.match(/^RESEARCH_/)) {
+      } else if (s.id.match(/^MAJOR_/) || s.id.match(/^ADVANCED_MAJOR/) || s.id.match(/^RESEARCH_/)) {
         majorGroup.push(s);
       } else if (s.id === 'OTHER_ELECTIVE' || s.id === 'UNCLASSIFIED') {
         miscSections.push(s);
@@ -994,18 +1388,6 @@ export default function SimulationPage() {
     return { basicGroup, majorGroup, otherSections, miscSections };
   }, [sections]);
 
-  const handleLeftScroll = () => {
-    if (syncingScrollRef.current || !leftScrollRef.current || !centerScrollRef.current) return;
-    syncingScrollRef.current = true;
-    centerScrollRef.current.scrollTop = leftScrollRef.current.scrollTop;
-    requestAnimationFrame(() => { syncingScrollRef.current = false; });
-  };
-  const handleCenterScroll = () => {
-    if (syncingScrollRef.current || !leftScrollRef.current || !centerScrollRef.current) return;
-    syncingScrollRef.current = true;
-    leftScrollRef.current.scrollTop = centerScrollRef.current.scrollTop;
-    requestAnimationFrame(() => { syncingScrollRef.current = false; });
-  };
 
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-black">
@@ -1031,7 +1413,7 @@ export default function SimulationPage() {
             </svg>
           </button>
           {sidebarOpen && (
-            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap min-w-0 truncate" style={{ fontFamily: 'var(--font-logo)' }}>grad.log</h2>
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap min-w-0 truncate"><Logo /></h2>
           )}
         </div>
 
@@ -1073,7 +1455,7 @@ export default function SimulationPage() {
             <div className="space-y-1">
               {previousSimulations.length === 0 ? (
                 sidebarOpen && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 px-2 py-2">저장된 시뮬레이션이 없습니다.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 px-2 py-2 truncate">저장된 시뮬레이션이 없습니다.</p>
                 )
               ) : (
                 previousSimulations.map((sim) => (
@@ -1152,7 +1534,7 @@ export default function SimulationPage() {
 
         {/* 하단 메뉴: 계정 이름 + 로그아웃 */}
         <div
-          className={`border-t border-gray-200 dark:border-gray-700 overflow-hidden ${
+          className={`border-t border-gray-200 dark:border-gray-700 overflow-hidden transition-all ${
             sidebarOpen ? 'p-4 space-y-2' : 'px-2 py-3 space-y-2'
           }`}
         >
@@ -1163,7 +1545,7 @@ export default function SimulationPage() {
           >
             <Link
               href="/profile/settings"
-              className={`flex items-center gap-3 rounded-lg transition-colors flex-1 min-w-0 ${
+              className={`flex items-center gap-3 rounded-lg transition-colors flex-1 min-w-0 transition-all ${
                 sidebarOpen
                   ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 px-4 py-2'
                   : 'justify-center p-2'
@@ -1301,14 +1683,35 @@ export default function SimulationPage() {
         <div className="grow flex flex-col min-h-0 p-4 overflow-hidden">
           <div className="flex-1 flex flex-col min-h-0 rounded-xl shadow-lg overflow-hidden bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-700">
             <div className="flex-1 flex min-h-0">
-              {/* 좌측: 섹션별 요건 계산에 사용된 과목 (스크롤 동기화) */}
+              {/* 좌측: 섹션별 요건 계산에 사용된 과목 */}
               <div
-                ref={leftScrollRef}
-                onScroll={handleLeftScroll}
                 className={`${rightPanelOpen ? 'w-1/3' : 'w-1/2'} flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto transition-all duration-300`}
               >
                 <div className="p-4">
-                  <h2 className="text-xl font-semibold mb-4">수업별 학점 인정 분야</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>수업별 학점 인정 분야</h2>
+                    <button
+                      onClick={() => setGradeBlindMode(!gradeBlindMode)}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                      title={gradeBlindMode ? '성적 표시' : '성적 숨기기'}
+                    >
+                      <svg
+                        className={`w-4 h-4 ${gradeBlindMode ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300'}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        {gradeBlindMode ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        )}
+                      </svg>
+                      <span className="text-xs text-gray-600 dark:text-gray-300">
+                        {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
+                      </span>
+                    </button>
+                  </div>
                   <div>
                     {sections.length === 0 ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
@@ -1319,13 +1722,29 @@ export default function SimulationPage() {
                         {/* 기초과목 그룹 */}
                         {groupedSections.basicGroup.length > 0 && (
                           <>
-                            {groupedSections.basicGroup.map((s, i) => (
-                              <div key={s.id} className={i > 0 ? 'mt-4' : ''}>
-                                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                            {groupedSections.basicGroup.map((s, i) => {
+                              const isCollapsed = collapsedSections.has(s.id);
+                              return (
+                                <div key={s.id} className={i > 0 ? 'mt-4' : ''}>
+                                <div className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${isCollapsed ? 'pb-2' : ''}`}>
                                   <div className="flex justify-between text-sm items-baseline mb-3">
-                                    <h3 className="font-medium text-base">{s.title}</h3>
+                                    <button
+                                      onClick={() => toggleSection(s.id)}
+                                      className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                    >
+                                      <svg
+                                        className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                      </svg>
+                                      <h3 className="font-medium text-base">{s.title}</h3>
+                                    </button>
                                     <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
                                   </div>
+                                  {!isCollapsed && (
                                   <div className="space-y-2">
                                     {s.courses.length === 0 ? (
                                       <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
@@ -1335,17 +1754,29 @@ export default function SimulationPage() {
                                           key={c.courseId}
                                           className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                         >
-                                          <p className="font-medium text-sm">{c.course.title}</p>
-                                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}{c.grade != null ? ` · ${c.grade}` : ''}
-                                          </p>
+                                          <div className="flex items-center font-medium text-sm gap-2">
+                                            <p>{c.course.title}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            {!gradeBlindMode && (
+                                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                {c.grade}
+                                              </span>
+                                            )}
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                              {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
+                                            </p>
+                                          </div>
                                         </div>
                                       ))
                                     )}
                                   </div>
+                                  )}
                                 </div>
                               </div>
-                            ))}
+                            );
+                            })}
                           </>
                         )} 
 
@@ -1356,13 +1787,29 @@ export default function SimulationPage() {
                               <div className="mt-4"></div>
                             )}
                             <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-                              {groupedSections.majorGroup.map((s, idx) => (
-                                <div key={s.id}>
-                                  <div className="p-4">
+                              {groupedSections.majorGroup.map((s, idx) => {
+                                const isCollapsed = collapsedSections.has(s.id);
+                                return (
+                                  <div key={s.id}>
+                                  <div className={`p-4 ${isCollapsed ? 'pb-2' : ''}`}>
                                     <div className="flex justify-between text-sm items-baseline mb-3">
-                                      <h3 className="font-medium text-base">{s.title}</h3>
+                                      <button
+                                        onClick={() => toggleSection(s.id)}
+                                        className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                      >
+                                        <svg
+                                          className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                          fill="none"
+                                          stroke="currentColor"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                        <h3 className="font-medium text-base">{s.title}</h3>
+                                      </button>
                                       <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
                                     </div>
+                                    {!isCollapsed && (
                                     <div className="space-y-2">
                                       {s.courses.length === 0 ? (
                                         <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
@@ -1372,20 +1819,35 @@ export default function SimulationPage() {
                                             key={c.courseId}
                                             className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                           >
-                                            <p className="font-medium text-sm">{c.course.title}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                              {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}{c.grade != null ? ` · ${c.grade}` : ''}
-                                            </p>
+                                            <div className="flex items-center font-medium text-sm gap-2">
+                                              <p>{c.course.title}</p>
+                                              <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              {!gradeBlindMode && (
+                                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                  {c.grade}
+                                                </span>
+                                              )}
+                                              {c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">중복인정</span>
+                                              )}
+                                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
+                                              </p>
+                                            </div>
                                           </div>
                                         ))
                                       )}
                                     </div>
+                                    )}
                                   </div>
                                   {idx < groupedSections.majorGroup.length - 1 && (
                                     <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
                                   )}
-                                </div>
-                              ))}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </>
                         )}
@@ -1396,13 +1858,29 @@ export default function SimulationPage() {
                             {groupedSections.majorGroup.length > 0 && (
                               <div className="mt-4"></div>
                             )}
-                            {groupedSections.otherSections.map((s) => (
-                              <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
-                                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                            {groupedSections.otherSections.map((s) => {
+                              const isCollapsed = collapsedSections.has(s.id);
+                              return (
+                                <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
+                                <div className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${isCollapsed ? 'pb-2' : ''}`}>
                                   <div className="flex justify-between text-sm items-baseline mb-3">
-                                    <h3 className="font-medium text-base">{s.title}</h3>
+                                    <button
+                                      onClick={() => toggleSection(s.id)}
+                                      className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                    >
+                                      <svg
+                                        className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                      </svg>
+                                      <h3 className="font-medium text-base">{s.title}</h3>
+                                    </button>
                                     <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
                                   </div>
+                                  {!isCollapsed && (
                                   <div className="space-y-2">
                                     {s.courses.length === 0 ? (
                                       <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
@@ -1412,59 +1890,100 @@ export default function SimulationPage() {
                                           key={c.courseId}
                                           className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                         >
-                                          <p className="font-medium text-sm">{c.course.title}</p>
-                                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                                          {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}{c.grade != null ? ` · ${c.grade}` : ''}
-                                          </p>
+                                          <div className="flex items-center font-medium text-sm gap-2">
+                                            <p>{c.course.title}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            {!gradeBlindMode && (
+                                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                {c.grade}
+                                              </span>
+                                            )}
+                                            {c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
+                                              <span className="text-xs text-gray-500 dark:text-gray-400">중복인정</span>
+                                            )}
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                              {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
+                                            </p>
+                                          </div>
                                         </div>
                                       ))
                                     )}
                                   </div>
+                                  )}
                                 </div>
                               </div>
-                            ))}
+                            );
+                            })}
                           </>
                         )}
 
-                        {groupedSections.miscSections.map((s) => s.courses.length === 0 ? null : (
+                        {groupedSections.miscSections.map((s) => {
+                          const isCollapsed = collapsedSections.has(s.id);
+                          return s.courses.length === 0 ? null : (
                           <div key={s.id} className="mt-4">
                             <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                               <div className="flex justify-between text-sm items-baseline mb-3">
-                                <h3 className="font-medium text-base">{s.title}</h3>
+                                <button
+                                  onClick={() => toggleSection(s.id)}
+                                  className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                >
+                                  <svg
+                                    className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                  </svg>
+                                  <h3 className="font-medium text-base">{s.title}</h3>
+                                </button>
                                 <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
                               </div>
+                              {!isCollapsed && (
                               <div className="space-y-2">
                                 {s.courses.map((c) => (
                                   <div
                                     key={c.courseId}
                                     className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                   >
-                                    <p className="font-medium text-sm">{c.course.title}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                      {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}{c.grade != null ? ` · ${c.grade}` : ''}
-                                    </p>
+                                    <div className="flex items-center font-medium text-sm gap-2">
+                                      <p>{c.course.title}</p>
+                                      <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {!gradeBlindMode && (
+                                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                          {c.grade}
+                                        </span>
+                                      )}
+                                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
+                                      </p>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
+                              )}
                             </div>
                           </div>
-                        ))}
+                        );
+                        })}
                       </>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* 가운데: 섹션별 세부 요건 달성 여부 (스크롤 동기화) */}
+              {/* 가운데: 섹션별 세부 요건 달성 여부 */}
               <div className={`${rightPanelOpen ? 'w-1/3' : 'w-1/2'} flex-shrink-0 border-r border-gray-200 dark:border-gray-700 flex flex-col min-h-0 transition-all duration-300 relative`}>
                 <div
-                  ref={centerScrollRef}
-                  onScroll={handleCenterScroll}
-                  className="flex-1 min-h-0 overflow-y-auto"
+                  className="flex-1 h-full overflow-y-auto"
                 >
-                  <div className="p-4">
+                  <div className="p-4 pb-24">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-semibold">졸업 요건</h2>
+                      <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>졸업 요건</h2>
                       {!rightPanelOpen && (
                         <button
                           type="button"
@@ -1493,66 +2012,236 @@ export default function SimulationPage() {
                           {/* 기초과목 */}
                           {groupedSections.basicGroup.length > 0 && (
                             <>
-                              {groupedSections.basicGroup.map((s, idx) => (
-                                <div key={s.id} className={idx > 0 ? 'mt-4' : ''}>
-                                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                                    <h3 className="font-medium text-base mb-2">{s.title}</h3>
-                                    <p className="text-lg font-bold">{s.detail}</p>
-                                    <p
-                                      className={`mt-1 text-sm font-medium ${
-                                        s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
-                                      }`}
-                                    >
-                                      {s.fulfilled ? '달성' : '미달'}
-                                    </p>
+                              {groupedSections.basicGroup.map((s, idx) => {
+                                const requirements = s.requirements || [];
+                                const isCollapsed = collapsedSections.has(`center-${s.id}`);
+                                return (
+                                  <div key={s.id} className={idx > 0 ? 'mt-4' : ''}>
+                                    <div className={`rounded-lg border border-gray-200 dark:border-gray-700 p-4 ${isCollapsed ? 'pb-2' : ''}`}>
+                                      <div className="flex items-center justify-between mb-2">
+                                        <button
+                                          onClick={() => toggleSection(`center-${s.id}`)}
+                                          className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                        >
+                                          <svg
+                                            className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                          </svg>
+                                          <h3 className="font-medium text-base">{s.title}</h3>
+                                        </button>
+                                        <p
+                                          className={`text-sm font-medium ${
+                                            s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                          }`}
+                                        >
+                                          {s.fulfilled ? '달성' : '미달'}
+                                        </p>
+                                      </div>
+                                      {!isCollapsed && (
+                                        <div className="mt-3">
+                                          {requirements.length > 0 ? (
+                                            <div className="space-y-2">
+                                              {requirements.map((req, reqIdx) => {
+                                                const currentValue = req.currentValue || 0;
+                                                const targetValue = req.value || 0;
+                                                const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
+                                                return (
+                                                  <div
+                                                    key={reqIdx}
+                                                    className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
+                                                  >
+                                                    <div
+                                                      className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
+                                                      style={{ width: `${percentage}%` }}
+                                                    />
+                                                    <div className="relative flex items-center justify-between">
+                                                      <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                                      {req.value != null && (
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                          {currentValue} / {targetValue}
+                                                        </p>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          ) : (
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </>
                           )}
 
                           {/* 주전공/심화전공/연구 그룹 */}
                           {groupedSections.majorGroup.length > 0 && (
                             <div className={'rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden' + (groupedSections.basicGroup.length > 0 ? ' mt-4' : '')}>
-                              {groupedSections.majorGroup.map((s, idx) => (
-                                <div key={s.id}>
-                                  <div className="p-4">
-                                    <h3 className="font-medium text-base mb-2">{s.title}</h3>
-                                    <p className="text-lg font-bold">{s.detail}</p>
-                                    <p
-                                      className={`mt-1 text-sm font-medium ${
-                                        s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
-                                      }`}
-                                    >
-                                      {s.fulfilled ? '달성' : '미달'}
-                                    </p>
+                              {groupedSections.majorGroup.map((s, idx) => {
+                                const requirements = s.requirements || [];
+                                const isCollapsed = collapsedSections.has(`center-${s.id}`);
+                                return (
+                                  <div key={s.id}>
+                                    <div className={`p-4 ${isCollapsed ? 'pb-2' : ''}`}>
+                                      <div className="flex items-center justify-between mb-2">
+                                        <button
+                                          onClick={() => toggleSection(`center-${s.id}`)}
+                                          className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                        >
+                                          <svg
+                                            className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                          </svg>
+                                          <h3 className="font-medium text-base">
+                                            {s.titleElements.length > 1 ? (
+                                              <>
+                                                <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
+                                                <span>{s.titleElements.slice(1).join(' ')}</span>
+                                              </>
+                                            ) : s.titleElements[0]}
+                                          </h3>
+                                        </button>
+                                        <p
+                                          className={`text-sm font-medium ${
+                                            s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                          }`}
+                                        >
+                                          {s.fulfilled ? '달성' : '미달'}
+                                        </p>
+                                      </div>
+                                      {!isCollapsed && (
+                                        <div className="mt-3">
+                                          {requirements.length > 0 ? (
+                                            <div className="space-y-2">
+                                              {requirements.map((req, reqIdx) => {
+                                                const currentValue = req.currentValue || 0;
+                                                const targetValue = req.value || 0;
+                                                const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
+                                                return (
+                                                  <div
+                                                    key={reqIdx}
+                                                    className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
+                                                  >
+                                                    <div
+                                                      className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
+                                                      style={{ width: `${percentage}%` }}
+                                                    />
+                                                    <div className="relative flex items-center justify-between">
+                                                      <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                                      {req.value != null && (
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                          {currentValue} / {targetValue}
+                                                        </p>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          ) : (
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {idx < groupedSections.majorGroup.length - 1 && (
+                                      <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                                    )}
                                   </div>
-                                  {idx < groupedSections.majorGroup.length - 1 && (
-                                    <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
-                                  )}
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                           
                           {/* 복전, 부전, 융전, 교필, 인선 */}
                           {groupedSections.otherSections.length > 0 && (
                             <>
-                              {groupedSections.otherSections.map((s) => (
-                                <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
-                                  <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-                                    <h3 className="font-medium text-base mb-2">{s.title}</h3>
-                                    <p className="text-lg font-bold">{s.detail}</p>
-                                    <p
-                                      className={`mt-1 text-sm font-medium ${
-                                        s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
-                                      }`}
-                                    >
-                                      {s.fulfilled ? '달성' : '미달'}
-                                    </p>
+                              {groupedSections.otherSections.map((s) => {
+                                const requirements = s.requirements || [];
+                                const isCollapsed = collapsedSections.has(`center-${s.id}`);
+                                return (
+                                  <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
+                                    <div className={`rounded-lg border border-gray-200 dark:border-gray-700 p-4 ${isCollapsed ? 'pb-2' : ''}`}>
+                                      <div className="flex items-center justify-between mb-2">
+                                        <button
+                                          onClick={() => toggleSection(`center-${s.id}`)}
+                                          className="flex items-center gap-2 flex-1 text-left hover:opacity-70 transition-opacity"
+                                        >
+                                          <svg
+                                            className={`w-4 h-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                          >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                          </svg>
+                                          <h3 className="font-medium text-base">
+                                            {s.titleElements.length > 1 ? (
+                                              <>
+                                                <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
+                                                <span>{s.titleElements.slice(1).join(' ')}</span>
+                                              </>
+                                            ) : s.titleElements[0]}
+                                          </h3>
+                                        </button>
+                                        <p
+                                          className={`text-sm font-medium ${
+                                            s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                                          }`}
+                                        >
+                                          {s.fulfilled ? '달성' : '미달'}
+                                        </p>
+                                      </div>
+                                      {!isCollapsed && (
+                                        <div className="mt-3">
+                                          {requirements.length > 0 ? (
+                                            <div className="space-y-2">
+                                              {requirements.map((req, reqIdx) => {
+                                                const currentValue = req.currentValue || 0;
+                                                const targetValue = req.value || 0;
+                                                const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
+                                                return (
+                                                  <div
+                                                    key={reqIdx}
+                                                    className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
+                                                  >
+                                                    <div
+                                                      className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
+                                                      style={{ width: `${percentage}%` }}
+                                                    />
+                                                    <div className="relative flex items-center justify-between">
+                                                      <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                                      {req.value != null && (
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                          {currentValue} / {targetValue}
+                                                        </p>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          ) : (
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </>
                           )}
                         </>
@@ -1560,20 +2249,21 @@ export default function SimulationPage() {
                     </div>
                   </div>
                 </div>
-                <div className="flex-shrink-0 bg-white dark:bg-zinc-900 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+
+                <div className="absolute bottom-0 w-full flex-shrink-0 bg-gradient-to-t from-white dark:from-black via-white/95 dark:via-black/95 to-transparent backdrop-blur-sm px-4 py-3">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-6 flex-1">
                       <div>
                         <span className="text-xs text-gray-500 dark:text-gray-400">총 이수학점</span>
-                        <p className="text-lg font-semibold">{totalStats.totalCredit} / 130</p>
+                        <p className="text-lg font-semibold">{totalStats.totalCredit} / 138</p>
                       </div>
                       <div>
                         <span className="text-xs text-gray-500 dark:text-gray-400">총 AU</span>
-                        <p className="text-lg font-semibold">{totalStats.totalAu} / 8</p>
+                        <p className="text-lg font-semibold">{totalStats.totalAu} / 4</p>
                       </div>
                       <div>
                         <span className="text-xs text-gray-500 dark:text-gray-400">평점</span>
-                        <p className="text-lg font-semibold">{totalStats.gpa}</p>
+                        <p className="text-lg font-semibold">{totalStats.gpa} / 2.0</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -1638,6 +2328,7 @@ export default function SimulationPage() {
                             searchQuery={courseSearchQuery}
                             onSearchQueryChange={setCourseSearchQuery}
                             searchResults={searchResults}
+                            isSearching={isSearching}
                             selectedCourseIds={selectedCourseIds}
                             onSelectionChange={updateSelectedCourseIds}
                             addYear={addYear}
