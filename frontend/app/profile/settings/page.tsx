@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { Tab, User, Profile } from './types';
@@ -9,7 +9,7 @@ import ProfileTab from './ProfileTab';
 import CoursesTab from './CoursesTab';
 import { API } from '../../lib/api';
 
-export default function ProfileSettingsPage() {
+function ProfileSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>('account');
@@ -73,6 +73,24 @@ export default function ProfileSettingsPage() {
     router.push('/login');
   };
 
+  const handleLogout = async () => {
+    try {
+      const res = await fetch(`${API}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.success) {
+        router.push('/login');
+      } else {
+        alert(data.message || '로그아웃에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+      alert('로그아웃 중 오류가 발생했습니다.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
@@ -100,13 +118,13 @@ export default function ProfileSettingsPage() {
 
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-black overflow-hidden select-none">
-      <aside className="w-56 flex-shrink-0 bg-white dark:bg-zinc-900 shadow-[0.1rem_0_1rem_rgba(0,0,0,0.1)] dark:shadow-[0.2rem_0_2rem_rgba(255,255,255,0.2)]">
+      <aside className="w-48 flex-shrink-0 bg-white dark:bg-zinc-900 shadow-[0.1rem_0_1rem_rgba(0,0,0,0.1)] dark:shadow-[0.2rem_0_2rem_rgba(255,255,255,0.2)] flex flex-col h-full">
         <div className="p-4 active:scale-90 transition-all">
           <Link href="/simulation" className="text-sm text-violet-600 dark:text-violet-400">
             ← 시뮬레이션
           </Link>
         </div>
-        <nav className="p-2 space-y-1">
+        <nav className="p-2 space-y-1 flex-1">
           {menuItems.map(({ key, label }) => (
             <button
               key={key}
@@ -121,6 +139,14 @@ export default function ProfileSettingsPage() {
             </button>
           ))}
         </nav>
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={handleLogout}
+            className="w-full rounded-lg px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-800 active:scale-90 transition-all"
+          >
+            로그아웃
+          </button>
+        </div>
       </aside>
 
       <main className={"flex-1 p-6 md:p-8" + (tab === 'courses' ? ' overflow-hidden' : ' overflow-y-auto')}>
@@ -151,5 +177,17 @@ export default function ProfileSettingsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ProfileSettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+        <p className="text-gray-500 dark:text-gray-400">로딩 중…</p>
+      </div>
+    }>
+      <ProfileSettingsContent />
+    </Suspense>
   );
 }
