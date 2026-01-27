@@ -1,0 +1,39 @@
+[ 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "전공선택 학점", 
+    "description": "전공선택 40학점 이상 이수",
+    "value": 40,
+    "targets": [
+      {
+        "categories": ["ME"],
+        "departments": ["MAS"]
+      },
+      {
+        "codes": ["PH.20012", "PH.20021", "PH.30001", "ME.20021", "ME.20031", "IE.30031", "IE.30041", "IE.20042", "IE.30042", "EE.20002", "EE.20004", "PH.20031", "EE.30021", "CS.20006", "CS.30000", "BiS.42009"]
+      }
+    ], 
+    "constraints": [
+      {
+        "type" : "MAX_CREDITS_AMONG",
+        "value": 9,
+        "targets": [
+          {
+            "codes": ["PH.20012", "PH.20021", "PH.30001", "ME.20021", "ME.20031", "IE.30031", "IE.30041", "IE.20042", "IE.30042", "EE.20002", "EE.20004", "PH.20031", "EE.30021", "CS.20006", "CS.30000", "BiS.42009"]
+          }
+        ]
+      }
+    ]
+  }, 
+  {
+    "type": "MIN_SUBJECTS_AMONG", 
+    "title": "필수 전공선택",
+    "description": "수리과학과에서 지정한 필수 전공선택 과목 중에서 4과목 이상을 포함하여 이수",
+    "value": 4,
+    "targets": [
+      {
+        "codes": ["MAS.20012", "MAS.20041", "MAS.30011", "MAS.30021", "MAS.30031", "MAS.30041", "MAS.30055"]
+      }
+    ]
+  }
+]

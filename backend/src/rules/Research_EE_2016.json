@@ -1,0 +1,13 @@
+[
+  {
+      "type": "MIN_CREDITS_AMONG", 
+      "title": "연구 학점",
+      "description": "연구 3학점 이상 이수",
+      "value": 3,
+      "targets": [
+        {
+          "codes": ["EE.91100", "EE.91000"]
+        }
+      ]
+  }
+]

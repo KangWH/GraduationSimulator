@@ -1,0 +1,13 @@
+[
+  {
+      "type": "MIN_CREDITS_AMONG", 
+      "title": "연구 학점",
+      "description": "연구 3학점 이상 이수. CS.40008 전산학 프로젝트로 대체할 수 있음",
+      "value": 3,
+      "targets": [
+        {
+          "codes": ["CS.91100", "CS.91000", "CS.40008"]
+        }
+      ]
+  }
+]

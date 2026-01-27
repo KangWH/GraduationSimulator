@@ -479,7 +479,7 @@ export type CourseOfferingSelectScalar = {
   au?: boolean
 }
 
-export type CourseOfferingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "title" | "department" | "category" | "tags" | "credit" | "au", ExtArgs["result"]["courseOffering"]>
+export type CourseOfferingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "title" | "department" | "category" | "tags" | "credit" | "value", ExtArgs["result"]["courseOffering"]>
 
 export type $CourseOfferingPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "CourseOffering"

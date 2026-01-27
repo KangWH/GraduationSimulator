@@ -1,0 +1,26 @@
+[ 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "전공필수 학점",
+    "description": "전공필수 19학점 이상 이수",
+    "value": 19,
+    "targets": [
+      {
+        "categories": ["MR"], 
+        "departments": ["PH"]
+      }
+    ]
+  }, 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "전공선택 학점",
+    "description": "전공선택 24학점 이상 이수",
+    "value": 24,
+    "targets": [
+      {
+        "categories": ["ME"],
+        "departments": ["PH"]
+      }
+    ]
+  }
+]
