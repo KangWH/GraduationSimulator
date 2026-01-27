@@ -108,7 +108,7 @@ export default function EnrollmentsList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {sortedSemesterKeys.map((semesterKey) => {
         const [year, semester] = semesterKey.split('-');
         const groupEnrollments = semesterGroups.get(semesterKey) || [];
@@ -121,7 +121,7 @@ export default function EnrollmentsList({
         return (
           <div
             key={semesterKey}
-            className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors"
+            className="rounded-lg bg-white dark:bg-zinc-900 overflow-hidden transition-colors shadow-lg"
             onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -208,7 +208,7 @@ export default function EnrollmentsList({
                       <button
                         type="button"
                         onClick={() => onRemove(enrollment)}
-                        className="rounded p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 transition-colors"
+                        className="rounded p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 active:scale-85 transition-all"
                         title="삭제"
                         aria-label="삭제"
                       >

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import type { Tab, User, Profile } from './types';
 import AccountTab from './AccountTab';
@@ -11,12 +11,21 @@ import { API } from '../../lib/api';
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<Tab>('account');
   const [userId, setUserId] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // URL 쿼리 파라미터에서 탭 설정
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['account', 'profile', 'courses'].includes(tabParam)) {
+      setTab(tabParam as Tab);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setLoading(true);
@@ -26,16 +35,30 @@ export default function ProfileSettingsPage() {
       fetch(`${API}/profile`, { credentials: 'include' }).then((r) => r.json()),
     ])
       .then(([meRes, profileRes]) => {
-        if (!meRes.success || !profileRes.success) {
-          if (meRes.message?.includes('인증') || profileRes.message?.includes('인증')) {
+        if (!meRes.success) {
+          if (meRes.message?.includes('인증')) {
             router.push('/login');
             return;
           }
-          setError(meRes.message || profileRes.message || '데이터를 불러오지 못했습니다.');
+          setError(meRes.message || '인증에 실패했습니다.');
           return;
         }
+
+        // 프로필이 없거나 필수 정보가 없으면 setup 페이지로 리다이렉트
+        if (!profileRes.success || !profileRes.profile) {
+          router.push('/profile/setup');
+          return;
+        }
+
+        const p = profileRes.profile as Profile;
+        // 필수 정보 확인: studentId, name, admissionYear, major
+        if (!p.studentId || !p.name || !p.admissionYear || !p.major) {
+          router.push('/profile/setup');
+          return;
+        }
+
         setUser(meRes.user);
-        setProfile(profileRes.profile as Profile);
+        setProfile(p);
         setUserId(meRes.user?.id || null);
       })
       .catch((err) => {
@@ -76,10 +99,10 @@ export default function ProfileSettingsPage() {
   ];
 
   return (
-    <div className="flex h-screen bg-zinc-50 dark:bg-black overflow-hidden">
-      <aside className="w-56 flex-shrink-0 border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-zinc-900">
-        <div className="border-b border-gray-200 p-4 dark:border-gray-700">
-          <Link href="/simulation" className="text-sm text-violet-600 hover:underline dark:text-violet-400">
+    <div className="flex h-screen bg-zinc-50 dark:bg-black overflow-hidden select-none">
+      <aside className="w-56 flex-shrink-0 bg-white dark:bg-zinc-900 shadow-[0.1rem_0_1rem_rgba(0,0,0,0.1)] dark:shadow-[0.2rem_0_2rem_rgba(255,255,255,0.2)]">
+        <div className="p-4 active:scale-90 transition-all">
+          <Link href="/simulation" className="text-sm text-violet-600 dark:text-violet-400">
             ← 시뮬레이션
           </Link>
         </div>
@@ -88,7 +111,7 @@ export default function ProfileSettingsPage() {
             <button
               key={key}
               onClick={() => setTab(key)}
-              className={`w-full rounded-lg px-4 py-2.5 text-left text-sm transition-colors ${
+              className={`w-full rounded-lg px-4 py-2.5 text-left text-sm active:scale-90 transition-all ${
                 tab === key
                   ? 'bg-violet-100 font-medium text-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
                   : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-800'

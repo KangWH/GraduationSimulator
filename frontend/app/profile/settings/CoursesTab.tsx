@@ -512,83 +512,88 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   return (
     <>
       {/* 1열: 모바일/태블릿 탭 */}
-      <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-zinc-900 lg:hidden">
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="sticky top-0 z-10 flex-shrink-0 space-y-4 border-b border-gray-200 bg-white p-6 pb-4 dark:border-gray-700 dark:bg-zinc-900">
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setCourseMode('add')}
-                className={`flex-1 rounded-lg px-4 py-2 font-medium transition-colors ${
-                  courseMode === 'add'
-                    ? 'border border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-700 dark:bg-violet-900/30 dark:text-violet-300'
-                    : 'border border-transparent bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700'
-                }`}
-              >
-                과목 추가
-              </button>
-              <button
-                type="button"
-                onClick={() => setCourseMode('view')}
-                className={`flex-1 rounded-lg px-4 py-2 font-medium transition-colors ${
-                  courseMode === 'view'
-                    ? 'bg-violet-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700'
-                }`}
-              >
-                수강한 과목 ({enrollments.length})
-              </button>
-            </div>
-          </div>
-          <div className="p-6 pt-4">
-            {courseMode === 'add' ? (
-              <AddCoursePanel
-                searchQuery={courseSearchQuery}
-                onSearchQueryChange={setCourseSearchQuery}
-                searchResults={searchResults}
-                isSearching={isSearching}
-                selectedCourseIds={selectedCourseIds}
-                onSelectionChange={updateSelectedCourseIds}
-                addYear={addYear}
-                onAddYearChange={setAddYear}
-                addSemester={addSemester}
-                onAddSemesterChange={setAddSemester}
-                addGrade={addGrade}
-                onAddGradeChange={setAddGrade}
-                addAsPriorCredit={addAsPriorCredit}
-                onAddAsPriorCreditChange={setAddAsPriorCredit}
-                onAddSelected={handleAddSelected}
-                onDragStart={(course) => setDraggedCourse(course)}
-                filterDepartment={filterDepartment}
-                onFilterDepartmentChange={setFilterDepartment}
-                filterCategory={filterCategory}
-                onFilterCategoryChange={setFilterCategory}
-              />
-            ) : (
-              <EnrollmentsList
-                enrollments={enrollments}
-                semesterGroups={semesterGroups}
-                sortedSemesterKeys={sortedSemesterKeys}
-                onGradeChange={handleGradeChange}
-                onRemove={handleRemove}
-                onDragStart={handleDragStart}
-                onDrop={handleDrop}
-                onDropOutside={handleDropOutside}
-                findNearestPastSemester={findNearestPastSemester}
-              />
-            )}
+      <div className="flex h-full min-h-0 flex-col overflow-hidden lg:hidden">
+        {/* 상단: 모드 전환 */}
+        <div className="flex items-center flex-shrink-0 gap-2 mb-2 px-6">
+          <button
+            type="button"
+            onClick={() => setCourseMode('add')}
+            className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
+              courseMode === 'add'
+                ? 'text-black dark:text-white'
+                : 'text-gray-400 dark:text-gray-500'
+            }`}
+          >
+            <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
+              과목 추가
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCourseMode('view')}
+            className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
+              courseMode === 'view'
+                ? 'text-black dark:text-white'
+                : 'text-gray-400 dark:text-gray-500'
+            }`}
+          >
+            <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
+              수강한 과목<span className="opacity-40 ml-2">{enrollments.length}</span>
+            </span>
+          </button>
+        </div>
+
+        {/* 본문 영역 */}
+        <div className="flex-1 min-h-0 overflow-y-auto">
+          <div className="px-4 pt-2 pb-8">
+              {courseMode === 'add' ? (
+                <AddCoursePanel
+                  searchQuery={courseSearchQuery}
+                  onSearchQueryChange={setCourseSearchQuery}
+                  searchResults={searchResults}
+                  isSearching={isSearching}
+                  selectedCourseIds={selectedCourseIds}
+                  onSelectionChange={updateSelectedCourseIds}
+                  addYear={addYear}
+                  onAddYearChange={setAddYear}
+                  addSemester={addSemester}
+                  onAddSemesterChange={setAddSemester}
+                  addGrade={addGrade}
+                  onAddGradeChange={setAddGrade}
+                  addAsPriorCredit={addAsPriorCredit}
+                  onAddAsPriorCreditChange={setAddAsPriorCredit}
+                  onAddSelected={handleAddSelected}
+                  onDragStart={(course) => setDraggedCourse(course)}
+                  filterDepartment={filterDepartment}
+                  onFilterDepartmentChange={setFilterDepartment}
+                  filterCategory={filterCategory}
+                  onFilterCategoryChange={setFilterCategory}
+                />
+              ) : (
+                <EnrollmentsList
+                  enrollments={enrollments}
+                  semesterGroups={semesterGroups}
+                  sortedSemesterKeys={sortedSemesterKeys}
+                  onGradeChange={handleGradeChange}
+                  onRemove={handleRemove}
+                  onDragStart={handleDragStart}
+                  onDrop={handleDrop}
+                  onDropOutside={handleDropOutside}
+                  findNearestPastSemester={findNearestPastSemester}
+                />
+              )}
           </div>
         </div>
       </div>
 
       {/* 2열: 넓은 화면 */}
       <div className="hidden h-full lg:flex justify-center items-start lg:gap-6 overflow-hidden">
-        <div className="h-full flex-1 flex min-h-0 flex-col overflow-hidden rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-zinc-900">
+        <div className="h-full flex-1 flex min-h-0 flex-col overflow-hidden">
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="flex-shrink-0 space-y-4 p-6 pb-0">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">과목 추가</h2>
+            <div className="flex-shrink-0 space-y-4">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">과목 추가</h2>
             </div>
-            <div className="space-y-4 p-6 pt-0">
+            <div className="space-y-4 pt-0 px-2 pb-2">
               <AddCoursePanel
                 searchQuery={courseSearchQuery}
                 onSearchQueryChange={setCourseSearchQuery}
@@ -615,7 +620,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
           </div>
         </div>
         <div
-          className="flex-1 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-zinc-900 h-full overflow-y-auto"
+          className="flex-1 px-2 pb-4 h-full overflow-y-auto"
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -627,7 +632,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
           }}
         >
           <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
-            수강한 과목 ({enrollments.length})
+            수강한 과목 <span className="text-md opacity-50">{enrollments.length}</span>
           </h2>
           <EnrollmentsList
             enrollments={enrollments}

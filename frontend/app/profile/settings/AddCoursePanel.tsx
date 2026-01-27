@@ -120,7 +120,7 @@ export default function AddCoursePanel({
   return (
     <div className="space-y-4">
       {/* 검색 창 */}
-      <div className="sticky top-0 z-10 -mx-6 px-6 pt-4 pb-4 bg-gradient-to-b from-white via-white/90 to-transparent dark:from-zinc-900 dark:via-zinc-900/90 backdrop-blur-sm">
+      <div className="sticky top-0 z-10 -mx-6 px-6 pt-0 pb-4 bg-gradient-to-b from-gray-50 via-gray-50/90 to-transparent dark:from-black dark:via-black/90">
         <div className="space-y-2">
           <div className="relative flex items-center gap-2">
             <div className="relative flex-1">
@@ -134,7 +134,7 @@ export default function AddCoursePanel({
               />
               <button
                 type="button"
-                className="absolute right-1 top-1 bottom-1 flex items-center justify-center px-1.5 rounded text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-zinc-800 dark:text-gray-400 dark:hover:text-gray-200 active:bg-gray-200 dark:active:bg-zinc-700 transition-colors"
+                className="absolute right-1 top-1 bottom-1 flex items-center justify-center px-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-zinc-800 dark:text-gray-400 dark:hover:text-gray-200 active:bg-gray-200 dark:active:bg-zinc-700 active:scale-85 transition-all"
                 title="검색"
                 aria-label="검색"
               >
@@ -144,23 +144,10 @@ export default function AddCoursePanel({
               </button>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              {/* {(filterDepartment !== 'none' && filterDepartment) || (filterCategory && filterCategory !== 'none') ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onFilterDepartmentChange('none');
-                    onFilterCategoryChange('');
-                  }}
-                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline transition-colors"
-                  title="필터 초기화"
-                >
-                  초기화
-                </button>
-              ) : null} */}
               <button
                 type="button"
                 onClick={() => setFiltersExpanded(!filtersExpanded)}
-                className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-sm transition-colors ${
+                className={`flex items-center gap-1 px-2 py-1.5 rounded-md text-sm active:scale-85 transition-all ${
                   (filterDepartment !== 'none' && filterDepartment) || (filterCategory && filterCategory !== 'none')
                     ? 'text-violet-600 bg-violet-50 hover:bg-violet-100 dark:text-violet-400 dark:bg-violet-900/20 dark:hover:bg-violet-900/30'
                     : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-zinc-800'
@@ -170,15 +157,20 @@ export default function AddCoursePanel({
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
-                {/* <svg
-                  className={`h-3.5 w-3.5 transition-transform duration-200 ${filtersExpanded ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg> */}
               </button>
+              {(filterDepartment !== 'none' && filterDepartment) || (filterCategory && filterCategory !== 'none') ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onFilterDepartmentChange('none');
+                    onFilterCategoryChange('');
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 active:scale-85 transition-all"
+                  title="필터 초기화"
+                >
+                  초기화
+                </button>
+              ) : null}
             </div>
           </div>
           {filtersExpanded && (
@@ -243,7 +235,7 @@ export default function AddCoursePanel({
               {selectedCourseIds.size === searchResults.length ? '전체 해제' : '전체 선택'}
             </button>
           </div>
-          <div className="space-y-2 overflow-y-auto">
+          <div className="space-y-2">
             {searchResults.map((course, index) => {
               // 선택 시에는 고유 ID 사용 (검색은 code로 하지만 저장은 id로)
               const courseId = course.id || course.code || String(course.id || course.code || Math.random());
@@ -257,10 +249,10 @@ export default function AddCoursePanel({
                     e.dataTransfer.effectAllowed = 'copy';
                   }}
                   onClick={() => toggleSelection(courseId)}
-                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition-colors animate-slide-up ${
+                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer active:scale-96 transition-all animate-slide-up shadow ${
                     isSelected
-                      ? 'border-violet-500 bg-violet-50 shadow-sm dark:border-violet-400 dark:bg-violet-900/20'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-zinc-800'
+                      ? 'border-violet-500 bg-violet-50 dark:border-violet-400 dark:bg-violet-900/20'
+                      : 'border-transparent bg-white dark:bg-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-800'
                   }`}
                   style={{
                     animationDelay: `${index * 0.05}s`,
@@ -305,8 +297,8 @@ export default function AddCoursePanel({
 
       {/* 추가 옵션 및 버튼 */}
       {selectedCourseIds.size > 0 && (
-        <div className="sticky bottom-0 z-10 -mx-6 px-6 pt-4 pb-4 bg-gradient-to-t from-white via-white/90 to-transparent backdrop-blur-sm dark:from-zinc-900 dark:via-zinc-900/90 dark:to-transparent">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-zinc-800/50">
+        <div className="sticky bottom-0 z-10 -mx-6 px-6 pt-0 pb-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent dark:from-black dark:via-black/90 dark:to-transparent">
+          <div className="rounded-lg bg-violet-50 p-4 dark:bg-violet-950 shadow-lg">
             {onAddAsPriorCreditChange && (
               <label className="mb-3 flex cursor-pointer items-center gap-2">
                 <input
@@ -362,7 +354,7 @@ export default function AddCoursePanel({
               <button
                 type="button"
                 onClick={onAddSelected}
-                className="shrink-0 rounded-lg bg-violet-600 px-4 py-2 font-medium text-white transition-colors hover:bg-violet-700"
+                className="shrink-0 rounded-lg bg-violet-600 px-4 py-2 font-medium text-white active:scale-90 transition-all hover:bg-violet-700"
               >
                 {selectedCourseIds.size}과목 추가
               </button>
