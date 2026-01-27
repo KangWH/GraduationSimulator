@@ -52,7 +52,6 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId) return;
     if (!form.name || !form.major) {
       alert('이름과 주전공을 입력해주세요.');
       return;
@@ -64,7 +63,6 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          userId,
           name: form.name,
           admissionYear: form.admissionYear,
           isFallAdmission: form.isFallAdmission,

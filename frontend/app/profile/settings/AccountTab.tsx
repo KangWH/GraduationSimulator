@@ -27,14 +27,13 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
       alert('새 비밀번호는 최소 6자 이상이어야 합니다.');
       return;
     }
-    if (!userId) return;
     setAccountSubmitting(true);
     try {
       const res = await fetch(`${API}/auth/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ userId, currentPassword, newPassword }),
+        body: JSON.stringify({ currentPassword, newPassword }),
       });
       const data = await res.json();
       if (data.success) {
@@ -53,7 +52,6 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
   };
 
   const handleDeleteAccount = async () => {
-    if (!userId) return;
     if (!deletePassword) {
       alert('비밀번호를 입력해주세요.');
       return;
@@ -65,7 +63,7 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ userId, password: deletePassword }),
+        body: JSON.stringify({ password: deletePassword }),
       });
       const data = await res.json();
       if (data.success) {

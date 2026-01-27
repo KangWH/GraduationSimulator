@@ -19,43 +19,38 @@ export default function ProfileSettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const uid = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    if (!uid) {
-      router.push('/login');
-      return;
-    }
-    setUserId(uid);
-  }, [router]);
-
-  useEffect(() => {
-    if (!userId) return;
     setLoading(true);
     setError(null);
     Promise.all([
-      fetch(`${API}/auth/me?userId=${encodeURIComponent(userId)}`, { credentials: 'include' }).then((r) => r.json()),
-      fetch(`${API}/profile?userId=${encodeURIComponent(userId)}`, { credentials: 'include' }).then((r) => r.json()),
+      fetch(`${API}/auth/me`, { credentials: 'include' }).then((r) => r.json()),
+      fetch(`${API}/profile`, { credentials: 'include' }).then((r) => r.json()),
     ])
       .then(([meRes, profileRes]) => {
         if (!meRes.success || !profileRes.success) {
+          if (meRes.message?.includes('인증') || profileRes.message?.includes('인증')) {
+            router.push('/login');
+            return;
+          }
           setError(meRes.message || profileRes.message || '데이터를 불러오지 못했습니다.');
           return;
         }
         setUser(meRes.user);
         setProfile(profileRes.profile as Profile);
+        setUserId(meRes.user?.id || null);
       })
       .catch((err) => {
         setError(err?.message || '서버 오류');
       })
       .finally(() => setLoading(false));
-  }, [userId]);
+  }, [router]);
 
   const handleDeleteSuccess = () => {
-    localStorage.removeItem('userId');
+    // 쿠키는 서버에서 삭제되므로 여기서는 리다이렉트만 수행
     alert('회원 탈퇴가 완료되었습니다.');
     router.push('/login');
   };
 
-  if (loading || !userId) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
         <p className="text-gray-500 dark:text-gray-400">로딩 중…</p>
