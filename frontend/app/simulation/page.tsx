@@ -124,6 +124,12 @@ export default function SimulationPage() {
 
     Promise.all([loadProfile(), loadMe(), loadSimulations()])
       .then(([profileRes, meRes, simulationsRes]) => {
+        // 인증 실패 시 로그인 페이지로 리다이렉트
+        if (!meRes.success) {
+          router.push('/login');
+          return;
+        }
+
         if (profileRes.success && profileRes.profile) {
           const p = profileRes.profile as Profile;
           setProfile(p);
@@ -154,8 +160,12 @@ export default function SimulationPage() {
         }
         setProfileLoaded(true);
       })
-      .catch(() => setProfileLoaded(true));
-  }, [profileLoaded]);
+      .catch(() => {
+        // 인증 오류 시 로그인 페이지로 리다이렉트
+        router.push('/login');
+        setProfileLoaded(true);
+      });
+  }, [profileLoaded, router]);
 
   // 초기 시뮬레이션 데이터 생성
   const initializeSimulationData = useCallback(async (profileData: Profile) => {

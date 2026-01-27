@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input, NumberInput, Select } from '../../components/formFields';
 import { DepartmentDropdown, MultipleDepartmentDropdown } from '../../components/DepartmentDropdown';
+import { API } from '../../lib/api';
 
 export default function ProfileSetupPage() {
   const router = useRouter();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [formData, setFormData] = useState({
     studentId: '',
     name: '',
@@ -19,6 +21,22 @@ export default function ProfileSetupPage() {
     individuallyDesignedMajor: false,
   });
 
+  // 인증 확인
+  useEffect(() => {
+    fetch(`${API}/auth/me`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.success) {
+          router.push('/login');
+        } else {
+          setIsCheckingAuth(false);
+        }
+      })
+      .catch(() => {
+        router.push('/login');
+      });
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!formData.studentId || !formData.major || !formData.admissionYear) {
@@ -30,7 +48,7 @@ export default function ProfileSetupPage() {
       const validDoubleMajors = formData.doubleMajors.filter((v) => v && v !== 'none' && v.trim() !== '');
       const validMinors = formData.minors.filter((v) => v && v !== 'none' && v.trim() !== '');
 
-      const res = await fetch('http://localhost:4000/profile', {
+      const res = await fetch(`${API}/profile`, {
         method: 'POST',
         body: JSON.stringify({
           name: formData.name,
@@ -58,6 +76,15 @@ export default function ProfileSetupPage() {
       alert('서버 오류가 발생했습니다.');
     }
   };
+
+  // 인증 확인 중일 때는 로딩 표시
+  if (isCheckingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+        <p className="text-gray-500 dark:text-gray-400">로딩 중…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black py-12 px-4">

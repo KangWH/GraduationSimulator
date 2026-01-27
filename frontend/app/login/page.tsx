@@ -1,19 +1,38 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input } from "../components/formFields";
+import { API } from "../lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // 이미 로그인된 경우 시뮬레이션 페이지로 리다이렉트
+  useEffect(() => {
+    fetch(`${API}/auth/me`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success) {
+          // 이미 로그인되어 있으면 시뮬레이션 페이지로 이동
+          router.push('/simulation');
+        } else {
+          setIsCheckingAuth(false);
+        }
+      })
+      .catch(() => {
+        setIsCheckingAuth(false);
+      });
+  }, [router]);
 
   const loginHandler = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log('loginHandler 실행됨', { email, password });
-    fetch('http://localhost:4000/auth/login', {
+    fetch(`${API}/auth/login`, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
       headers: {
@@ -39,6 +58,15 @@ export default function LoginPage() {
     .catch(err => {
       console.error('에러 발생:', err);
     });
+  }
+
+  // 인증 확인 중일 때는 로딩 표시
+  if (isCheckingAuth) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+        <p className="text-gray-500 dark:text-gray-400">로딩 중…</p>
+      </div>
+    );
   }
 
   return (
