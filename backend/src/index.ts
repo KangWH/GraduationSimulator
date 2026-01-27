@@ -1,5 +1,6 @@
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import authRouter from './routes/auth.js';
 import profileRouter from './routes/profile.js';
 import coursesRouter from './routes/courses.js';
@@ -17,6 +18,7 @@ app.use(cors({
   origin: 'http://localhost:3000', // 프론트엔드 주소
   credentials: true, // 쿠키 및 인증 정보 허용
 }));
+app.use(cookieParser());
 app.use(express.json());
 
 app.get('/', (req: Request, res: Response) => {

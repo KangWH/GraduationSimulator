@@ -25,12 +25,6 @@ export default function ProfileSetupPage() {
       alert('학번, 전공학과, 입학연도를 모두 입력해주세요.');
       return;
     }
-    const userId = localStorage.getItem('userId');
-    if (!userId) {
-      alert('로그인이 필요합니다.');
-      router.push('/login');
-      return;
-    }
     try {
       // 유효한 값만 필터링 (빈 문자열, "none" 제거)
       const validDoubleMajors = formData.doubleMajors.filter((v) => v && v !== 'none' && v.trim() !== '');
@@ -39,7 +33,6 @@ export default function ProfileSetupPage() {
       const res = await fetch('http://localhost:4000/profile', {
         method: 'POST',
         body: JSON.stringify({
-          userId,
           name: formData.name,
           studentId: formData.studentId,
           admissionYear: Number(formData.admissionYear),

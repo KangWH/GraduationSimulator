@@ -131,14 +131,13 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
 
   // 수강 내역 로드 및 변환
   useEffect(() => {
-    if (!userId) return;
     if (initialLoadDone) return;
 
     let cancelled = false;
 
     const loadEnrollments = async () => {
       try {
-        const res = await fetch(`${API}/profile/enrollments?userId=${encodeURIComponent(userId)}`, {
+        const res = await fetch(`${API}/profile/enrollments`, {
           credentials: 'include',
         });
 
@@ -184,7 +183,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
     return () => {
       cancelled = true;
     };
-  }, [userId, initialLoadDone]);
+  }, [initialLoadDone]);
 
   // 서버 검색
   useEffect(() => {
@@ -260,8 +259,6 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   // 서버에 저장
   const saveEnrollments = useCallback(
     async (newEnrollments: Enrollment[]) => {
-      if (!userId) return;
-
       setIsSaving(true);
       try {
         const rawEnrollments = convertToRawEnrollments(newEnrollments);
@@ -269,7 +266,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({ userId, enrollments: rawEnrollments }),
+          body: JSON.stringify({ enrollments: rawEnrollments }),
         });
 
         if (!res.ok) {
@@ -286,7 +283,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         setIsSaving(false);
       }
     },
-    [userId]
+    []
   );
 
   // 선택된 과목 추가

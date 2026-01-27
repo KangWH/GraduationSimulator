@@ -19,12 +19,13 @@ export default function LoginPage() {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include', // 쿠키를 포함하여 전송
     })
     .then(res => res.json())
     .then(data => {
       console.log('서버 응답:', data);
       if (data.success) {
-        localStorage.setItem('userId', data.user.id);
+        // 쿠키가 자동으로 설정되므로 localStorage에 저장할 필요 없음
         if (!data.hasProfile) {
           router.push('/profile/setup');
         } else {

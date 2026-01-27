@@ -1,18 +1,23 @@
 import express, { type Request, type Response } from 'express';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
+import { authenticate } from '../middleware/auth.js';
 
 const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"] ?? '' })
 const prisma = new PrismaClient({ adapter });
 const router = express.Router();
 
 // 시뮬레이션 저장
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', authenticate, async (req: Request, res: Response) => {
   try {
-    const { userId, title, referenceYear, major, doubleMajors, minors, advancedMajor, individuallyDesignedMajor, courses } = req.body;
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+    const { title, referenceYear, major, doubleMajors, minors, advancedMajor, individuallyDesignedMajor, courses } = req.body;
 
     // 필수 필드 검증
-    if (!userId || !title || !referenceYear || !major) {
+    if (!title || !referenceYear || !major) {
       return res.status(400).json({
         success: false,
         message: '필수 정보를 모두 입력해주세요.'
@@ -67,15 +72,11 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // 사용자의 시뮬레이션 목록 조회
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : null;
-
+    const userId = req.userId;
     if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'userId가 필요합니다.'
-      });
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
     }
 
     const profile = await prisma.profile.findUnique({
@@ -96,7 +97,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      simulations: profile.simulations.map((sim) => ({
+      simulations: profile.simulations.map((sim: any) => ({
         id: sim.id,
         title: sim.title,
         updatedAt: sim.updatedAt,
@@ -117,29 +118,19 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // 개별 시뮬레이션 조회
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const idParam = req.params.id;
     const id = typeof idParam === 'string' ? idParam : null;
-    const userIdParam = req.query.userId;
-    let userId: string | null = null;
-    if (typeof userIdParam === 'string') {
-      userId = userIdParam;
-    } else if (Array.isArray(userIdParam) && userIdParam.length > 0 && typeof userIdParam[0] === 'string') {
-      userId = userIdParam[0];
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
     }
 
     if (!id) {
       return res.status(400).json({
         success: false,
         message: '시뮬레이션 ID가 필요합니다.'
-      });
-    }
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'userId가 필요합니다.'
       });
     }
 
@@ -199,29 +190,19 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // 시뮬레이션 삭제
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const idParam = req.params.id;
     const id = typeof idParam === 'string' ? idParam : null;
-    const userIdParam = req.query.userId;
-    let userId: string | null = null;
-    if (typeof userIdParam === 'string') {
-      userId = userIdParam;
-    } else if (Array.isArray(userIdParam) && userIdParam.length > 0 && typeof userIdParam[0] === 'string') {
-      userId = userIdParam[0];
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
     }
 
     if (!id) {
       return res.status(400).json({
         success: false,
         message: '시뮬레이션 ID가 필요합니다.'
-      });
-    }
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'userId가 필요합니다.'
       });
     }
 
@@ -274,23 +255,20 @@ router.delete('/:id', async (req: Request, res: Response) => {
 });
 
 // 시뮬레이션 업데이트
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', authenticate, async (req: Request, res: Response) => {
   try {
     const idParam = req.params.id;
     const id = typeof idParam === 'string' ? idParam : null;
-    const { userId, title, referenceYear, major, doubleMajors, minors, advancedMajor, individuallyDesignedMajor, courses } = req.body;
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+    const { title, referenceYear, major, doubleMajors, minors, advancedMajor, individuallyDesignedMajor, courses } = req.body;
 
     if (!id) {
       return res.status(400).json({
         success: false,
         message: '시뮬레이션 ID가 필요합니다.'
-      });
-    }
-
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'userId가 필요합니다.'
       });
     }
 

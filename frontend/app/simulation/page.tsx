@@ -109,19 +109,17 @@ export default function SimulationPage() {
   // 프로필 정보 로드 및 필터 초기화
   useEffect(() => {
     if (profileLoaded) return;
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    if (!userId) return;
 
     const loadProfile = () =>
-      fetch(`${API}/profile?userId=${encodeURIComponent(userId!)}`, { credentials: 'include' })
+      fetch(`${API}/profile`, { credentials: 'include' })
         .then((r) => r.json());
 
     const loadMe = () =>
-      fetch(`${API}/auth/me?userId=${encodeURIComponent(userId!)}`, { credentials: 'include' })
+      fetch(`${API}/auth/me`, { credentials: 'include' })
         .then((r) => r.json());
 
     const loadSimulations = () =>
-      fetch(`${API}/simulation?userId=${encodeURIComponent(userId!)}`, { credentials: 'include' })
+      fetch(`${API}/simulation`, { credentials: 'include' })
         .then((r) => r.json());
 
     Promise.all([loadProfile(), loadMe(), loadSimulations()])
@@ -165,10 +163,7 @@ export default function SimulationPage() {
 
     // 프로필의 수강 내역 가져오기
     try {
-      const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-      if (!userId) return;
-
-      const enrollmentsRes = await fetch(`${API}/profile/enrollments?userId=${encodeURIComponent(userId)}`, {
+      const enrollmentsRes = await fetch(`${API}/profile/enrollments`, {
         credentials: 'include',
       });
       const enrollmentsData = await enrollmentsRes.json();
@@ -350,11 +345,10 @@ export default function SimulationPage() {
 
   // 저장된 시뮬레이션 로드
   const loadSimulation = useCallback(async (simulationId: string) => {
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    if (!userId || !profile) return;
+    if (!profile) return;
 
     try {
-      const res = await fetch(`${API}/simulation/${simulationId}?userId=${encodeURIComponent(userId)}`, {
+      const res = await fetch(`${API}/simulation/${simulationId}`, {
         credentials: 'include',
       });
       const data = await res.json();
@@ -405,9 +399,6 @@ export default function SimulationPage() {
   const autoSave = useCallback(async () => {
     if (!currentSimulationId || !profile) return;
 
-    const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-    if (!userId) return;
-
     // RawCourseSimulation[]로 변환
     const rawCourses: RawCourseSimulation[] = simulationCourses.map((cs) => ({
       courseId: cs.courseId,
@@ -418,12 +409,11 @@ export default function SimulationPage() {
     }));
 
     try {
-      const res = await fetch(`${API}/simulation/${currentSimulationId}?userId=${encodeURIComponent(userId)}`, {
+      const res = await fetch(`${API}/simulation/${currentSimulationId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          userId,
           referenceYear: filters.requirementYear,
           major: filters.major,
           doubleMajors: filters.doubleMajors,
@@ -1486,10 +1476,8 @@ export default function SimulationPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-                          if (!userId) return;
                           if (!confirm('정말 이 시뮬레이션을 삭제하시겠습니까?')) return;
-                          fetch(`${API}/simulation/${sim.id}?userId=${encodeURIComponent(userId)}`, {
+                          fetch(`${API}/simulation/${sim.id}`, {
                             method: 'DELETE',
                             credentials: 'include',
                           })
@@ -1564,8 +1552,15 @@ export default function SimulationPage() {
             {sidebarOpen && (
               <button
                 type="button"
-                onClick={() => {
-                  localStorage.removeItem('userId');
+                onClick={async () => {
+                  try {
+                    await fetch(`${API}/auth/logout`, {
+                      method: 'POST',
+                      credentials: 'include',
+                    });
+                  } catch (error) {
+                    console.error('로그아웃 오류:', error);
+                  }
                   router.push('/login');
                 }}
                 className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-950/30 transition-colors"
@@ -2480,13 +2475,6 @@ export default function SimulationPage() {
                         return;
                       }
 
-                      const userId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-                      if (!userId) {
-                        alert('로그인이 필요합니다.');
-                        router.push('/login');
-                        return;
-                      }
-
                       try {
                         // CourseSimulation[]를 RawCourseSimulation[]로 변환
                         const rawCourses: RawCourseSimulation[] = simulationCourses.map((cs) => ({
@@ -2503,7 +2491,6 @@ export default function SimulationPage() {
                           headers: { 'Content-Type': 'application/json' },
                           credentials: 'include',
                           body: JSON.stringify({
-                            userId,
                             title: saveName.trim(),
                             referenceYear: filters.requirementYear,
                             major: filters.major,
@@ -2519,7 +2506,7 @@ export default function SimulationPage() {
 
                         if (data.success) {
                           // 시뮬레이션 목록 새로고침
-                          const simulationsRes = await fetch(`${API}/simulation?userId=${encodeURIComponent(userId)}`, {
+                          const simulationsRes = await fetch(`${API}/simulation`, {
                             credentials: 'include',
                           });
                           const simulationsData = await simulationsRes.json();
