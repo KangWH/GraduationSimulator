@@ -1,0 +1,52 @@
+[ 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "전공필수 학점",
+    "description": "전공필수 9학점 이상 이수",
+    "value": 9,
+    "targets": [
+      {
+        "categories": ["MR"], 
+        "departments": ["BCS"]
+      }
+    ]
+  }, 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "전공선택 학점",
+    "description": "전공선택 33학점 이상 이수",
+    "value": 33,
+    "targets": [
+      {
+        "categories": ["ME"],
+        "departments": ["BCS"]
+      },
+      {
+        "categories": ["ME", "MR"], 
+        "departments": ["BCS"]
+      }
+    ], 
+    "constraints": [
+      {
+        "type" : "MAX_CREDITS_AMONG",
+        "description": "자연과학대학, 생명과학기술대학, 공과대학의 소속학과에서 개선할 전공교과목을 15학점까지 전공선택으로 인정함",
+        "value": 15,
+        "targets": [
+          {
+            "departments": ["CoE"]
+          }
+        ]
+      }, 
+      {
+        "type" : "MAX_CREDITS_AMONG",
+        "description": "개별연구는 전공선택으로 4학점까지만 인정함",
+        "value": 4,
+        "targets": [
+          {
+            "codes": ["URP.91100", "AE.91100", "AI.91100", "BCS.91100", "BiS.91100", "BS.91100", "BTM.91100", "CBE.91100", "CE.91100", "CH.91100", "CS.91100", "CTP.91100", "EB.91100", "EE.91100", "EE.91101", "GT.91100", "HSS.91100", "ID.91100", "IE.91100", "MAS.91100", "ME.91100", "MO.91100", "MS.91100", "MSB.91100", "MSE.91100", "NQE.91100", "PH.91100", "SS.91100", "STP.91100", "TS.91100"]
+          }
+        ]
+      }
+    ]
+  }
+]

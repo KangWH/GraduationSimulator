@@ -1,0 +1,22 @@
+[ 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "기초선택 학점",
+    "description": "기초선택 6학점 이상 이수",
+    "value": 6,
+    "targets": [
+      {
+        "categories": ["BE"]
+      }
+    ]
+  }, 
+  {
+    "type": "MIN_SUBJECTS_AMONG", 
+    "title": "필수 기초선택",
+    "description": "뇌인지과학과에서 지정한 필수 기초선택 중에서 2과목 이상을 포함하여 이수",
+    "value": 2,
+    "targets": [
+      {"codes": ["MAS.10009", "MAS.10010", "MAS.20001", "MAS.20050", "CS.10009"]}
+    ]
+  }
+]

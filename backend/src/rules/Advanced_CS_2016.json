@@ -6,7 +6,8 @@
     "value": 12,
     "targets": [
       {
-        "categories": ["ME"],
+        "categories": ["ME"], 
+        "departments": ["CS"],
         "firstdigits": [3, 4]
       }
     ]
