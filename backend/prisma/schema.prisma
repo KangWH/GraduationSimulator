@@ -60,14 +60,17 @@ model CourseOffering {
   id                 String @id @default(uuid())
   code               String
   title              String
+  searchTitle        String
   department         String
   category           String // 인선, 자선, 전필 등
   tags               String[] // 인선의 경우, 핵심·융합·일반, 인문 등의 분류를 기록
   credit             Int
   au                 Int
+  level              String // 학부: UG, 대학원: GR
+  crossRecognition   Boolean // 학부-대학원 상호인정
 
   @@unique([code, title, category, tags, credit, au])
-  @@index([code])
+  @@index([code, searchTitle])
 }
 
 // 기필, 교필, 인선 이수 요건

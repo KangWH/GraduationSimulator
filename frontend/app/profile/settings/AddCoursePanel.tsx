@@ -20,6 +20,7 @@ interface AddCoursePanelProps {
   searchQuery: string;
   onSearchQueryChange: (v: string) => void;
   searchResults: { id: string; code?: string; title?: string; name?: string; department?: string; category?: string; credit?: number; au?: number }[];
+  isSearching?: boolean;
   selectedCourseIds: Set<string>;
   onSelectionChange: (ids: Set<string>) => void;
   addYear: number;
@@ -42,6 +43,7 @@ export default function AddCoursePanel({
   searchQuery,
   onSearchQueryChange,
   searchResults,
+  isSearching = false,
   selectedCourseIds,
   onSelectionChange,
   addYear,
@@ -205,12 +207,33 @@ export default function AddCoursePanel({
         </div>
       </div>
 
+      {/* 검색 중 표시 */}
+      {isSearching && searchResults.length === 0 && (
+        <div className="py-8 text-center">
+          <div className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>검색 중...</span>
+          </div>
+        </div>
+      )}
+
       {/* 검색 결과 */}
       {searchResults.length > 0 && (
         <>
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
               검색 결과 <span className="text-gray-500 dark:text-gray-400 font-normal">{searchResults.length}</span>
+              {isSearching && (
+                <span className="ml-2 inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
+                  <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </span>
+              )}
             </h3>
             <button
               type="button"
@@ -221,7 +244,7 @@ export default function AddCoursePanel({
             </button>
           </div>
           <div className="space-y-2 overflow-y-auto">
-            {searchResults.map((course) => {
+            {searchResults.map((course, index) => {
               // 선택 시에는 고유 ID 사용 (검색은 code로 하지만 저장은 id로)
               const courseId = course.id || course.code || String(course.id || course.code || Math.random());
               const isSelected = selectedCourseIds.has(courseId);
@@ -234,11 +257,15 @@ export default function AddCoursePanel({
                     e.dataTransfer.effectAllowed = 'copy';
                   }}
                   onClick={() => toggleSelection(courseId)}
-                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition-colors ${
+                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer transition-colors animate-slide-up ${
                     isSelected
                       ? 'border-violet-500 bg-violet-50 shadow-sm dark:border-violet-400 dark:bg-violet-900/20'
                       : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-zinc-800'
                   }`}
+                  style={{
+                    animationDelay: `${index * 0.05}s`,
+                    opacity: 0,
+                  }}
                 >
                   <input
                     type="checkbox"
@@ -268,11 +295,11 @@ export default function AddCoursePanel({
         </>
       )}
 
-      {searchResults.length === 0 && searchQuery && (
+      {!isSearching && searchResults.length === 0 && searchQuery && (
         <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">검색 결과가 없습니다.</p>
       )}
 
-      {searchResults.length === 0 && !searchQuery && (
+      {!isSearching && searchResults.length === 0 && !searchQuery && (
         <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">검색어를 입력하세요.</p>
       )}
 

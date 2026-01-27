@@ -8,6 +8,7 @@ export type CreditType =
   | { type: 'HUMANITIES_SOCIETY_ELECTIVE'; }
   | { type: 'MAJOR' }
   | { type: 'DOUBLE_MAJOR'; department: string; }
+  | { type: 'MAJOR_AND_DOUBLE_MAJOR'; department: string; }
   | { type: 'MINOR'; department: string; }
   | { type: 'ADVANCED_MAJOR'; }
   | { type: 'INDIVIDUALLY_DESIGNED_MAJOR'; }
@@ -41,6 +42,7 @@ export interface Requirement {
   value?: number;
   currentValue?: number;
   targets?: CourseCondition[];
+  targetTags?: string[];
   constraints?: any[];
   fulfilled: boolean;
 }

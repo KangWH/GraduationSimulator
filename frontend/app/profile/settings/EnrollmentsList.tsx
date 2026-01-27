@@ -121,7 +121,7 @@ export default function EnrollmentsList({
         return (
           <div
             key={semesterKey}
-            className="rounded-lg border border-gray-200 p-4 dark:border-gray-700 transition-colors"
+            className={`rounded-lg border border-gray-200 p-4 dark:border-gray-700 transition-colors ${isCollapsed ? 'pb-2' : ''}`}
             onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();

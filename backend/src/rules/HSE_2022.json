@@ -5,7 +5,7 @@
     "value": 21,
     "targets": [
       {
-        "category": "HSE"
+        "categories": ["HSE"]
       }
     ]
   },
@@ -16,7 +16,7 @@
     "targetTags": ["인문", "사회", "문학예술"],
     "targets": [
       {
-        "category": "HSE"
+        "categories": ["HSE"]
       }
     ]
   },
@@ -26,7 +26,7 @@
     "value": 1,
     "targets": [
       {
-        "category": "HSE",
+        "categories": ["HSE"],
         "tags": ["핵심"]
       }
     ]

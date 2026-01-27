@@ -12,7 +12,7 @@ import type { CourseSimulation, RawCourseSimulation, CreditType, Requirement } f
 import AddCoursePanel from '../profile/settings/AddCoursePanel';
 import EnrollmentsList from '../profile/settings/EnrollmentsList';
 import { group } from 'console';
-import { classifyCourses, getMatches, RequirementsProps } from './conditionTester';
+import { classifyCourses, RequirementsProps } from './conditionTester';
 import Logo from '../components/Logo';
 
 type Dept = { id: string; name: string };
@@ -58,6 +58,7 @@ export default function SimulationPage() {
   const [courseMode, setCourseMode] = useState<'add' | 'view'>('add');
   const [courseSearchQuery, setCourseSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
   const selectedCourseIdsRef = useRef<Set<string>>(new Set());
   
@@ -79,7 +80,9 @@ export default function SimulationPage() {
 
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const prevSimulationCoursesRef = useRef<CourseSimulation[]>([]);
+  const prevFiltersRef = useRef(filters);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [gradeBlindMode, setGradeBlindMode] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -280,7 +283,7 @@ export default function SimulationPage() {
     }
 
     // HSE -> HUMANITIES_SOCIETY_ELECTIVE
-    if (category === 'HSE' || category === 'HS') {
+    if (category === 'HSE') {
       return { type: 'HUMANITIES_SOCIETY_ELECTIVE' };
     }
 
@@ -506,12 +509,14 @@ export default function SimulationPage() {
 
     if (!hasQuery && !hasDept && !hasCat) {
       setSearchResults([]);
+      setIsSearching(false);
       if (selectedCourseIdsRef.current.size > 0) {
         updateSelectedCourseIds(new Set());
       }
       return;
     }
 
+    setIsSearching(true);
     const timeoutId = setTimeout(() => {
       const params = new URLSearchParams();
       if (hasQuery) {
@@ -534,6 +539,7 @@ export default function SimulationPage() {
         .then((courses) => {
           const newResults = Array.isArray(courses) ? courses : [];
           setSearchResults(newResults);
+          setIsSearching(false);
           
           // 검색 결과가 변경되면, 화면에서 사라진 항목은 선택 해제
           const currentSelected = selectedCourseIdsRef.current;
@@ -552,6 +558,7 @@ export default function SimulationPage() {
         .catch((error) => {
           console.error('Error fetching courses:', error);
           setSearchResults([]);
+          setIsSearching(false);
           // 에러 발생 시 선택 해제
           if (selectedCourseIdsRef.current.size > 0) {
             updateSelectedCourseIds(new Set());
@@ -559,7 +566,10 @@ export default function SimulationPage() {
         });
     }, 500); // 디바운스
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      setIsSearching(false);
+    };
   }, [courseSearchQuery, filterDepartment, filterCategory, updateSelectedCourseIds]);
 
   // 선택된 과목 추가
@@ -792,6 +802,7 @@ export default function SimulationPage() {
   // simulationCourses 변경 시 internalRecognizedAs 재계산
   useEffect(() => {
     const prev = prevSimulationCoursesRef.current;
+    const prevFilters = prevFiltersRef.current;
     
     // 배열 길이 변경 체크 (추가/삭제)
     const lengthChanged = prev.length !== simulationCourses.length;
@@ -814,8 +825,15 @@ export default function SimulationPage() {
       return prevRecognizedAs !== currentRecognizedAs;
     });
     
+    // 필터 변경 체크
+    const filtersChanged = JSON.stringify(prevFilters) !== JSON.stringify(filters);
+    
     // 변경사항이 있는 경우에만 재계산
-    if (lengthChanged || recognizedAsChanged) {
+    if (lengthChanged || recognizedAsChanged || filtersChanged) {
+      // 필터가 변경되면 ref 업데이트
+      if (filtersChanged) {
+        prevFiltersRef.current = filters;
+      }
       if (!profile) {
         prevSimulationCoursesRef.current = simulationCourses;
         return;
@@ -828,7 +846,7 @@ export default function SimulationPage() {
         return { type: 'basicRequired', data: (data.requirements || []) as Requirement[] };
       })());
       promises.push((async () => {
-        const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${profile?.major}&type=${profile?.doubleMajors.length > 1 ? 'BE_D' : 'BE'}`);
+        const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${profile?.major}&type=${filters.doubleMajors.length > 0 ? 'BE_D' : 'BE'}`);
         const data = await res.json();
         return { type: 'basicElective', data: (data.requirements || []) as Requirement[] };
       })());
@@ -837,42 +855,46 @@ export default function SimulationPage() {
         const data = await res.json();
         return { type: 'major', data: (data.requirements || []) as Requirement[] };
       })());
-      profile?.doubleMajors.forEach(d => {
+      (filters.doubleMajors || []).forEach(d => {
         promises.push((async () => {
-          const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${d}&type=DoubleMajor`);
+          const res = await fetch(`${API}/rules/major?year=${filters.requirementYear}&department=${d}&type=DoubleMajor`);
           const data = await res.json();
           return { type: 'doubleMajor', department: d, data: (data.requirements || []) as Requirement[] };
         })());
       });
-      profile?.minors.forEach(d => {
+      (filters.minors || []).forEach(d => {
         promises.push((async () => {
-          const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${d}&type=Minor`);
+          const res = await fetch(`${API}/rules/major?year=${filters.requirementYear}&department=${d}&type=Minor`);
           const data = await res.json();
           return { type: 'minor', department: d, data: (data.requirements || []) as Requirement[] };
         })());
       });
+      if (filters.advancedMajor) {
+        promises.push((async () => {
+          const res = await fetch(`${API}/rules/major?year=${filters.requirementYear}&department=${profile?.major}&type=AdvancedMajor`);
+          const data = await res.json();
+          return { type: 'advancedMajor', data: (data.requirements || []) as Requirement[] };
+        })());
+      }
       promises.push((async () => {
-        const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${profile?.major}&type=AdvancedMajor`);
-        const data = await res.json();
-        return { type: 'advancedMajor', data: (data.requirements || []) as Requirement[] };
-      })());
-      promises.push((async () => {
-        const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${profile?.major}&type=${profile?.doubleMajors.length > 1 ? 'RS_D' : 'RS'}`);
+        const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${profile?.major}&type=${filters.doubleMajors.length > 0 ? 'RS_D' : 'RS'}`);
         const data = await res.json();
         return { type: 'research', data: (data.requirements || []) as Requirement[] };
       })());
-      promises.push((async () => {
-        const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=IDM`);
-        const data = await res.json();
-        return { type: 'individuallyDesignedMajor', data: (data.requirements || []) as Requirement[] };
-      })());
+      if (filters.individuallyDesignedMajor) {
+        promises.push((async () => {
+          const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=IDM`);
+          const data = await res.json();
+          return { type: 'individuallyDesignedMajor', data: (data.requirements || []) as Requirement[] };
+        })());
+      }
       promises.push((async () => {
         const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=MGC`);
         const data = await res.json();
         return { type: 'mandatoryGeneralCourses', data: (data.requirements || []) as Requirement[] };
       })());
       promises.push((async () => {
-        const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=HSE`);
+        const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=${filters.doubleMajors.length > 0 ? 'HSE_D' : 'HSE'}`);
         const data = await res.json();
         return { type: 'humanitiesSocietyElective', data: (data.requirements || []) as Requirement[] };
       })());
@@ -918,31 +940,219 @@ export default function SimulationPage() {
             }
           });
 
-          const { enrolledCourses, requirements: evaluatedRequirements } = classifyCourses(simulationCourses, requirements);
+          const { enrolledCourses, requirements: evaluatedRequirements } = classifyCourses(simulationCourses, requirements, filters.major);
           setSimulationCourses(enrolledCourses);
           prevSimulationCoursesRef.current = enrolledCourses;
 
-          sections.forEach(s => {
-            switch (s.id) {
-              case 'BASIC_REQUIRED':
-                s.courses = simulationCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED');
-                s.requirements = requirements.basicRequired;
-                break;
-              case 'BASIC_ELECTIVE':
-                s.courses = simulationCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE');
-                s.requirements = requirements.basicElective;
-                break;
-              // TODO
-            }
-            s.fulfilled = s.requirements?.every(r => r.value === undefined || r.value <= (r.currentValue || 0)) || true
+          // baseSections를 직접 계산 (useEffect 내부에서)
+          const deptName = (id: string) => {
+            const dept = depts.find((d) => d.id === id);
+            return dept ? dept.name : id;
+          };
+          const computedBaseSections: Section[] = [];
+          const majorName = filters.major ? deptName(filters.major) : '';
+
+          computedBaseSections.push({
+            id: 'BASIC_REQUIRED',
+            title: '기초필수',
+            titleElements: ['기초필수'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED'),
+            fulfilled: false
           });
-          setSections([...sections]);
+          computedBaseSections.push({
+            id: 'BASIC_ELECTIVE',
+            title: '기초선택',
+            titleElements: ['기초선택'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE'),
+            fulfilled: false
+          });
+
+          if (filters.major) {
+            computedBaseSections.push({
+              id: `MAJOR_${filters.major}`,
+              title: `주전공: ${majorName}`,
+              titleElements: ['주전공', majorName],
+              courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'MAJOR') || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR')),
+              fulfilled: false
+            });
+            if (filters.advancedMajor) {
+              computedBaseSections.push({
+                id: `ADVANCED_MAJOR`,
+                title: '심화전공',
+                titleElements: ['심화전공'],
+                courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR'),
+                fulfilled: false
+              });
+            }
+          }
+          if (filters.major) {
+            computedBaseSections.push({
+              id: `RESEARCH_${filters.major}`,
+              title: '연구',
+              titleElements: ['연구'],
+              courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'RESEARCH'),
+              fulfilled: false
+            });
+          }
+
+          (filters.doubleMajors || []).forEach(id => {
+            computedBaseSections.push({
+              id: `DOUBLE_MAJOR_${id}`,
+              title: `복수전공: ${deptName(id)}`,
+              titleElements: ['복수전공', deptName(id)],
+              courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id)),
+              fulfilled: false
+            });
+          });
+
+          (filters.minors || []).forEach(id => {
+            computedBaseSections.push({
+              id: `MINOR_${id}`,
+              title: `부전공: ${deptName(id)}`,
+              titleElements: ['부전공', deptName(id)],
+              courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id)),
+              fulfilled: false,
+            });
+          });
+
+          if (filters.individuallyDesignedMajor) {
+            computedBaseSections.push({
+              id: 'INDIVIDUALLY_DESIGNED_MAJOR',
+              title: '자유융합전공',
+              titleElements: ['자유융합전공'],
+              courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR'),
+              fulfilled: false
+            });
+          }
+
+          computedBaseSections.push({
+            id: 'MANDATORY_GENERAL_COURSES',
+            title: '교양필수',
+            titleElements: ['교양필수'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES'),
+            fulfilled: false
+          });
+          computedBaseSections.push({
+            id: 'HUMANITIES_SOCIETY_ELECTIVE',
+            title: '인문사회선택',
+            titleElements: ['인문사회선택'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE'),
+            fulfilled: false
+          });
+
+          computedBaseSections.push({
+            id: 'OTHER_ELECTIVE',
+            title: '자유선택',
+            titleElements: ['자유선택'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'OTHER_ELECTIVE'),
+            fulfilled: false
+          });
+          computedBaseSections.push({
+            id: 'UNCLASSIFIED',
+            title: '미분류',
+            titleElements: ['미분류'],
+            courses: enrolledCourses.filter(c => c.internalRecognizedAs === undefined),
+            fulfilled: false
+          });
+
+          // baseSections를 기반으로 모든 섹션의 requirements 설정
+          const updatedSections = computedBaseSections.map((section) => {
+            let sectionRequirements: Requirement[] = [];
+            
+            if (section.id === 'BASIC_REQUIRED') {
+              sectionRequirements = requirements.basicRequired || [];
+            } else if (section.id === 'BASIC_ELECTIVE') {
+              sectionRequirements = requirements.basicElective || [];
+            } else if (section.id.startsWith('MAJOR_') && filters.major) {
+              sectionRequirements = requirements.major || [];
+            } else if (section.id === 'ADVANCED_MAJOR' && filters.major && filters.advancedMajor) {
+              sectionRequirements = requirements.advanced || [];
+            } else if (section.id.startsWith('RESEARCH_') && filters.major) {
+              sectionRequirements = requirements.research || [];
+            } else if (section.id.startsWith('DOUBLE_MAJOR_')) {
+              const department = section.id.replace('DOUBLE_MAJOR_', '');
+              sectionRequirements = requirements.doubleMajors?.[department] || [];
+            } else if (section.id.startsWith('MINOR_')) {
+              const department = section.id.replace('MINOR_', '');
+              sectionRequirements = requirements.minors?.[department] || [];
+            } else if (section.id === 'INDIVIDUALLY_DESIGNED_MAJOR') {
+              sectionRequirements = requirements.individuallyDesignedMajor || [];
+            } else if (section.id === 'MANDATORY_GENERAL_COURSES') {
+              sectionRequirements = requirements.mandatoryGeneralCourses || [];
+            } else if (section.id === 'HUMANITIES_SOCIETY_ELECTIVE') {
+              sectionRequirements = requirements.humanitiesSocietyElective || [];
+            }
+
+            // requirements fulfilled 계산 (currentValue는 classifyCourses에서 이미 계산됨)
+            sectionRequirements.forEach(r => {
+              r.fulfilled = r.value === undefined ? true : (r.currentValue || 0) >= (r.value || 0);
+            });
+
+            const fulfilled = sectionRequirements.length === 0 || sectionRequirements.every(r => r.fulfilled);
+
+            return {
+              ...section,
+              courses: enrolledCourses.filter(c => {
+                if (section.id === 'BASIC_REQUIRED') {
+                  return c.internalRecognizedAs?.type === 'BASIC_REQUIRED';
+                } else if (section.id === 'BASIC_ELECTIVE') {
+                  return c.internalRecognizedAs?.type === 'BASIC_ELECTIVE';
+                } else if (section.id.startsWith('MAJOR_') && filters.major) {
+                  return c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR';
+                } else if (section.id === 'ADVANCED_MAJOR' && filters.major && filters.advancedMajor) {
+                  return c.internalRecognizedAs?.type === 'ADVANCED_MAJOR';
+                } else if (section.id.startsWith('RESEARCH_') && filters.major) {
+                  return c.internalRecognizedAs?.type === 'RESEARCH';
+                } else if (section.id.startsWith('DOUBLE_MAJOR_')) {
+                  const department = section.id.replace('DOUBLE_MAJOR_', '');
+                  return (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department);
+                } else if (section.id.startsWith('MINOR_')) {
+                  const department = section.id.replace('MINOR_', '');
+                  return c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === department;
+                } else if (section.id === 'INDIVIDUALLY_DESIGNED_MAJOR') {
+                  return c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR';
+                } else if (section.id === 'MANDATORY_GENERAL_COURSES') {
+                  return c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES';
+                } else if (section.id === 'HUMANITIES_SOCIETY_ELECTIVE') {
+                  return c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE';
+                } else if (section.id === 'OTHER_ELECTIVE') {
+                  return c.internalRecognizedAs?.type === 'OTHER_ELECTIVE';
+                } else if (section.id === 'UNCLASSIFIED') {
+                  return c.internalRecognizedAs === undefined;
+                }
+                return false;
+              }),
+              requirements: sectionRequirements,
+              fulfilled: fulfilled
+            };
+          });
+
+          setSections(updatedSections);
+          
+          // 달성된 섹션을 기본으로 접기
+          const fulfilledSectionIds = new Set<string>();
+          updatedSections.forEach((s) => {
+            if (s.fulfilled) {
+              fulfilledSectionIds.add(`center-${s.id}`);
+            }
+          });
+          setCollapsedSections((prev) => {
+            const newSet = new Set(prev);
+            // 기존에 수동으로 접은 섹션은 유지하고, 달성된 섹션만 추가
+            fulfilledSectionIds.forEach((id) => {
+              if (!prev.has(id)) {
+                newSet.add(id);
+              }
+            });
+            return newSet;
+          });
         });
     } else {
       // 변경사항이 없어도 ref는 최신 상태로 유지
       prevSimulationCoursesRef.current = simulationCourses;
+      prevFiltersRef.current = filters;
     }
-  }, [simulationCourses, filters]);
+  }, [simulationCourses, filters, profile, depts]);
 
   // CourseSimulation[]를 Enrollment[]로 변환 (EnrollmentsList 컴포넌트 사용을 위해)
   const enrollmentsForList: Enrollment[] = simulationCourses.map((cs) => ({
@@ -1037,8 +1247,7 @@ export default function SimulationPage() {
       id: 'BASIC_REQUIRED',
       title: '기초필수',
       titleElements: ['기초필수'],
-      // courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED'),
-      courses: [],
+      courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED'),
       fulfilled: false
     });
     out.push({
@@ -1054,12 +1263,12 @@ export default function SimulationPage() {
         id: `MAJOR_${filters.major}`,
         title: `주전공: ${majorName}`,
         titleElements: ['주전공', majorName],
-        courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'MAJOR'),
+        courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR'),
         fulfilled: false
       });
       if (filters.advancedMajor) {
         out.push({
-          id: `ADVANCED_MAJOR_${filters.major}`,
+          id: `ADVANCED_MAJOR`,
           title: '심화전공',
           titleElements: ['심화전공'],
           courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR'),
@@ -1082,7 +1291,7 @@ export default function SimulationPage() {
         id: `DOUBLE_MAJOR_${id}`,
         title: `복수전공: ${deptName(id)}`,
         titleElements: ['복수전공', deptName(id)],
-        courses: simulationCourses.filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id)),
+        courses: simulationCourses.filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id)),
         fulfilled: false
       });
     });
@@ -1142,187 +1351,20 @@ export default function SimulationPage() {
 
   const [sections, setSections] = useState<Section[]>(baseSections.map(s => ({ ...s, requirements: [] })));
 
-  // baseSections가 변경되면 sections 업데이트
+  // baseSections가 변경되면 sections 업데이트 (requirements는 792-945행의 useEffect에서 처리)
   useEffect(() => {
-    setSections(baseSections.map(s => ({ ...s, requirements: s.requirements || [] })));
+    // requirements는 792-945행의 useEffect에서 처리되므로, 여기서는 courses만 업데이트
+    setSections(prevSections => {
+      return baseSections.map(baseSection => {
+        const existingSection = prevSections.find(s => s.id === baseSection.id);
+        return {
+          ...baseSection,
+          requirements: existingSection?.requirements || [],
+          fulfilled: existingSection?.fulfilled ?? false
+        };
+      });
+    });
   }, [baseSections]);
-
-  // 섹션별 요건 불러오기
-  useEffect(() => {
-    const loadRequirements = async () => {
-      const year = filters.requirementYear;
-      if (!year) {
-        // 요건 연도가 없으면 빈 배열로 설정
-        setSections(baseSections.map(s => ({ ...s, requirements: [] })));
-        return;
-      }
-
-      const updatedSections = await Promise.all(
-        baseSections.map(async (section) => {
-          try {
-            let requirements: Array<Requirement> = [];
-            
-            if (section.id === 'BASIC_REQUIRED') {
-              // 기초필수: 공통 요건
-              // const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=BR`);
-              // const data = await res.json();
-              // if (data.success && Array.isArray(data.requirements)) {
-              //   requirements = data.requirements;
-              //   requirements.forEach(r => {
-              //     const evaluation = getMatches(simulationCourses, r.type, r.targets, r.constraints || []);
-              //     r.currentValue = evaluation.currentValue;
-              //     switch (r.type) {
-              //       case 'MIN_COURSES_AMONG':
-              //       case 'MIN_CREDITS_AMONG':
-              //       case 'MIN_AU_AMONG':
-              //         r.fulfilled = r.value === undefined ? true : r.value < r.currentValue || r.value === r.currentValue;
-              //         break;
-              //     }
-              //   });
-              // }
-            } else if (section.id === 'BASIC_ELECTIVE') {
-              // 기초선택: 학과별 요건
-              if (filters.major) {
-                const res = await fetch(`${API}/rules/major?year=${year}&department=${encodeURIComponent(filters.major)}&type=${filters.doubleMajors.length < 1 ? 'BE' : 'BE_D'}`);
-                const data = await res.json();
-                if (data.success && Array.isArray(data.requirements)) {
-                  requirements = data.requirements;
-                  requirements.forEach(r => {
-                    const evaluation = getMatches(simulationCourses, r.type, r.targets, r.constraints || []);
-                    r.currentValue = evaluation.currentValue;
-                    switch (r.type) {
-                      case 'MIN_COURSES_AMONG':
-                      case 'MIN_CREDITS_AMONG':
-                      case 'MIN_AU_AMONG':
-                        r.fulfilled = r.value === undefined ? true : r.value < r.currentValue || r.value === r.currentValue;
-                        break;
-                    }
-                  });
-                }
-              }
-            } else if (section.id.startsWith('MAJOR_') && filters.major) {
-              // 주전공: 학과별 요건
-              const res = await fetch(`${API}/rules/major?year=${year}&department=${encodeURIComponent(filters.major)}&type=Major`);
-              const data = await res.json();
-              if (data.success && Array.isArray(data.requirements)) {
-                requirements = data.requirements;
-                requirements.forEach(r => {
-                  const evaluation = getMatches(simulationCourses, r.type, r.targets, r.constraints || []);
-                  r.currentValue = evaluation.currentValue;
-                  switch (r.type) {
-                    case 'MIN_COURSES_AMONG':
-                    case 'MIN_CREDITS_AMONG':
-                    case 'MIN_AU_AMONG':
-                      r.fulfilled = r.value === undefined ? true : r.value < r.currentValue || r.value === r.currentValue;
-                      break;
-                  }
-                });
-              }
-            } else if (section.id.startsWith('ADVANCED_MAJOR_') && filters.major) {
-              // 심화전공: 학과별 요건
-              const res = await fetch(`${API}/rules/major?year=${year}&department=${encodeURIComponent(filters.major)}&type=AdvancedMajor`);
-              const data = await res.json();
-              if (data.success && Array.isArray(data.requirements)) {
-                requirements = data.requirements;
-              }
-            } else if (section.id.startsWith('RESEARCH_') && filters.major) {
-              // 연구: 학과별 요건
-              const res = await fetch(`${API}/rules/major?year=${year}&department=${encodeURIComponent(filters.major)}&type=${filters.doubleMajors.length < 1 ? 'RS' : 'RS_D'}`);
-              const data = await res.json();
-              if (data.success && Array.isArray(data.requirements)) {
-                requirements = data.requirements;
-              }
-            } else if (section.id.startsWith('DOUBLE_MAJOR_')) {
-              // 복수전공: 학과별 요건
-              const department = section.id.replace('DOUBLE_MAJOR_', '');
-              const res = await fetch(`${API}/rules/major?year=${year}&department=${encodeURIComponent(department)}&type=DoubleMajor`);
-              const data = await res.json();
-              if (data.success && Array.isArray(data.requirements)) {
-                requirements = data.requirements;
-              }
-            } else if (section.id.startsWith('MINOR_')) {
-              // 부전공: 학과별 요건
-              const department = section.id.replace('MINOR_', '');
-              const res = await fetch(`${API}/rules/major?year=${year}&department=${encodeURIComponent(department)}&type=Minor`);
-              const data = await res.json();
-              if (data.success && Array.isArray(data.requirements)) {
-                requirements = data.requirements;
-              }
-            } else if (section.id === 'INDIVIDUALLY_DESIGNED_MAJOR') {
-              // 자유융합전공: 공통 요건
-              const res = await fetch(`${API}/rules/general?year=${year}&type=IDM`);
-              const data = await res.json();
-              if (data.success && Array.isArray(data.requirements)) {
-                requirements = data.requirements;
-              }
-            } else if (section.id === 'MANDATORY_GENERAL_COURSES') {
-              // 교양필수: 공통 요건
-              const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=MGC`);
-              const data = await res.json();
-              if (data.success && Array.isArray(data.requirements)) {
-                requirements = data.requirements;
-                requirements.forEach(r => {
-                  const evaluation = getMatches(simulationCourses, r.type, r.targets, r.constraints || []);
-                  r.currentValue = evaluation.currentValue;
-                  switch (r.type) {
-                    case 'MIN_COURSES_AMONG':
-                    case 'MIN_CREDITS_AMONG':
-                    case 'MIN_AU_AMONG':
-                      r.fulfilled = r.value === undefined ? true : r.value < r.currentValue || r.value === r.currentValue;
-                      break;
-                  }
-                });
-              }
-            } else if (section.id === 'HUMANITIES_SOCIETY_ELECTIVE') {
-              // 인문사회선택: 공통 요건
-              const hasDoubleMajor = filters.doubleMajors && filters.doubleMajors.length > 0;
-              const type = hasDoubleMajor ? 'HSE_D' : 'HSE';
-              const res = await fetch(`${API}/rules/general?year=${profile?.admissionYear}&type=${type}`);
-              const data = await res.json();
-              if (data.success && Array.isArray(data.requirements)) {
-                requirements = data.requirements;
-              }
-            }
-
-            if (section.id !== 'BASIC_REQUIRED') {
-            const fulfilled = requirements.every(r => r.fulfilled);
-
-            return { ...section, requirements, fulfilled: fulfilled };
-            } else {
-              return section;
-            }
-          } catch (error) {
-            console.error(`Error loading requirements for ${section.id}:`, error);
-            return { ...section, requirements: [] };
-          }
-        })
-      );
-
-      setSections(updatedSections);
-      
-      // 달성된 섹션을 기본으로 접기
-      const fulfilledSectionIds = new Set<string>();
-      updatedSections.forEach((s) => {
-        if (s.fulfilled) {
-          fulfilledSectionIds.add(`center-${s.id}`);
-        }
-      });
-      setCollapsedSections((prev) => {
-        const newSet = new Set(prev);
-        // 기존에 수동으로 접은 섹션은 유지하고, 달성된 섹션만 추가
-        fulfilledSectionIds.forEach((id) => {
-          if (!prev.has(id)) {
-            newSet.add(id);
-          }
-        });
-        return newSet;
-      });
-    };
-
-    if (baseSections.length > 0) {
-      loadRequirements();
-    }
-  }, [baseSections, filters.requirementYear, filters.major, filters.doubleMajors]);
 
   // 섹션을 그룹화: 주전공/심화전공/연구를 하나의 그룹으로
   const groupedSections = useMemo(() => {
@@ -1334,7 +1376,7 @@ export default function SimulationPage() {
     sections.forEach((s) => {
       if (s.id.match(/^BASIC_/)) {
         basicGroup.push(s);
-      } else if (s.id.match(/^MAJOR_/) || s.id.match(/^ADVANCED_MAJOR_/) || s.id.match(/^RESEARCH_/)) {
+      } else if (s.id.match(/^MAJOR_/) || s.id.match(/^ADVANCED_MAJOR/) || s.id.match(/^RESEARCH_/)) {
         majorGroup.push(s);
       } else if (s.id === 'OTHER_ELECTIVE' || s.id === 'UNCLASSIFIED') {
         miscSections.push(s);
@@ -1492,7 +1534,7 @@ export default function SimulationPage() {
 
         {/* 하단 메뉴: 계정 이름 + 로그아웃 */}
         <div
-          className={`border-t border-gray-200 dark:border-gray-700 overflow-hidden ${
+          className={`border-t border-gray-200 dark:border-gray-700 overflow-hidden transition-all ${
             sidebarOpen ? 'p-4 space-y-2' : 'px-2 py-3 space-y-2'
           }`}
         >
@@ -1503,7 +1545,7 @@ export default function SimulationPage() {
           >
             <Link
               href="/profile/settings"
-              className={`flex items-center gap-3 rounded-lg transition-colors flex-1 min-w-0 ${
+              className={`flex items-center gap-3 rounded-lg transition-colors flex-1 min-w-0 transition-all ${
                 sidebarOpen
                   ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 px-4 py-2'
                   : 'justify-center p-2'
@@ -1646,7 +1688,30 @@ export default function SimulationPage() {
                 className={`${rightPanelOpen ? 'w-1/3' : 'w-1/2'} flex-shrink-0 border-r border-gray-200 dark:border-gray-700 overflow-y-auto transition-all duration-300`}
               >
                 <div className="p-4">
-                  <h2 className="text-xl font-semibold mb-4">수업별 학점 인정 분야</h2>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>수업별 학점 인정 분야</h2>
+                    <button
+                      onClick={() => setGradeBlindMode(!gradeBlindMode)}
+                      className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                      title={gradeBlindMode ? '성적 표시' : '성적 숨기기'}
+                    >
+                      <svg
+                        className={`w-4 h-4 ${gradeBlindMode ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300'}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        {gradeBlindMode ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        )}
+                      </svg>
+                      <span className="text-xs text-gray-600 dark:text-gray-300">
+                        {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
+                      </span>
+                    </button>
+                  </div>
                   <div>
                     {sections.length === 0 ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
@@ -1661,7 +1726,7 @@ export default function SimulationPage() {
                               const isCollapsed = collapsedSections.has(s.id);
                               return (
                                 <div key={s.id} className={i > 0 ? 'mt-4' : ''}>
-                                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                <div className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${isCollapsed ? 'pb-2' : ''}`}>
                                   <div className="flex justify-between text-sm items-baseline mb-3">
                                     <button
                                       onClick={() => toggleSection(s.id)}
@@ -1689,10 +1754,20 @@ export default function SimulationPage() {
                                           key={c.courseId}
                                           className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                         >
-                                          <p className="font-medium text-sm">{c.course.title}</p>
-                                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                          </p>
+                                          <div className="flex items-center font-medium text-sm gap-2">
+                                            <p>{c.course.title}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            {!gradeBlindMode && (
+                                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                {c.grade}
+                                              </span>
+                                            )}
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                              {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
+                                            </p>
+                                          </div>
                                         </div>
                                       ))
                                     )}
@@ -1716,7 +1791,7 @@ export default function SimulationPage() {
                                 const isCollapsed = collapsedSections.has(s.id);
                                 return (
                                   <div key={s.id}>
-                                  <div className="p-4">
+                                  <div className={`p-4 ${isCollapsed ? 'pb-2' : ''}`}>
                                     <div className="flex justify-between text-sm items-baseline mb-3">
                                       <button
                                         onClick={() => toggleSection(s.id)}
@@ -1744,10 +1819,23 @@ export default function SimulationPage() {
                                             key={c.courseId}
                                             className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                           >
-                                            <p className="font-medium text-sm">{c.course.title}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                                              {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                            </p>
+                                            <div className="flex items-center font-medium text-sm gap-2">
+                                              <p>{c.course.title}</p>
+                                              <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                              {!gradeBlindMode && (
+                                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                  {c.grade}
+                                                </span>
+                                              )}
+                                              {c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">중복인정</span>
+                                              )}
+                                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
+                                              </p>
+                                            </div>
                                           </div>
                                         ))
                                       )}
@@ -1774,7 +1862,7 @@ export default function SimulationPage() {
                               const isCollapsed = collapsedSections.has(s.id);
                               return (
                                 <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
-                                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                                <div className={`border border-gray-200 dark:border-gray-700 rounded-lg p-4 ${isCollapsed ? 'pb-2' : ''}`}>
                                   <div className="flex justify-between text-sm items-baseline mb-3">
                                     <button
                                       onClick={() => toggleSection(s.id)}
@@ -1802,10 +1890,23 @@ export default function SimulationPage() {
                                           key={c.courseId}
                                           className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                         >
-                                          <p className="font-medium text-sm">{c.course.title}</p>
-                                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                                          {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                          </p>
+                                          <div className="flex items-center font-medium text-sm gap-2">
+                                            <p>{c.course.title}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            {!gradeBlindMode && (
+                                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                                {c.grade}
+                                              </span>
+                                            )}
+                                            {c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
+                                              <span className="text-xs text-gray-500 dark:text-gray-400">중복인정</span>
+                                            )}
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                                              {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
+                                            </p>
+                                          </div>
                                         </div>
                                       ))
                                     )}
@@ -1813,7 +1914,7 @@ export default function SimulationPage() {
                                   )}
                                 </div>
                               </div>
-                              );
+                            );
                             })}
                           </>
                         )}
@@ -1847,10 +1948,20 @@ export default function SimulationPage() {
                                     key={c.courseId}
                                     className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                   >
-                                    <p className="font-medium text-sm">{c.course.title}</p>
-                                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                                      {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                    </p>
+                                    <div className="flex items-center font-medium text-sm gap-2">
+                                      <p>{c.course.title}</p>
+                                      <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {!gradeBlindMode && (
+                                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                          {c.grade}
+                                        </span>
+                                      )}
+                                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
+                                      </p>
+                                    </div>
                                   </div>
                                 ))}
                               </div>
@@ -1872,7 +1983,7 @@ export default function SimulationPage() {
                 >
                   <div className="p-4 pb-24">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-semibold">졸업 요건</h2>
+                      <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>졸업 요건</h2>
                       {!rightPanelOpen && (
                         <button
                           type="button"
@@ -1906,7 +2017,7 @@ export default function SimulationPage() {
                                 const isCollapsed = collapsedSections.has(`center-${s.id}`);
                                 return (
                                   <div key={s.id} className={idx > 0 ? 'mt-4' : ''}>
-                                    <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                                    <div className={`rounded-lg border border-gray-200 dark:border-gray-700 p-4 ${isCollapsed ? 'pb-2' : ''}`}>
                                       <div className="flex items-center justify-between mb-2">
                                         <button
                                           onClick={() => toggleSection(`center-${s.id}`)}
@@ -1924,27 +2035,44 @@ export default function SimulationPage() {
                                         </button>
                                         <p
                                           className={`text-sm font-medium ${
-                                            s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+                                            s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                           }`}
                                         >
                                           {s.fulfilled ? '달성' : '미달'}
                                         </p>
                                       </div>
-                                      {!isCollapsed && requirements.length > 0 && (
-                                        <div className="mt-3 space-y-2">
-                                          {requirements.map((req, reqIdx) => (
-                                            <div
-                                              key={reqIdx}
-                                              className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                            >
-                                              <p className="font-medium text-sm truncate">{req.title || req.description}</p>
-                                              {req.value != null && (
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                                  {req.currentValue || 0} / {req.value}
-                                                </p>
-                                              )}
+                                      {!isCollapsed && (
+                                        <div className="mt-3">
+                                          {requirements.length > 0 ? (
+                                            <div className="space-y-2">
+                                              {requirements.map((req, reqIdx) => {
+                                                const currentValue = req.currentValue || 0;
+                                                const targetValue = req.value || 0;
+                                                const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
+                                                return (
+                                                  <div
+                                                    key={reqIdx}
+                                                    className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
+                                                  >
+                                                    <div
+                                                      className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
+                                                      style={{ width: `${percentage}%` }}
+                                                    />
+                                                    <div className="relative flex items-center justify-between">
+                                                      <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                                      {req.value != null && (
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                          {currentValue} / {targetValue}
+                                                        </p>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })}
                                             </div>
-                                          ))}
+                                          ) : (
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -1962,7 +2090,7 @@ export default function SimulationPage() {
                                 const isCollapsed = collapsedSections.has(`center-${s.id}`);
                                 return (
                                   <div key={s.id}>
-                                    <div className="p-4">
+                                    <div className={`p-4 ${isCollapsed ? 'pb-2' : ''}`}>
                                       <div className="flex items-center justify-between mb-2">
                                         <button
                                           onClick={() => toggleSection(`center-${s.id}`)}
@@ -1979,7 +2107,7 @@ export default function SimulationPage() {
                                           <h3 className="font-medium text-base">
                                             {s.titleElements.length > 1 ? (
                                               <>
-                                                <span className="text-gray-400 dark:text-zinc-600">{s.titleElements[0]}: </span>
+                                                <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
                                                 <span>{s.titleElements.slice(1).join(' ')}</span>
                                               </>
                                             ) : s.titleElements[0]}
@@ -1987,27 +2115,44 @@ export default function SimulationPage() {
                                         </button>
                                         <p
                                           className={`text-sm font-medium ${
-                                            s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+                                            s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                           }`}
                                         >
                                           {s.fulfilled ? '달성' : '미달'}
                                         </p>
                                       </div>
-                                      {!isCollapsed && requirements.length > 0 && (
-                                        <div className="mt-3 space-y-2">
-                                          {requirements.map((req, reqIdx) => (
-                                            <div
-                                              key={reqIdx}
-                                              className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                            >
-                                              <p className="font-medium text-sm truncate">{req.title || req.description}</p>
-                                              {req.value != null && (
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                                  {req.currentValue || 0} / {req.value}
-                                                </p>
-                                              )}
+                                      {!isCollapsed && (
+                                        <div className="mt-3">
+                                          {requirements.length > 0 ? (
+                                            <div className="space-y-2">
+                                              {requirements.map((req, reqIdx) => {
+                                                const currentValue = req.currentValue || 0;
+                                                const targetValue = req.value || 0;
+                                                const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
+                                                return (
+                                                  <div
+                                                    key={reqIdx}
+                                                    className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
+                                                  >
+                                                    <div
+                                                      className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
+                                                      style={{ width: `${percentage}%` }}
+                                                    />
+                                                    <div className="relative flex items-center justify-between">
+                                                      <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                                      {req.value != null && (
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                          {currentValue} / {targetValue}
+                                                        </p>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })}
                                             </div>
-                                          ))}
+                                          ) : (
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -2028,7 +2173,7 @@ export default function SimulationPage() {
                                 const isCollapsed = collapsedSections.has(`center-${s.id}`);
                                 return (
                                   <div key={s.id} className={groupedSections.majorGroup.length > 0 ? 'mt-4' : ''}>
-                                    <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                                    <div className={`rounded-lg border border-gray-200 dark:border-gray-700 p-4 ${isCollapsed ? 'pb-2' : ''}`}>
                                       <div className="flex items-center justify-between mb-2">
                                         <button
                                           onClick={() => toggleSection(`center-${s.id}`)}
@@ -2045,7 +2190,7 @@ export default function SimulationPage() {
                                           <h3 className="font-medium text-base">
                                             {s.titleElements.length > 1 ? (
                                               <>
-                                                <span className="text-gray-400 dark:text-zinc-600">{s.titleElements[0]}: </span>
+                                                <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
                                                 <span>{s.titleElements.slice(1).join(' ')}</span>
                                               </>
                                             ) : s.titleElements[0]}
@@ -2053,27 +2198,44 @@ export default function SimulationPage() {
                                         </button>
                                         <p
                                           className={`text-sm font-medium ${
-                                            s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'
+                                            s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                           }`}
                                         >
                                           {s.fulfilled ? '달성' : '미달'}
                                         </p>
                                       </div>
-                                      {!isCollapsed && requirements.length > 0 && (
-                                        <div className="mt-3 space-y-2">
-                                          {requirements.map((req, reqIdx) => (
-                                            <div
-                                              key={reqIdx}
-                                              className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                            >
-                                              <p className="font-medium text-sm truncate">{req.title || req.description}</p>
-                                              {req.value != null && (
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                                  {req.currentValue || 0} / {req.value}
-                                                </p>
-                                              )}
+                                      {!isCollapsed && (
+                                        <div className="mt-3">
+                                          {requirements.length > 0 ? (
+                                            <div className="space-y-2">
+                                              {requirements.map((req, reqIdx) => {
+                                                const currentValue = req.currentValue || 0;
+                                                const targetValue = req.value || 0;
+                                                const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
+                                                return (
+                                                  <div
+                                                    key={reqIdx}
+                                                    className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
+                                                  >
+                                                    <div
+                                                      className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
+                                                      style={{ width: `${percentage}%` }}
+                                                    />
+                                                    <div className="relative flex items-center justify-between">
+                                                      <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                                      {req.value != null && (
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                          {currentValue} / {targetValue}
+                                                        </p>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })}
                                             </div>
-                                          ))}
+                                          ) : (
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -2088,7 +2250,7 @@ export default function SimulationPage() {
                   </div>
                 </div>
 
-                <div className="absolute bottom-0 w-full flex-shrink-0 bg-gradient-to-t from-white via-white/95 to-transparent backdrop-blur-sm px-4 py-3">
+                <div className="absolute bottom-0 w-full flex-shrink-0 bg-gradient-to-t from-white dark:from-black via-white/95 dark:via-black/95 to-transparent backdrop-blur-sm px-4 py-3">
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-6 flex-1">
                       <div>
@@ -2166,6 +2328,7 @@ export default function SimulationPage() {
                             searchQuery={courseSearchQuery}
                             onSearchQueryChange={setCourseSearchQuery}
                             searchResults={searchResults}
+                            isSearching={isSearching}
                             selectedCourseIds={selectedCourseIds}
                             onSelectionChange={updateSelectedCourseIds}
                             addYear={addYear}

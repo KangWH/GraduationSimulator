@@ -940,11 +940,14 @@ export const CourseOfferingScalarFieldEnum = {
   id: 'id',
   code: 'code',
   title: 'title',
+  searchTitle: 'searchTitle',
   department: 'department',
   category: 'category',
   tags: 'tags',
   credit: 'credit',
-  au: 'au'
+  au: 'au',
+  level: 'level',
+  crossRecognition: 'crossRecognition'
 } as const
 
 export type CourseOfferingScalarFieldEnum = (typeof CourseOfferingScalarFieldEnum)[keyof typeof CourseOfferingScalarFieldEnum]

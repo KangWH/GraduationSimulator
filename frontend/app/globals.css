@@ -29,3 +29,18 @@ body {
   color: var(--foreground);
   font-family: 'Pretendard Std', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out forwards;
+}

@@ -23,21 +23,83 @@ router.get('/', async (req, res) => {
       }
     }
 
-    const conditions: any[] = [];
-
-    // 검색어 필터 (query가 있으면 제목 또는 코드로 검색)
+    // query 파라미터가 있을 때 정규식 패턴 매칭 사용
     if (query && typeof query === 'string') {
-      conditions.push({
-        OR: [
-          { title: { contains: query } },
-          { code: { contains: query } }
-        ]
-      });
+      const searchTitle = query.replace(/[^가-힣0-9A-Za-z]/g, '').toLowerCase();
+      
+      // 각 글자 사이에 임의의 글자가 있어도 매칭되도록 정규식 패턴 생성
+      // 예: '선대개' -> '선.*대.*개'
+      const regexPattern = searchTitle.split('').map(char => {
+        // 정규식 특수문자 이스케이프
+        return char.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }).join('.*');
+      
+      // WHERE 절 조건 구성
+      const searchConditions: string[] = [];
+      const filterConditions: string[] = [];
+      const queryParams: any[] = [];
+      let paramIndex = 1;
+      
+      // 정규식 패턴 매칭 (각 글자 사이에 임의의 글자 허용)
+      searchConditions.push(`LOWER("searchTitle") ~* $${paramIndex}`);
+      searchConditions.push(`LOWER("title") ~* $${paramIndex}`);
+      queryParams.push(regexPattern);
+      paramIndex++;
+      
+      // 코드는 기존 contains 방식 유지
+      searchConditions.push(`"code" ILIKE $${paramIndex}`);
+      queryParams.push(`%${query}%`);
+      paramIndex++;
+      
+      // contains 패턴도 추가 (정확한 매칭 우선)
+      const containsPattern = `%${searchTitle}%`;
+      queryParams.push(containsPattern);
+      const containsParamIndex = paramIndex;
+      paramIndex++;
+      
+      // 추가 필터
+      if (category && typeof category === 'string') {
+        filterConditions.push(`"category" = $${paramIndex}`);
+        queryParams.push(category);
+        paramIndex++;
+      }
+      if (department && typeof department === 'string') {
+        filterConditions.push(`"department" = $${paramIndex}`);
+        queryParams.push(department);
+        paramIndex++;
+      }
+      
+      // WHERE 절 구성
+      const whereClause = filterConditions.length > 0
+        ? `(${searchConditions.join(' OR ')}) AND ${filterConditions.join(' AND ')}`
+        : `(${searchConditions.join(' OR ')})`;
+      
+      // 정확한 매칭을 우선으로 정렬하기 위해 CASE 문 사용
+      const fuzzySearchQuery = `
+        SELECT *,
+          CASE 
+            WHEN LOWER("searchTitle") LIKE $${containsParamIndex} THEN 3
+            WHEN LOWER("searchTitle") ~* $1 THEN 2
+            WHEN "code" ILIKE $2 THEN 1
+            ELSE 0
+          END as match_priority
+        FROM "CourseOffering"
+        WHERE ${whereClause}
+        ORDER BY match_priority DESC, "code" ASC
+        LIMIT 100
+      `;
+      
+      const courses = await prisma.$queryRawUnsafe(fuzzySearchQuery, ...queryParams);
+      return res.json(courses);
     }
+
+    // query가 없을 때는 기존 방식 사용
+    const conditions: any[] = [];
 
     // 개별 필터
     if (title && typeof title === 'string') {
-      conditions.push({ title: { contains: title } });
+      const searchTitle = title.replace(/[^가-힣0-9A-Za-z]/g, '').toLowerCase();
+      conditions.push({ searchTitle: { contains: searchTitle } });
     }
     if (code && typeof code === 'string') {
       conditions.push({ code });
