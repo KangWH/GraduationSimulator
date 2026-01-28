@@ -1,17 +1,17 @@
 [
   {
-      "type": "MIN_CREDITS_AMONG", 
-      "title": "연구 학점",
-      "description": "PH490 졸업연구(3), PH496 세미나(2)를 포함하여 연구과목 5학점 이상 이수",
-      "value": 5,
-      "targets": [
-        {
-          "codes": ["PH.91000", "PH.91100"]
-        }, 
-        {
-          "codes": ["PH.93002"]
-        }
-      ], 
+    "type": "MIN_CREDITS_AMONG",
+    "title": "연구 학점",
+    "description": "연구 5학점 이상 이수",
+    "value": 5,
+    "targets": [
+      {
+        "codes": ["PH.91000", "PH.91100"]
+      }, 
+      {
+        "codes": ["PH.93002"]
+      }
+    ], 
     "constraints": [
       {
         "type": "MAX_CREDITS_AMONG",

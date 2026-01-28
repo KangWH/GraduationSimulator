@@ -1,7 +1,7 @@
 [ 
   {
-    "type": "MIN_CREDITS_AMONG", 
-    "title": "전공과목 학점",
+    "type": "MIN_CREDITS_AMONG",
+    "title": "전공필수+전공선택 학점",
     "description": "전공과목 18학점 이상 이수",
     "value": 18,
     "targets": [
@@ -12,8 +12,8 @@
     ]
   }, 
   {
-    "type": "MIN_SUBJECTS_AMONG", 
-    "title": "필수 전공과목",
+    "type": "MIN_COURSES_AMONG",
+    "title": "학과 지정 과목",
     "description": "양자역학I, 물리학실험III 필수 이수",
     "value": 2,
     "targets": [

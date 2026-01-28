@@ -1,6 +1,6 @@
 [ 
   {
-    "type": "MIN_CREDITS_AMONG", 
+    "type": "MIN_CREDITS_AMONG",
     "title": "전공필수 학점",
     "description": "전공필수 19학점 이상 이수",
     "value": 19,
@@ -12,7 +12,7 @@
     ]
   }, 
   {
-    "type": "MIN_CREDITS_AMONG", 
+    "type": "MIN_CREDITS_AMONG",
     "title": "전공선택 학점",
     "description": "전공선택 30학점 이상 이수",
     "value": 30,
@@ -32,7 +32,7 @@
         "categories": ["ME"],
         "departments": ["IS"]
       }
-    ], 
+    ],
     "constraints": [
       {
         "type" : "MAX_CREDITS_AMONG",
@@ -57,9 +57,9 @@
     ]
   }, 
   {
-    "type": "MIN_SUBJECTS_AMONG", 
-    "title": "캡스톤 팀 프로젝트",
-    "description": "캡스톤 팀 프로젝트를 수행하는 다음 과목 중 1과목 이상은 반드시 이수해야 함",
+    "type": "MIN_COURSES_AMONG",
+    "title": "지정 전공 과목",
+    "description": "캡스톤 팀 프로젝트 1과목 이상 이수",
     "value": 1,
     "targets": [
       {

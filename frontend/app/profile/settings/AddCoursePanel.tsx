@@ -19,7 +19,7 @@ const SEMESTER_OPTIONS: { value: Semester; label: string }[] = [
 interface AddCoursePanelProps {
   searchQuery: string;
   onSearchQueryChange: (v: string) => void;
-  searchResults: { id: string; code?: string; title?: string; name?: string; department?: string; category?: string; credit?: number; au?: number }[];
+  searchResults: { id: string; code?: string; title?: string; name?: string; department?: string; category?: string; credit?: number; au?: number; tags?: string[] }[];
   isSearching?: boolean;
   selectedCourseIds: Set<string>;
   onSelectionChange: (ids: Set<string>) => void;
@@ -242,6 +242,8 @@ export default function AddCoursePanel({
               // 선택 시에는 고유 ID 사용 (검색은 code로 하지만 저장은 id로)
               const courseId = course.id || course.code || String(course.id || course.code || Math.random());
               const isSelected = selectedCourseIds.has(courseId);
+              const validTags = ['사회', '인문', '문학예술', '일반', '핵심', '융합'];
+              const tagList = (course.tags || []).filter((tag: string) => validTags.includes(tag));
               return (
                 <div
                   key={courseId}
@@ -272,10 +274,26 @@ export default function AddCoursePanel({
                     className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-offset-0"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium text-gray-900 dark:text-white">
-                      {course.title || course.name}
-                      {course.code && <span className="ml-2 text-sm text-gray-500 dark:text-gray-400 font-normal">{course.code}</span>}
-                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="min-w-0 flex-1 flex items-center gap-2">
+                        <p className="truncate font-medium text-gray-900 dark:text-white min-w-0">
+                          {course.title || course.name}
+                        </p>
+                        {course.code && <span className="text-sm text-gray-500 dark:text-gray-400 font-normal shrink-0">{course.code}</span>}
+                      </div>
+                      {tagList.length > 0 && (
+                        <div className="flex items-center gap-1 flex-wrap shrink-0">
+                          {tagList.map((tag: string) => (
+                            <span
+                              key={tag}
+                              className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                       {course.department && getDepartmentName(course.department)}
                       {course.category && ` · ${getCategoryName(course.category)}`}

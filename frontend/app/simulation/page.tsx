@@ -86,6 +86,7 @@ export default function SimulationPage() {
   const prevFiltersRef = useRef(filters);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [gradeBlindMode, setGradeBlindMode] = useState(true);
+  const [tooltipState, setTooltipState] = useState<{ text: string; x: number; y: number } | null>(null);
   
   // 모바일 탭 상태
   const [mobileTab, setMobileTab] = useState<'major' | 'courses' | 'credits' | 'requirements'>('requirements');
@@ -2211,9 +2212,25 @@ export default function SimulationPage() {
                                             key={c.courseId}
                                             className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                           >
-                                            <div className="flex items-center font-medium text-sm gap-2">
-                                              <p>{c.course.title}</p>
-                                              <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                            <div className="min-w-0 flex-1 flex items-center font-medium text-sm gap-2 flex-wrap">
+                                              <div className="min-w-0 flex-1 flex items-center gap-2">
+                                                <p className="truncate min-w-0">{c.course.title}</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{c.course.code}</p>
+                                              </div>
+                                              {c.course.tags && c.course.tags.length > 0 && (
+                                                <div className="flex items-center gap-1 flex-wrap shrink-0">
+                                                  {c.course.tags
+                                                    .filter((tag: string) => ['사회', '인문', '문학예술', '일반', '핵심', '융합'].includes(tag))
+                                                    .map((tag: string) => (
+                                                      <span
+                                                        key={tag}
+                                                        className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
+                                                      >
+                                                        {tag}
+                                                      </span>
+                                                    ))}
+                                                </div>
+                                              )}
                                             </div>
                                             <div className="flex items-center gap-2">
                                               {!gradeBlindMode && (
@@ -2338,9 +2355,25 @@ export default function SimulationPage() {
                                         key={c.courseId}
                                         className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                       >
-                                        <div className="flex items-center font-medium text-sm gap-2">
-                                          <p>{c.course.title}</p>
-                                          <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                        <div className="min-w-0 flex-1 flex items-center font-medium text-sm gap-2 flex-wrap">
+                                          <div className="min-w-0 flex-1 flex items-center gap-2">
+                                            <p className="truncate min-w-0">{c.course.title}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{c.course.code}</p>
+                                          </div>
+                                          {c.course.tags && c.course.tags.length > 0 && (
+                                            <div className="flex items-center gap-1 flex-wrap shrink-0">
+                                              {c.course.tags
+                                                .filter((tag: string) => ['사회', '인문', '문학예술', '일반', '핵심', '융합'].includes(tag))
+                                                .map((tag: string) => (
+                                                  <span
+                                                    key={tag}
+                                                    className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
+                                                  >
+                                                    {tag}
+                                                  </span>
+                                                ))}
+                                            </div>
+                                          )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                           {!gradeBlindMode && (
@@ -2500,9 +2533,28 @@ export default function SimulationPage() {
                                                 style={{ width: `${percentage}%` }}
                                               />
                                               <div className="relative flex items-center justify-between">
-                                                <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                                <div className="relative flex-1 min-w-0">
+                                                  <p 
+                                                    className="font-medium text-sm truncate cursor-help"
+                                                    onMouseEnter={(e) => {
+                                                      if (req.title && req.title !== req.description && req.description !== undefined) {
+                                                        const rect = e.currentTarget.getBoundingClientRect();
+                                                        setTooltipState({
+                                                          text: req.description,
+                                                          x: rect.left + rect.width / 2,
+                                                          y: rect.top - 8
+                                                        });
+                                                      }
+                                                    }}
+                                                    onMouseLeave={() => {
+                                                      setTooltipState(null);
+                                                    }}
+                                                  >
+                                                    {req.title || req.description || ''}
+                                                  </p>
+                                                </div>
                                                 {req.value != null && (
-                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
                                                     {currentValue} / {targetValue}
                                                   </p>
                                                 )}
@@ -2537,7 +2589,7 @@ export default function SimulationPage() {
                               <div className="px-3 py-4">
                                 <button
                                   onClick={() => toggleSection(`center-${s.id}`)}
-                                  className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 active:scale-96 transition-all rounded"
+                                  className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
                                 >
                                   <svg
                                     className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
@@ -2581,9 +2633,28 @@ export default function SimulationPage() {
                                                 style={{ width: `${percentage}%` }}
                                               />
                                               <div className="relative flex items-center justify-between">
-                                                <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                                <div className="relative flex-1 min-w-0">
+                                                  <p 
+                                                    className="font-medium text-sm truncate cursor-help"
+                                                    onMouseEnter={(e) => {
+                                                      if (req.title && req.title !== req.description && req.description !== undefined) {
+                                                        const rect = e.currentTarget.getBoundingClientRect();
+                                                        setTooltipState({
+                                                          text: req.description,
+                                                          x: rect.left + rect.width / 2,
+                                                          y: rect.top - 8
+                                                        });
+                                                      }
+                                                    }}
+                                                    onMouseLeave={() => {
+                                                      setTooltipState(null);
+                                                    }}
+                                                  >
+                                                    {req.title || req.description || ''}
+                                                  </p>
+                                                </div>
                                                 {req.value != null && (
-                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
                                                     {currentValue} / {targetValue}
                                                   </p>
                                                 )}
@@ -2660,7 +2731,24 @@ export default function SimulationPage() {
                                             style={{ width: `${percentage}%` }}
                                           />
                                           <div className="relative flex items-center justify-between">
-                                            <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                            <p 
+                                              className="font-medium text-sm truncate cursor-help"
+                                              onMouseEnter={(e) => {
+                                                if (req.title && req.title !== req.description && req.description !== undefined) {
+                                                  const rect = e.currentTarget.getBoundingClientRect();
+                                                  setTooltipState({
+                                                    text: req.description,
+                                                    x: rect.left + rect.width / 2,
+                                                    y: rect.top - 8
+                                                  });
+                                                }
+                                              }}
+                                              onMouseLeave={() => {
+                                                setTooltipState(null);
+                                              }}
+                                            >
+                                              {req.title || req.description || ''}
+                                            </p>
                                             {req.value != null && (
                                               <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                                 {currentValue} / {targetValue}
@@ -3049,11 +3137,11 @@ export default function SimulationPage() {
           {mobileTab === 'courses' && (
             <div>
               {/* 모드 전환 */}
-              <div className="sticky top-[57px] z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 flex items-center gap-2 px-6 py-2">
+              <div className="sticky top-[52px] backdrop-blur-md z-20 flex items-center gap-2 px-6 py-1">
                 <button
                   type="button"
                   onClick={() => setCourseMode('add')}
-                  className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
+                  className={`flex-1 px-2 py-2 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
                     courseMode === 'add'
                       ? 'text-black dark:text-white'
                       : 'text-gray-400 dark:text-gray-500'
@@ -3066,7 +3154,7 @@ export default function SimulationPage() {
                 <button
                   type="button"
                   onClick={() => setCourseMode('view')}
-                  className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
+                  className={`flex-1 px-2 py-2 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
                     courseMode === 'view'
                       ? 'text-black dark:text-white'
                       : 'text-gray-400 dark:text-gray-500'
@@ -3210,9 +3298,25 @@ export default function SimulationPage() {
                                         key={c.courseId}
                                         className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                       >
-                                        <div className="flex items-center font-medium text-sm gap-2">
-                                          <p>{c.course.title}</p>
-                                          <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                        <div className="min-w-0 flex-1 flex items-center font-medium text-sm gap-2 flex-wrap">
+                                          <div className="min-w-0 flex-1 flex items-center gap-2">
+                                            <p className="truncate min-w-0">{c.course.title}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{c.course.code}</p>
+                                          </div>
+                                          {c.course.tags && c.course.tags.length > 0 && (
+                                            <div className="flex items-center gap-1 flex-wrap shrink-0">
+                                              {c.course.tags
+                                                .filter((tag: string) => ['사회', '인문', '문학예술', '일반', '핵심', '융합'].includes(tag))
+                                                .map((tag: string) => (
+                                                  <span
+                                                    key={tag}
+                                                    className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
+                                                  >
+                                                    {tag}
+                                                  </span>
+                                                ))}
+                                            </div>
+                                          )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                           {!gradeBlindMode && (
@@ -3272,9 +3376,25 @@ export default function SimulationPage() {
                                         key={c.courseId}
                                         className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
                                       >
-                                        <div className="flex items-center font-medium text-sm gap-2">
-                                          <p>{c.course.title}</p>
-                                          <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
+                                        <div className="min-w-0 flex-1 flex items-center font-medium text-sm gap-2 flex-wrap">
+                                          <div className="min-w-0 flex-1 flex items-center gap-2">
+                                            <p className="truncate min-w-0">{c.course.title}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{c.course.code}</p>
+                                          </div>
+                                          {c.course.tags && c.course.tags.length > 0 && (
+                                            <div className="flex items-center gap-1 flex-wrap shrink-0">
+                                              {c.course.tags
+                                                .filter((tag: string) => ['사회', '인문', '문학예술', '일반', '핵심', '융합'].includes(tag))
+                                                .map((tag: string) => (
+                                                  <span
+                                                    key={tag}
+                                                    className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
+                                                  >
+                                                    {tag}
+                                                  </span>
+                                                ))}
+                                            </div>
+                                          )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                           {!gradeBlindMode && (
@@ -3449,9 +3569,28 @@ export default function SimulationPage() {
                                                 style={{ width: `${percentage}%` }}
                                               />
                                               <div className="relative flex items-center justify-between">
-                                                <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                                <div className="relative flex-1 min-w-0">
+                                                  <p 
+                                                    className="font-medium text-sm truncate cursor-help"
+                                                    onMouseEnter={(e) => {
+                                                      if (req.title && req.title !== req.description && req.description !== undefined) {
+                                                        const rect = e.currentTarget.getBoundingClientRect();
+                                                        setTooltipState({
+                                                          text: req.description,
+                                                          x: rect.left + rect.width / 2,
+                                                          y: rect.top - 8
+                                                        });
+                                                      }
+                                                    }}
+                                                    onMouseLeave={() => {
+                                                      setTooltipState(null);
+                                                    }}
+                                                  >
+                                                    {req.title || req.description || ''}
+                                                  </p>
+                                                </div>
                                                 {req.value != null && (
-                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
                                                     {currentValue} / {targetValue}
                                                   </p>
                                                 )}
@@ -3530,9 +3669,28 @@ export default function SimulationPage() {
                                                 style={{ width: `${percentage}%` }}
                                               />
                                               <div className="relative flex items-center justify-between">
-                                                <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                                <div className="relative flex-1 min-w-0">
+                                                  <p 
+                                                    className="font-medium text-sm truncate cursor-help"
+                                                    onMouseEnter={(e) => {
+                                                      if (req.title && req.title !== req.description && req.description !== undefined) {
+                                                        const rect = e.currentTarget.getBoundingClientRect();
+                                                        setTooltipState({
+                                                          text: req.description,
+                                                          x: rect.left + rect.width / 2,
+                                                          y: rect.top - 8
+                                                        });
+                                                      }
+                                                    }}
+                                                    onMouseLeave={() => {
+                                                      setTooltipState(null);
+                                                    }}
+                                                  >
+                                                    {req.title || req.description || ''}
+                                                  </p>
+                                                </div>
                                                 {req.value != null && (
-                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
                                                     {currentValue} / {targetValue}
                                                   </p>
                                                 )}
@@ -3609,7 +3767,24 @@ export default function SimulationPage() {
                                             style={{ width: `${percentage}%` }}
                                           />
                                           <div className="relative flex items-center justify-between">
-                                            <p className="font-medium text-sm truncate">{req.title || req.description}</p>
+                                            <p 
+                                              className="font-medium text-sm truncate cursor-help"
+                                              onMouseEnter={(e) => {
+                                                if (req.title && req.title !== req.description && req.description !== undefined) {
+                                                  const rect = e.currentTarget.getBoundingClientRect();
+                                                  setTooltipState({
+                                                    text: req.description,
+                                                    x: rect.left + rect.width / 2,
+                                                    y: rect.top - 8
+                                                  });
+                                                }
+                                              }}
+                                              onMouseLeave={() => {
+                                                setTooltipState(null);
+                                              }}
+                                            >
+                                              {req.title || req.description || ''}
+                                            </p>
                                             {req.value != null && (
                                               <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                                                 {currentValue} / {targetValue}
@@ -3836,6 +4011,22 @@ export default function SimulationPage() {
           </div>
         )}
       </div>
+      {/* Fixed Tooltip */}
+      {tooltipState && (
+        <div
+          className="fixed z-[9999] pointer-events-none shadow-md"
+          style={{
+            left: `${tooltipState.x}px`,
+            top: `${tooltipState.y}px`,
+            transform: 'translate(-50%, -100%)',
+          }}
+        >
+          <div className="w-64 p-2 bg-black text-white text-xs rounded shadow-lg">
+            {tooltipState.text}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

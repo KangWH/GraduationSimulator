@@ -1,6 +1,6 @@
 [ 
   {
-    "type": "MIN_CREDITS_AMONG", 
+    "type": "MIN_CREDITS_AMONG",
     "title": "전공필수 학점",
     "description": "전공필수 18학점 이수",
     "value": 18,
@@ -11,8 +11,8 @@
     ]
   }, 
   {
-    "type": "MIN_CREDITS_AMONG", 
-    "title": "전공과목 학점",
+    "type": "MIN_CREDITS_AMONG",
+    "title": "전공필수+전공선택 학점",
     "description": "전공과목 50학점 이상 이수",
     "value": 50,
     "targets": [

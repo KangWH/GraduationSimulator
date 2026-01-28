@@ -176,13 +176,29 @@ export default function EnrollmentsList({
                     className="flex items-center justify-between gap-4 rounded p-2 bg-gray-50 cursor-move dark:bg-zinc-800"
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2">
-                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
-                          {enrollment.course.title}
-                        </p>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 font-mono shrink-0">
-                          {enrollment.course.code}
-                        </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="min-w-0 flex-1 flex items-baseline gap-2">
+                          <p className="font-medium text-sm text-gray-900 dark:text-white truncate min-w-0">
+                            {enrollment.course.title}
+                          </p>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono shrink-0">
+                            {enrollment.course.code}
+                          </span>
+                        </div>
+                        {enrollment.course.tags && enrollment.course.tags.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap shrink-0">
+                            {enrollment.course.tags
+                              .filter((tag: string) => ['사회', '인문', '문학예술', '일반', '핵심', '융합'].includes(tag))
+                              .map((tag: string) => (
+                                <span
+                                  key={tag}
+                                  className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                          </div>
+                        )}
                       </div>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
                         {getDepartmentName(enrollment.course.department)}
