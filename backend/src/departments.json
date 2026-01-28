@@ -1,127 +1,7 @@
 [
   {
-    "id": "MAS",
-    "name": "수리과학과",
-    "category": "자연과학대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "PH",
-    "name": "물리학과",
-    "category": "자연과학대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "CH",
-    "name": "화학과",
-    "category": "자연과학대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "BS",
-    "name": "생명과학과",
-    "category": "생명과학기술대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "BCS",
-    "name": "뇌인지과학과",
-    "category": "생명과학기술대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "ME",
-    "name": "기계공학과",
-    "category": "공과대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
     "id": "AE",
     "name": "항공우주공학과",
-    "category": "공과대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "EE",
-    "name": "전기및전자공학부",
-    "category": "공과대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "CS",
-    "name": "전산학부",
-    "category": "공과대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "CE",
-    "name": "건설및환경공학과",
-    "category": "공과대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "BiS",
-    "name": "바이오및뇌공학과",
-    "category": "공과대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "ID",
-    "name": "산업디자인학과",
-    "category": "공과대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "IE",
-    "name": "산업및시스템공학과",
-    "category": "공과대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "CBE",
-    "name": "생명화학공학과",
-    "category": "공과대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "MS",
-    "name": "신소재공학과",
-    "category": "공과대학",
-    "majorable": true,
-    "doubleMajorable": true,
-    "minorable": true
-  },
-  {
-    "id": "NQE",
-    "name": "원자력및양자공학과",
     "category": "공과대학",
     "majorable": true,
     "doubleMajorable": true,
@@ -136,28 +16,12 @@
     "minorable": false
   },
   {
-    "id": "SS",
-    "name": "반도체시스템공학과",
-    "category": "공과대학",
-    "majorable": true,
-    "doubleMajorable": false,
-    "minorable": false
-  },
-  {
     "id": "AS",
     "name": "인공지능반도체대학원",
     "category": "공과대학",
     "majorable": false,
     "doubleMajorable": false,
     "minorable": false
-  },
-  {
-    "id": "HSS",
-    "name": "디지털인문사회과학부",
-    "category": "인문사회융합과학대학",
-    "majorable": false,
-    "doubleMajorable": false,
-    "minorable": true
   },
   {
     "id": "BA",
@@ -176,11 +40,667 @@
     "minorable": false
   },
   {
+    "id": "BCS",
+    "name": "뇌인지과학과",
+    "category": "생명과학기술대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "BGM",
+    "name": "녹색경영정책프로그램",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "BIM",
+    "name": "정보경영프로그램",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "BiS",
+    "name": "바이오및뇌공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "BIT",
+    "name": "테크노경영대학원",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "BIZ",
+    "name": "정보경영프로그램",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "BM",
+    "name": "의과학학제전공",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "BME",
+    "name": "경영공학부",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "BS",
+    "name": "생명과학과",
+    "category": "생명과학기술대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
     "id": "BTM",
     "name": "기술경영학부",
     "category": "경영대학",
     "majorable": true,
     "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "BUS",
+    "name": "비즈니스",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "CBE",
+    "name": "생명화학공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "CC",
+    "name": "공통필수",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "CD",
+    "name": "Capstone Design",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "CE",
+    "name": "건설및환경공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "CH",
+    "name": "화학과",
+    "category": "자연과학대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "CoE",
+    "name": "공과대학",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "COM",
+    "name": "정보통신공학과",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "CS",
+    "name": "전산학부",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "CTP",
+    "name": "문화기술학 부전공 프로그램",
+    "category": "인문사회융합과학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": true
+  },
+  {
+    "id": "DHS",
+    "name": "디지털인문사회과학부전공프로그램",
+    "category": "인문사회융합과학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": true
+  },
+  {
+    "id": "DS",
+    "name": "데이터사이언스대학원",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "EB",
+    "name": "공학생물대학원",
+    "category": "생명과학기술대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "ECN",
+    "name": "경제학 부전공 프로그램",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": true
+  },
+  {
+    "id": "ED",
+    "name": "Freshman Design",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "EE",
+    "name": "전기및전자공학부",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "EEW",
+    "name": "EEWS대학원",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "EMB",
+    "name": "이그제큐티브MBA",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "ENP",
+    "name": "기업가정신 부전공 프로그램",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": true
+  },
+  {
+    "id": "FE",
+    "name": "금융공학프로그램",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "FEP",
+    "name": "금융공학부전공프로그램",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": true
+  },
+  {
+    "id": "FIN",
+    "name": "금융MBA",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "FMB",
+    "name": "금융MBA",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "FS",
+    "name": "미래전략대학원프로그램",
+    "category": "인문사회융합과학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "FST",
+    "name": "미래전략대학원프로그램",
+    "category": "인문사회융합과학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": true
+  },
+  {
+    "id": "GCT",
+    "name": "문화기술대학원",
+    "category": "인문사회융합과학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "GDI",
+    "name": "글로벌디지털혁신대학원",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "GFS",
+    "name": "문술미래전략대학원",
+    "category": "인문사회융합과학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "GG",
+    "name": "녹색경영정책프로그램",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "GGS",
+    "name": "녹색성장지속가능대학원",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "GT",
+    "name": "조천식모빌리티대학원",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "HSS",
+    "name": "디지털인문사회과학부",
+    "category": "인문사회융합과학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": true
+  },
+  {
+    "id": "ICE",
+    "name": "정보통신공학과",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "ID",
+    "name": "산업디자인학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "IE",
+    "name": "산업및시스템공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "IM",
+    "name": "정보미디어MBA",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "IP",
+    "name": "지식재산 부전공 프로그램",
+    "category": "인문사회융합과학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": true
+  },
+  {
+    "id": "IS",
+    "name": "정보보호대학원",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "IT",
+    "name": "기술경영전문대학원",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "ITP",
+    "name": "글로벌디지털혁신대학원",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "KEI",
+    "name": "K-School",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "KSE",
+    "name": "지식서비스공학대학원",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "KTP",
+    "name": "KT-AI융합인재양성프로그램",
+    "category": "공학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "MAS",
+    "name": "수리과학과",
+    "category": "자연과학대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "BMI",
+    "name": "바이오혁신경영전문대학원",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "ME",
+    "name": "기계공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "MGT",
+    "name": "테크노경영MBA",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "MIM",
+    "name": "정보경영프로그램",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "MIP",
+    "name": "지식재산대학원프로그램",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "MO",
+    "name": "조천식모빌리티대학원",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "MS",
+    "name": "신소재공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "MSB",
+    "name": "기술경영학부",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "MSE",
+    "name": "의과학대학원",
+    "category": "생명과학기술대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "MV",
+    "name": "메타버스대학원",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "NQE",
+    "name": "원자력및양자공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "NST",
+    "name": "나노과학기술대학원",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "PD",
+    "name": "미래자동차 학제전공",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "PH",
+    "name": "물리학과",
+    "category": "자연과학대학",
+    "majorable": true,
+    "doubleMajorable": true,
+    "minorable": true
+  },
+  {
+    "id": "PMB",
+    "name": "프로페셔널MBA",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "PSE",
+    "name": "고분자학학제전공",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "QU",
+    "name": "양자대학원",
+    "category": "자연과학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "RE",
+    "name": "로봇공학학제전공",
+    "category": "공학대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "SA",
+    "name": "시스템아키텍트대학원",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "SEP",
+    "name": "소프트웨어대학원프로그램",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "SJ",
+    "name": "과학저널리즘대학원프로그램",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "SMB",
+    "name": "사회적기업가MBA",
+    "category": "경영대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "SPE",
+    "name": "우주탐사공학학제전공",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "SR",
+    "name": "줄기세포및재생생물학대학원",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "SS",
+    "name": "반도체시스템공학과",
+    "category": "공과대학",
+    "majorable": true,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "ST",
+    "name": "안보과학기술대학원",
+    "category": "안보융합원",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "ST",
+    "name": "반도체공학대학원",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "STE",
+    "name": "반도체 학제전공",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "STP",
+    "name": "과학기술정책학 부전공 프로그램",
+    "category": "인문사회융합과학대학",
+    "majorable": false,
+    "doubleMajorable": false,
     "minorable": true
   },
   {
@@ -190,5 +710,21 @@
     "majorable": true,
     "doubleMajorable": true,
     "minorable": true
+  },
+  {
+    "id": "URP",
+    "name": "URP",
+    "category": "기타",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
+  },
+  {
+    "id": "WST",
+    "name": "웹사이언스대학원",
+    "category": "공과대학",
+    "majorable": false,
+    "doubleMajorable": false,
+    "minorable": false
   }
 ]
