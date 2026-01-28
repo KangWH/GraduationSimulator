@@ -1,0 +1,14 @@
+[
+  {
+    "type": "MIN_CREDITS_REQUIRED",
+    "title": "심화전공 학점",
+    "description": "심화전공 12학점 이상 이수",
+    "value": 12,
+    "targets": [
+      {
+        "categories": ["ME", "MR"],
+        "departments": ["IE"]
+      }
+    ]
+  }
+]

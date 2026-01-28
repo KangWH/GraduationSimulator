@@ -1,0 +1,35 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "title": "연구 학점",
+    "description": "연구 4학점 이상 이수",
+    "value": 4,
+    "targets": [
+      {
+        "codes": ["IE.91000", "IE.93000", "IE.91100"]
+      }
+    ],
+    "constraints": [
+      {
+        "type": "MAX_CREDITS_AMONG",
+        "value": 2,
+        "targets": [
+          {
+            "codes": ["IE.91100"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "MIN_COURSES_AMONG",
+    "title": "지정 과목",
+    "description": "졸업연구, 세미나 필수 이수",
+    "value": 2,
+    "targets": [
+      {
+        "codes": ["IE.91000", "IE.93000"]
+      }
+    ]
+  }
+]

@@ -1,0 +1,24 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "title": "기초선택 학점",
+    "description": "기초선택 3학점 이상 이수",
+    "value": 3,
+    "targets": [
+      {
+        "categories": ["BE"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_COURSES_AMONG",
+    "title": "학과 지정 과목",
+    "description": "산업및시스템공학과 지정 과목(선형대수학개론) 이수",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["MAS.10009"]
+      }
+    ]
+  }
+]
