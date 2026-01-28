@@ -1,0 +1,28 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "title": "연구 학점",
+    "description": "연구 5학점 이상 이수",
+    "value": 5,
+    "targets": [
+      {
+        "codes": ["PH.91000", "PH.91100"]
+      }, 
+      {
+        "codes": ["PH.93002"]
+      }
+    ], 
+    "constraints": [
+      {
+        "type": "MAX_CREDITS_AMONG",
+        "description": "PH.93002는 최대 2학점까지 인정",
+        "value": 2,
+        "targets": [
+          {
+            "codes": ["PH.93002"]
+          }
+        ]
+      }
+    ]
+  }
+]

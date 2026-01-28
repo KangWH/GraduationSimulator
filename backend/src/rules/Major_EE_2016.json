@@ -2,23 +2,11 @@
   {
     "type": "MIN_CREDITS_AMONG",
     "title": "전공필수 학점",
-    "description": "전공필수 15학점 이상 이수",
-    "value": 15,
+    "description": "전공필수 18학점 이수",
+    "value": 18,
     "targets": [
       {
-        "categories": ["MR"], 
-        "departments": ["EE"]
-      }
-    ]
-  }, 
-  {
-    "type": "MIN_COURSES_AMONG",
-    "title": "학과 지정 과목",
-    "description": "전공필수 전자설계 및 실험, 전자디자인 랩 필수 이수",
-    "value": 2,
-    "targets": [
-      {
-        "codes": ["EE.30005", "EE.40005"]
+        "codes": ["EE.20001", "EE.20002", "EE.20004", "EE.20009", "EE.30005", "EE.40005"]
       }
     ]
   }, 

@@ -514,7 +514,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
       {/* 1열: 모바일/태블릿 탭 */}
       <div className="flex flex-col lg:hidden h-full overflow-y-auto overflow-x-hidden">
         {/* 상단: 모드 전환 */}
-        <div className="md:sticky md:top-0 md:z-20 bg-gradient-to-b from-gray-50 from-[70%] to-transparent flex items-center gap-2 p-3 pt-0 mb-2">
+        <div className="md:sticky md:top-0 md:z-20 bg-gradient-to-b from-gray-50 dark:from-black from-[70%] to-transparent flex items-center gap-2 p-3 pt-0 mb-2">
           <button
             type="button"
             onClick={() => setCourseMode('add')}
@@ -591,7 +591,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
       <div className="hidden h-full lg:flex justify-center items-start lg:gap-6 overflow-hidden">
         <div className="h-full flex-1 flex min-h-0 flex-col overflow-hidden">
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="sticky top-0 z-100 flex-shrink-0 space-y-4 bg-gradient-to-b from-gray-50 from-[70%] to-transparent">
+            <div className="sticky top-0 z-100 flex-shrink-0 space-y-4 bg-gradient-to-b from-gray-50 dark:from-black from-[70%] to-transparent">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 pb-4">과목 추가</h2>
             </div>
             <div className="space-y-4 pt-0 px-2 pb-2">
@@ -633,7 +633,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             handleDropOutside(e);
           }}
         >
-          <h2 className="sticky top-0 bg-gradient-to-b from-gray-50 from-[70%] to-transparent pb-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
+          <h2 className="sticky top-0 bg-gradient-to-b from-gray-50 dark:from-black from-[70%] to-transparent pb-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
             수강한 과목 <span className="text-md opacity-50">{enrollments.length}</span>
           </h2>
           <div className="px-2">

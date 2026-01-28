@@ -13,11 +13,11 @@
   {
     "type": "MIN_COURSES_AMONG",
     "title": "학과 지정 과목",
-    "description": "수리과학과 지정 과목(선형대수학, 응용미분방정식, 응용해석학, 확률및통계) 중 2과목 이상 이수",
-    "value": 2,
+    "description": "학과 지정 과목(일반물리학실험 II)을 포함하여 이수",
+    "value": 1,
     "targets": [
       {
-        "codes": ["MAS.10009", "MAS.20001", "MAS.20050", "MAS.20002", "MAS.10010"]
+        "codes": ["PH.10052"]
       }
     ]
   }

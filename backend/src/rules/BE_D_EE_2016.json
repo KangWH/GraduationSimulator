@@ -11,14 +11,12 @@
     ]
   }, 
   {
-    "type": "MIN_COURSES_AMONG", 
+    "type": "MIN_COURSES_AMONG",
     "title": "학과 지정 과목",
-    "description": "수리과학과 지정 과목(응용미분방정식, 응용해석학, 확률및통계) 중 1과목 이상 이수",
-    "value": 1,
+    "description": "전기및전자공학부 지정 과목(선형대수학개론, 응용미분방정식, 응용해석학) 중 1과목 이상 이수",
+    "subjects": 1,
     "targets": [
-      {
-        "codes": ["MAS.20001", "MAS.20050", "MAS.20002"]
-      }
+      {"codes": ["MAS.10009", "MAS.10010", "MAS.20001", "MAS.20002"]}
     ]
   }
 ]

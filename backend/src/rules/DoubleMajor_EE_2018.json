@@ -1,6 +1,6 @@
 [ 
   {
-    "type": "MIN_CREDITS_AMONG",
+    "type": "MIN_CREDITS_AMONG", 
     "title": "전공필수 학점",
     "description": "전공필수 15학점 이상 이수",
     "value": 15,
@@ -12,7 +12,7 @@
     ]
   }, 
   {
-    "type": "MIN_COURSES_AMONG",
+    "type": "MIN_COURSES_AMONG", 
     "title": "학과 지정 과목",
     "description": "전공필수 전자설계 및 실험, 전자디자인 랩 필수 이수",
     "value": 2,
@@ -23,10 +23,10 @@
     ]
   }, 
   {
-    "type": "MIN_CREDITS_AMONG",
+    "type": "MIN_CREDITS_AMONG", 
     "title": "전공필수+전공선택 학점",
-    "description": "전공과목 50학점 이상 이수",
-    "value": 50,
+    "description": "전공과목 40학점 이상 이수",
+    "value": 40,
     "targets": [
       {
         "categories": ["ME", "MR"],

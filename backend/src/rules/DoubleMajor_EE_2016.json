@@ -2,12 +2,11 @@
   {
     "type": "MIN_CREDITS_AMONG",
     "title": "전공필수 학점",
-    "description": "전공필수 15학점 이상 이수",
-    "value": 15,
+    "description": "전공필수 18학점 이수",
+    "value": 18,
     "targets": [
       {
-        "categories": ["MR"], 
-        "departments": ["EE"]
+        "codes": ["EE.20001", "EE.20002", "EE.20004", "EE.20009", "EE.30005", "EE.40005"]
       }
     ]
   }, 
@@ -21,12 +20,12 @@
         "codes": ["EE.30005", "EE.40005"]
       }
     ]
-  }, 
+  },
   {
     "type": "MIN_CREDITS_AMONG",
     "title": "전공필수+전공선택 학점",
-    "description": "전공과목 50학점 이상 이수",
-    "value": 50,
+    "description": "전공과목 40학점 이상 이수",
+    "value": 40,
     "targets": [
       {
         "categories": ["ME", "MR"],

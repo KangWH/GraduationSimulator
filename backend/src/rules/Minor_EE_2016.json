@@ -1,6 +1,7 @@
 [ 
   {
-    "type": "MIN_CREDITS_AMONG", 
+    "type": "MIN_CREDITS_AMONG",
+    "title": "전공필수 학점",
     "description": "전공필수 12학점 이상 이수",
     "value": 12,
     "targets": [
@@ -11,7 +12,8 @@
     ]
   }, 
   {
-    "type": "MIN_COURSES_AMONG", 
+    "type": "MIN_COURSES_AMONG",
+    "title": "학과 지정 과목",
     "description": "전자설계 및 실험 이수",
     "value": 1,
     "targets": [
@@ -21,7 +23,8 @@
     ]
   }, 
   {
-    "type": "MIN_CREDITS_AMONG", 
+    "type": "MIN_CREDITS_AMONG",
+    "title": "전공필수+전공선택 학점",
     "description": "전공과목 21학점 이상 이수",
     "value": 21,
     "targets": [
