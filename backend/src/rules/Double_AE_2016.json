@@ -1,0 +1,42 @@
+[ 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "전공필수 학점",
+    "description": "전공필수 21학점 이수",
+    "value": 21,
+    "targets": [
+      {
+        "categories": ["MR"],
+        "departments": ["AE"]
+      }
+    ]
+  }, 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "전공과목 학점",
+    "description": "전공과목 42학점 이상 이수",
+    "value": 42,
+    "targets": [
+      {
+        "categories": ["ME", "MR"],
+        "departments": ["AE"]
+      }, 
+      {
+        "categories": ["ME"],
+        "departments": ["CoE"]
+      }
+    ], 
+    "constraints": [
+      {
+        "type" : "MAX_CREDITS_AMONG",
+        "description": "공과대학에서 개설한 전공선택 교과목(CoE코드)을 3학점까지 전공선택으로 인정함",
+        "value": 3,
+        "targets": [
+          {
+            "departments": ["CoE"]
+          }
+        ]
+      }
+    ]
+  }
+]

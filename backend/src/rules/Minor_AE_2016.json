@@ -1,0 +1,26 @@
+[ 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "전공필수 학점",
+    "description": "전공필수 9학점 이수",
+    "value": 9,
+    "targets": [
+      {
+        "categories": ["MR"],
+        "departments": ["AE"]
+      }
+    ]
+  }, 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "전공과목 학점",
+    "description": "전공과목 18학점 이상 이수",
+    "value": 18,
+    "targets": [
+      {
+        "categories": ["ME", "MR"],
+        "departments": ["AE"]
+      }
+    ]
+  }
+]

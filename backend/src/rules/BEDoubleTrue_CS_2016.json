@@ -1,0 +1,22 @@
+[ 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "기초선택 학점",
+    "description": "기초선택 3학점 이상 이수",
+    "value": 3,
+    "targets": [
+      {
+        "categories": ["BE"]
+      }
+    ]
+  }, 
+  {
+    "type": "MIN_SUBJECTS_AMONG", 
+    "title": "필수 기초선택",
+    "description": "전산학부에서 지정한 필수 기초선택 과목인 선형대수학개론을 반드시 포함하여 이수",
+    "value": 1,
+    "targets": [
+      {"codes": ["MAS.10009", "MAS.10010"]}
+    ]
+  }
+]
