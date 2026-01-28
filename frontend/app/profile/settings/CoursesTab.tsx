@@ -512,9 +512,9 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   return (
     <>
       {/* 1열: 모바일/태블릿 탭 */}
-      <div className="flex h-full min-h-0 flex-col overflow-hidden lg:hidden">
+      <div className="flex flex-col lg:hidden">
         {/* 상단: 모드 전환 */}
-        <div className="flex items-center flex-shrink-0 gap-2 mb-2 px-6">
+        <div className="sticky top-[57px] z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 flex items-center gap-2 p-3 mb-2">
           <button
             type="button"
             onClick={() => setCourseMode('add')}
@@ -544,7 +544,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         </div>
 
         {/* 본문 영역 */}
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div>
           <div className="px-4 pt-2 pb-8">
               {courseMode === 'add' ? (
                 <AddCoursePanel
