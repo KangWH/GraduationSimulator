@@ -37,6 +37,7 @@ interface AddCoursePanelProps {
   onFilterDepartmentChange: (dept: string) => void;
   filterCategory: string;
   onFilterCategoryChange: (cat: string) => void;
+  stickyTopOffset?: string;
 }
 
 export default function AddCoursePanel({
@@ -60,6 +61,7 @@ export default function AddCoursePanel({
   onFilterDepartmentChange,
   filterCategory,
   onFilterCategoryChange,
+  stickyTopOffset = '0',
 }: AddCoursePanelProps) {
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
@@ -120,7 +122,7 @@ export default function AddCoursePanel({
   return (
     <div className="space-y-4">
       {/* 검색 창 */}
-      <div className="sticky top-0 z-10 -mx-6 px-6 pt-0 pb-4 bg-gradient-to-b from-gray-50 via-gray-50/90 to-transparent dark:from-black dark:via-black/90">
+      <div className={`sticky z-10 -mx-4 px-4 pt-0 pb-4 bg-gradient-to-b from-gray-50 via-gray-50/90 to-trasparent dark:from-black dark:via-black/90`} style={{ top: stickyTopOffset }}>
         <div className="space-y-2">
           <div className="relative flex items-center gap-2">
             <div className="relative flex-1">

@@ -16,19 +16,21 @@ interface InputProps {
   value: any;
   onChange: (newValue: any) => void;
   type: 'text' | 'email' | 'url' | 'password';
+  inputMode?: "text" | "email" | "url" | "search" | "tel" | "none" | "numeric" | "decimal" | undefined;
   required?: boolean;
   placeholder?: string;
   size?: FieldSize;
   className?: string;
 }
 
-export function Input({ id, name, value, onChange, type = 'text', required = false, placeholder, size = 'medium', className }: InputProps) {
+export function Input({ id, name, value, onChange, type = 'text', inputMode = 'text', required = false, placeholder, size = 'medium', className }: InputProps) {
   return (
     <input
       id={id}
       name={name}
       type={type}
       value={value}
+      inputMode={inputMode}
       onChange={(e) => {onChange(e.target.value)}}
       required={required}
       placeholder={placeholder}
@@ -49,6 +51,7 @@ interface NumberInputProps {
   value: any;
   onChange: (newValue: any) => void;
   type?: 'number';
+  inputMode?: "text" | "email" | "url" | "search" | "tel" | "none" | "numeric" | "decimal" | undefined;
   disabled?: boolean;
   required?: boolean;
   placeholder?: string;
@@ -56,7 +59,7 @@ interface NumberInputProps {
   className?: string;
 }
 
-export function NumberInput({ id, name, min = '0', max = '100', step = '1', value, onChange, type = 'number', disabled = false, required = false, placeholder, size = 'medium', className }: NumberInputProps) {
+export function NumberInput({ id, name, min = '0', max = '100', step = '1', value, onChange, type = 'number', inputMode = 'numeric', disabled = false, required = false, placeholder, size = 'medium', className }: NumberInputProps) {
   return (
     <div
       className={
@@ -67,6 +70,7 @@ export function NumberInput({ id, name, min = '0', max = '100', step = '1', valu
         id={id}
         name={name}
         type={type}
+        inputMode={inputMode}
         min={min}
         max={max}
         step={step}
@@ -163,9 +167,22 @@ export function MultipleSelect({
   className
 }: MultipleSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMobileSheet, setIsMobileSheet] = useState(false);
+  const [sheetVisible, setSheetVisible] = useState(false);
   const [popoverStyle, setPopoverStyle] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  const closeWithAnimation = () => {
+    if (isMobileSheet) {
+      setSheetVisible(false);
+      window.setTimeout(() => {
+        setIsOpen(false);
+      }, 200);
+      return;
+    }
+    setIsOpen(false);
+  };
 
   // 팝오버 위치 계산 (트리거 기준) - 모바일 최적화 및 화면 밖 방지
   const updatePopoverPosition = () => {
@@ -174,6 +191,7 @@ export function MultipleSelect({
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
     const isMobile = viewportWidth < 640; // sm 브레이크포인트
+    setIsMobileSheet(isMobile);
     
     const padding = 8; // 화면 가장자리 여유 공간
     const gap = 4; // 트리거와 팝오버 사이 간격
@@ -189,15 +207,11 @@ export function MultipleSelect({
     const minHeight = isMobile ? 300 : 200;
     
     if (isMobile) {
-      // 모바일: 화면 중앙에 고정 배치
-      popoverLeft = (viewportWidth - popoverWidth) / 2;
-      
-      // 수직 중앙 배치 (최대 높이를 고려)
+      // 모바일: 하단 시트로 표시 (위치는 렌더링에서 bottom 고정)
+      popoverLeft = 0;
+      popoverTop = padding;
       const maxPopoverHeight = Math.min(viewportHeight - padding * 2, 500);
-      const centerTop = (viewportHeight - maxPopoverHeight) / 2;
-      
-      popoverTop = Math.max(padding, centerTop);
-      maxHeight = Math.min(maxPopoverHeight, viewportHeight - popoverTop * 2);
+      maxHeight = maxPopoverHeight;
     } else {
       // 데스크톱: 트리거 기준 배치
       popoverLeft = rect.left;
@@ -249,7 +263,7 @@ export function MultipleSelect({
     setPopoverStyle({
       top: popoverTop,
       left: popoverLeft,
-      width: popoverWidth,
+      width: isMobile ? viewportWidth : popoverWidth,
       maxHeight: Math.max(maxHeight, minHeight), // 최소 높이 보장
     });
   };
@@ -269,6 +283,16 @@ export function MultipleSelect({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (isOpen && isMobileSheet) {
+      // mount 이후 한 프레임 뒤에 올라오는 애니메이션 시작
+      setSheetVisible(false);
+      const t = window.setTimeout(() => setSheetVisible(true), 10);
+      return () => window.clearTimeout(t);
+    }
+    setSheetVisible(false);
+  }, [isOpen, isMobileSheet]);
+
   // 바깥 클릭 감지 (트리거 + 팝오버 둘 다 제외)
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -276,7 +300,7 @@ export function MultipleSelect({
       const inTrigger = triggerRef.current?.contains(target);
       const inPopover = popoverRef.current?.contains(target);
       if (!inTrigger && !inPopover) {
-        setIsOpen(false);
+        closeWithAnimation();
       }
     };
 
@@ -325,7 +349,13 @@ export function MultipleSelect({
         type="button"
         id={id}
         name={name}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (isOpen) {
+            closeWithAnimation();
+          } else {
+            setIsOpen(true);
+          }
+        }}
         className={
           'w-full bg-white dark:bg-black shadow-sm focus:border-violet-500 rounded-md outline-none appearance-none text-left flex items-center gap-2 min-h-[44px] sm:min-h-0 ' +
           fieldSizeClassNames[size]
@@ -365,16 +395,91 @@ export function MultipleSelect({
         popoverStyle &&
         typeof document !== 'undefined' &&
         createPortal(
-          <div
-            ref={popoverRef}
-            className="fixed z-[9999] bg-white dark:bg-zinc-900 rounded-md shadow-lg overflow-y-auto overscroll-contain"
-            style={{
-              top: popoverStyle.top,
-              left: popoverStyle.left,
-              width: popoverStyle.width,
-              maxHeight: `${popoverStyle.maxHeight}px`,
-            }}
-          >
+          isMobileSheet ? (
+            <div
+              className={`fixed inset-0 z-[9998] bg-black/50 transition-opacity duration-200 ${sheetVisible ? 'opacity-100' : 'opacity-0'}`}
+              onClick={closeWithAnimation}
+            >
+              <div
+                ref={popoverRef}
+                className={`fixed left-0 right-0 bottom-0 z-[9999] bg-white dark:bg-zinc-900 rounded-md shadow-lg overflow-y-auto overscroll-contain transition-transform duration-200 ${sheetVisible ? 'translate-y-0' : 'translate-y-full'}`}
+                style={{
+                  maxHeight: `${popoverStyle.maxHeight}px`,
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* 전체 선택/전체 취소 버튼 */}
+                <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 px-3 py-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={allSelected ? handleDeselectAll : handleSelectAll}
+                    className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-[44px] sm:min-h-0 px-2 -mx-2 rounded active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
+                  >
+                    {allSelected ? '전체 취소' : '전체 선택'}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    {someSelected && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {value.length} / {options.length}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={closeWithAnimation}
+                      className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-90 transition-all"
+                      aria-label="닫기"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 옵션 목록 */}
+                <div className="py-1">
+                  {allowNone && (
+                    <label className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-[44px] active:scale-90 active:rounded-md transition-all">
+                      <input
+                        type="checkbox"
+                        checked={value.length === 0}
+                        onChange={() => onChange([])}
+                        className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-3"
+                      />
+                      <span className="text-sm flex-1">{placeholder}</span>
+                    </label>
+                  )}
+                  {options.map((option) => {
+                    const isChecked = value.includes(option.value);
+                    return (
+                      <label
+                        key={option.value}
+                        className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-[44px] active:scale-90 active:rounded-md transition-all"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggle(option.value)}
+                          className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-3 flex-shrink-0"
+                        />
+                        <span className="text-sm flex-1 break-words">{option.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              ref={popoverRef}
+              className="fixed z-[9999] bg-white dark:bg-zinc-900 rounded-md shadow-lg overflow-y-auto overscroll-contain"
+              style={{
+                top: popoverStyle.top,
+                left: popoverStyle.left,
+                width: popoverStyle.width,
+                maxHeight: `${popoverStyle.maxHeight}px`,
+              }}
+            >
             {/* 전체 선택/전체 취소 버튼 */}
             <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 px-3 py-2 flex items-center justify-between">
               <button
@@ -422,7 +527,8 @@ export function MultipleSelect({
                 );
               })}
             </div>
-          </div>,
+            </div>
+          ),
           document.body
         )}
     </div>

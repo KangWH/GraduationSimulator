@@ -50,6 +50,8 @@ export default function SimulationPage() {
   const [userName, setUserName] = useState<string>('');
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isScenarioModalOpen, setIsScenarioModalOpen] = useState(false);
+  const [saveSheetVisible, setSaveSheetVisible] = useState(false);
+  const [scenarioSheetVisible, setScenarioSheetVisible] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [addToEnrollments, setAddToEnrollments] = useState(false);
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
@@ -86,7 +88,100 @@ export default function SimulationPage() {
   const [gradeBlindMode, setGradeBlindMode] = useState(true);
   
   // 모바일 탭 상태
-  const [mobileTab, setMobileTab] = useState<'major' | 'courses' | 'credits' | 'requirements'>('major');
+  const [mobileTab, setMobileTab] = useState<'major' | 'courses' | 'credits' | 'requirements'>('requirements');
+
+  const closeSaveModal = useCallback(() => {
+    setSaveSheetVisible(false);
+    window.setTimeout(() => setIsSaveModalOpen(false), 200);
+  }, []);
+
+  const closeScenarioModal = useCallback(() => {
+    setScenarioSheetVisible(false);
+    window.setTimeout(() => setIsScenarioModalOpen(false), 200);
+  }, []);
+
+  const handleSaveSimulation = useCallback(async (name: string) => {
+    if (!name.trim()) {
+      alert('시나리오 이름을 입력해주세요.');
+      return;
+    }
+
+    try {
+      // CourseSimulation[]를 RawCourseSimulation[]로 변환
+      const rawCourses: RawCourseSimulation[] = simulationCourses.map((cs) => ({
+        courseId: cs.courseId,
+        enrolledYear: cs.enrolledYear,
+        enrolledSemester: cs.enrolledSemester,
+        grade: cs.grade,
+        recognizedAs: cs.recognizedAs,
+      }));
+
+      // 시나리오 저장 API 호출
+      const response = await fetch(`${API}/simulation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: name.trim(),
+          referenceYear: filters.requirementYear,
+          major: filters.major,
+          doubleMajors: filters.doubleMajors,
+          minors: filters.minors,
+          advancedMajor: filters.advancedMajor,
+          individuallyDesignedMajor: filters.individuallyDesignedMajor,
+          courses: rawCourses,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // 시나리오 목록 새로고침
+        const simulationsRes = await fetch(`${API}/simulation`, {
+          credentials: 'include',
+        });
+        const simulationsData = await simulationsRes.json();
+        if (simulationsData.success) {
+          const sims = (simulationsData.simulations || []).map((sim: any) => ({
+            id: sim.id,
+            name: sim.title,
+            date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
+            canGraduate: false, // TODO: 졸업가능 여부 계산 로직 추가 필요
+          }));
+          setPreviousSimulations(sims);
+        }
+
+        alert('시뮬레이션이 저장되었습니다.');
+        setSaveName('');
+        return true;
+      } else {
+        alert(data.message || '저장에 실패했습니다.');
+        return false;
+      }
+    } catch (error) {
+      console.error('저장 오류:', error);
+      alert('저장 중 오류가 발생했습니다.');
+      return false;
+    }
+  }, [simulationCourses, filters]);
+
+  useEffect(() => {
+    if (isSaveModalOpen) {
+      setSaveSheetVisible(false);
+      const t = window.setTimeout(() => setSaveSheetVisible(true), 10);
+      return () => window.clearTimeout(t);
+    }
+    setSaveSheetVisible(false);
+  }, [isSaveModalOpen]);
+
+  useEffect(() => {
+    if (isScenarioModalOpen) {
+      setScenarioSheetVisible(false);
+      const t = window.setTimeout(() => setScenarioSheetVisible(true), 10);
+      return () => window.clearTimeout(t);
+    }
+    setScenarioSheetVisible(false);
+  }, [isScenarioModalOpen]);
 
   useEffect(() => {
     Promise.all([
@@ -1481,23 +1576,17 @@ export default function SimulationPage() {
 
           setSections(updatedSections);
           
-          // 달성된 섹션을 기본으로 접기
-          const fulfilledSectionIds = new Set<string>();
+          // 달성된 섹션은 접고, 미달성 섹션은 펴기
+          const newCollapsedSections = new Set<string>();
           updatedSections.forEach((s) => {
+            const sectionKey = `center-${s.id}`;
             if (s.fulfilled) {
-              fulfilledSectionIds.add(`center-${s.id}`);
+              // 달성된 섹션은 접기
+              newCollapsedSections.add(sectionKey);
             }
+            // 미달성 섹션은 펴기 (newCollapsedSections에 추가하지 않음)
           });
-          setCollapsedSections((prev) => {
-            const newSet = new Set(prev);
-            // 기존에 수동으로 접은 섹션은 유지하고, 달성된 섹션만 추가
-            fulfilledSectionIds.forEach((id) => {
-              if (!prev.has(id)) {
-                newSet.add(id);
-              }
-            });
-            return newSet;
-          });
+          setCollapsedSections(newCollapsedSections);
         });
     } else {
       // 변경사항이 없어도 ref는 최신 상태로 유지
@@ -2595,8 +2684,8 @@ export default function SimulationPage() {
                 )}
 
                 {/* 요약 영역 */}
-                <div className="sticky bottom-0 bg-gradient-to-b from-transparent to-gray-50 to-[30%] dark:to-black flex-shrink-0 mt-2 pt-4 mx-[-1rem] px-8 pb-6">
-                  <div className="flex items-center justify-between gap-4">
+                <div className="sticky bottom-0 bg-gradient-to-b from-transparent to-gray-50 to-[30%] dark:to-black flex-shrink-0 mt-2 pt-4 mx-[-1rem] px-6 pb-6">
+                  <div className="flex items-center justify-between gap-4 whitespace-nowrap">
                     <div className="flex items-center gap-4 flex-1">
                       <div>
                         <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1/2">이수 학점</span>
@@ -2672,7 +2761,7 @@ export default function SimulationPage() {
                   </div>
 
                   {/* 본문 영역 */}
-                  <div className="flex-1 min-h-0 overflow-y-auto">
+                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
                     <div className="px-4 pt-2 pb-8">
                       {courseMode === 'add' ? (
                         <AddCoursePanel
@@ -2759,13 +2848,15 @@ export default function SimulationPage() {
         {/* 저장 모달 */}
         {isSaveModalOpen && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 dark:bg-black/70"
             onClick={(e) => {
-              if (e.target === e.currentTarget) setIsSaveModalOpen(false);
+              if (e.target === e.currentTarget) closeSaveModal();
             }}
           >
             <div
-              className="bg-gray-50 dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md mx-4"
+              className={`bg-gray-50 dark:bg-zinc-900 shadow-xl w-full sm:max-w-md sm:mx-4 mx-0 rounded-t-xl sm:rounded-xl transition-transform duration-200 ${
+                saveSheetVisible ? 'translate-y-0' : 'translate-y-full sm:translate-y-0'
+              }`}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-6">
@@ -2813,7 +2904,7 @@ export default function SimulationPage() {
                     <button
                       type="button"
                       onClick={() => {
-                        setIsSaveModalOpen(false);
+                        closeSaveModal();
                         setSaveName('');
                         setAddToEnrollments(false);
                       }}
@@ -2824,66 +2915,10 @@ export default function SimulationPage() {
                     <button
                       type="button"
                       onClick={async () => {
-                        if (!saveName.trim()) {
-                          alert('시나리오 이름을 입력해주세요.');
-                          return;
-                        }
-
-                        try {
-                          // CourseSimulation[]를 RawCourseSimulation[]로 변환
-                          const rawCourses: RawCourseSimulation[] = simulationCourses.map((cs) => ({
-                            courseId: cs.courseId,
-                            enrolledYear: cs.enrolledYear,
-                            enrolledSemester: cs.enrolledSemester,
-                            grade: cs.grade,
-                            recognizedAs: cs.recognizedAs,
-                          }));
-
-                          // 시나리오 저장 API 호출
-                          const response = await fetch(`${API}/simulation`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({
-                              title: saveName.trim(),
-                              referenceYear: filters.requirementYear,
-                              major: filters.major,
-                              doubleMajors: filters.doubleMajors,
-                              minors: filters.minors,
-                              advancedMajor: filters.advancedMajor,
-                              individuallyDesignedMajor: filters.individuallyDesignedMajor,
-                              courses: rawCourses,
-                            }),
-                          });
-
-                          const data = await response.json();
-
-                          if (data.success) {
-                            // 시나리오 목록 새로고침
-                            const simulationsRes = await fetch(`${API}/simulation`, {
-                              credentials: 'include',
-                            });
-                            const simulationsData = await simulationsRes.json();
-                            if (simulationsData.success) {
-                              const sims = (simulationsData.simulations || []).map((sim: any) => ({
-                                id: sim.id,
-                                name: sim.title,
-                                date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
-                                canGraduate: false, // TODO: 졸업가능 여부 계산 로직 추가 필요
-                              }));
-                              setPreviousSimulations(sims);
-                            }
-
-                            alert('시뮬레이션이 저장되었습니다.');
-                            setIsSaveModalOpen(false);
-                            setSaveName('');
-                            setAddToEnrollments(false);
-                          } else {
-                            alert(data.message || '저장에 실패했습니다.');
-                          }
-                        } catch (error) {
-                          console.error('저장 오류:', error);
-                          alert('저장 중 오류가 발생했습니다.');
+                        const success = await handleSaveSimulation(saveName);
+                        if (success) {
+                          closeSaveModal();
+                          setAddToEnrollments(false);
                         }
                       }}
                       className="flex-1 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg active:scale-90 transition-all shadow-md"
@@ -3014,28 +3049,32 @@ export default function SimulationPage() {
           {mobileTab === 'courses' && (
             <div>
               {/* 모드 전환 */}
-              <div className="sticky top-[52px] z-10 backdrop-blur-md p-3 flex gap-2">
+              <div className="sticky top-[57px] z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 flex items-center gap-2 px-6 py-2">
                 <button
                   type="button"
                   onClick={() => setCourseMode('add')}
-                  className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-all active:scale-90 ${
+                  className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
                     courseMode === 'add'
-                      ? 'bg-violet-600 text-white'
-                      : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300'
+                      ? 'text-black dark:text-white'
+                      : 'text-gray-400 dark:text-gray-500'
                   }`}
                 >
-                  과목 추가
+                  <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
+                    과목 추가
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setCourseMode('view')}
-                  className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-all active:scale-90 ${
+                  className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
                     courseMode === 'view'
-                      ? 'bg-violet-600 text-white'
-                      : 'bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-gray-300'
+                      ? 'text-black dark:text-white'
+                      : 'text-gray-400 dark:text-gray-500'
                   }`}
                 >
-                  수강한 과목 ({enrollmentsForList.length})
+                  <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
+                    수강한 과목<span className="opacity-40 ml-2">{enrollmentsForList.length}</span>
+                  </span>
                 </button>
               </div>
 
@@ -3622,7 +3661,7 @@ export default function SimulationPage() {
               }`}
             >
               <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
               <span className="text-xs font-medium">과목 담기</span>
             </button>
@@ -3658,20 +3697,22 @@ export default function SimulationPage() {
         {/* 시나리오 선택 모달 */}
         {isScenarioModalOpen && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/70"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 dark:bg-black/70"
             onClick={(e) => {
-              if (e.target === e.currentTarget) setIsScenarioModalOpen(false);
+              if (e.target === e.currentTarget) closeScenarioModal();
             }}
           >
             <div
-              className="bg-gray-50 dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col"
+              className={`bg-gray-50 dark:bg-zinc-900 shadow-xl w-full sm:max-w-md sm:mx-4 mx-0 max-h-[80vh] flex flex-col rounded-t-2xl sm:rounded-xl transition-transform duration-200 ${
+                scenarioSheetVisible ? 'translate-y-0' : 'translate-y-full sm:translate-y-0'
+              }`}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-4 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">시나리오 선택</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">시나리오</h2>
                 {/* 닫기 버튼 */}
                 <button
-                  onClick={() => setIsScenarioModalOpen(false)}
+                  onClick={closeScenarioModal}
                   className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3687,7 +3728,7 @@ export default function SimulationPage() {
                       setCurrentSimulationId(null);
                       initializeSimulationData(profile);
                     }
-                    setIsScenarioModalOpen(false);
+                    closeScenarioModal();
                   }}
                   className={`w-full flex items-center gap-3 rounded-lg p-3 mb-2 transition-all active:scale-95 shadow-md ${
                     currentSimulationId === null
@@ -3712,7 +3753,7 @@ export default function SimulationPage() {
                           if (currentSimulationId !== sim.id) {
                             loadSimulation(sim.id);
                           }
-                          setIsScenarioModalOpen(false);
+                          closeScenarioModal();
                         }}
                         className={`w-full flex items-center gap-3 rounded-lg p-3 transition-all active:scale-95 cursor-pointer shadow-md ${
                           currentSimulationId === sim.id
@@ -3766,16 +3807,30 @@ export default function SimulationPage() {
                 )}
               </div>
 
-              <div className="p-4">
-                <button
-                  onClick={() => {
-                    setIsScenarioModalOpen(false);
-                    setIsSaveModalOpen(true);
-                  }}
-                  className="w-full px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg active:scale-90 transition-all font-medium"
-                >
-                  새 시나리오 저장
-                </button>
+              {/* 시나리오 저장 섹션 */}
+              <div className="p-4 border-t border-gray-200 dark:border-zinc-700">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">시나리오 저장</h3>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    value={saveName}
+                    onChange={setSaveName}
+                    placeholder="시나리오 이름"
+                    size="medium"
+                    className="flex-1"
+                  />
+                  <button
+                    onClick={async () => {
+                      const success = await handleSaveSimulation(saveName);
+                      if (success) {
+                        closeScenarioModal();
+                      }
+                    }}
+                    className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg active:scale-90 transition-all font-medium whitespace-nowrap shadow-sm"
+                  >
+                    저장
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -512,9 +512,9 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   return (
     <>
       {/* 1열: 모바일/태블릿 탭 */}
-      <div className="flex flex-col lg:hidden">
+      <div className="flex flex-col lg:hidden h-full overflow-y-auto overflow-x-hidden">
         {/* 상단: 모드 전환 */}
-        <div className="sticky top-[57px] z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 flex items-center gap-2 p-3 mb-2">
+        <div className="md:sticky md:top-0 md:z-20 bg-gradient-to-b from-gray-50 from-[70%] to-transparent flex items-center gap-2 p-3 pt-0 mb-2">
           <button
             type="button"
             onClick={() => setCourseMode('add')}
@@ -544,7 +544,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         </div>
 
         {/* 본문 영역 */}
-        <div>
+        <div className="">
           <div className="px-4 pt-2 pb-8">
               {courseMode === 'add' ? (
                 <AddCoursePanel
@@ -568,6 +568,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                   onFilterDepartmentChange={setFilterDepartment}
                   filterCategory={filterCategory}
                   onFilterCategoryChange={setFilterCategory}
+                  stickyTopOffset="3.25rem"
                 />
               ) : (
                 <EnrollmentsList
@@ -589,9 +590,9 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
       {/* 2열: 넓은 화면 */}
       <div className="hidden h-full lg:flex justify-center items-start lg:gap-6 overflow-hidden">
         <div className="h-full flex-1 flex min-h-0 flex-col overflow-hidden">
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="flex-shrink-0 space-y-4">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 mb-4">과목 추가</h2>
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="sticky top-0 z-100 flex-shrink-0 space-y-4 bg-gradient-to-b from-gray-50 from-[70%] to-transparent">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 pb-4">과목 추가</h2>
             </div>
             <div className="space-y-4 pt-0 px-2 pb-2">
               <AddCoursePanel
@@ -615,6 +616,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                 onFilterDepartmentChange={setFilterDepartment}
                 filterCategory={filterCategory}
                 onFilterCategoryChange={setFilterCategory}
+                stickyTopOffset="2.5rem"
               />
             </div>
           </div>
@@ -631,20 +633,22 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             handleDropOutside(e);
           }}
         >
-          <h2 className="mb-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
+          <h2 className="sticky top-0 bg-gradient-to-b from-gray-50 from-[70%] to-transparent pb-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
             수강한 과목 <span className="text-md opacity-50">{enrollments.length}</span>
           </h2>
-          <EnrollmentsList
-            enrollments={enrollments}
-            semesterGroups={semesterGroups}
-            sortedSemesterKeys={sortedSemesterKeys}
-            onGradeChange={handleGradeChange}
-            onRemove={handleRemove}
-            onDragStart={handleDragStart}
-            onDrop={handleDrop}
-            onDropOutside={handleDropOutside}
-            findNearestPastSemester={findNearestPastSemester}
-          />
+          <div className="px-2">
+            <EnrollmentsList
+              enrollments={enrollments}
+              semesterGroups={semesterGroups}
+              sortedSemesterKeys={sortedSemesterKeys}
+              onGradeChange={handleGradeChange}
+              onRemove={handleRemove}
+              onDragStart={handleDragStart}
+              onDrop={handleDrop}
+              onDropOutside={handleDropOutside}
+              findNearestPastSemester={findNearestPastSemester}
+            />
+          </div>
         </div>
       </div>
     </>

@@ -119,7 +119,7 @@ function ProfileSettingsContent() {
   return (
     <>
       {/* 데스크톱 버전 */}
-      <div className="hidden md:flex h-screen bg-zinc-50 dark:bg-black overflow-hidden select-none">
+      <div className="hidden md:flex h-screen bg-gray-50 dark:bg-black overflow-hidden select-none">
         <aside className="w-48 flex-shrink-0 bg-white dark:bg-zinc-900 shadow-[0.1rem_0_1rem_rgba(0,0,0,0.1)] dark:shadow-[0.2rem_0_2rem_rgba(255,255,255,0.2)] flex flex-col h-full">
           <div className="p-4 active:scale-90 transition-all">
             <Link href="/simulation" className="text-sm text-violet-600 dark:text-violet-400">
@@ -151,7 +151,7 @@ function ProfileSettingsContent() {
           </div>
         </aside>
 
-        <main className={"flex-1 p-6 md:p-8" + (tab === 'courses' ? ' overflow-hidden' : ' overflow-y-auto')}>
+        <main className={"flex-1 p-6" + (tab === 'courses' ? ' overflow-hidden md:px-8 md:pt-8 md:py-0' : ' overflow-y-auto md:p-8')}>
           <div className={"mx-auto max-w-2xl " + (tab === 'courses' ? 'h-full lg:max-w-6xl overflow-hidden' : '')}>
             {tab === 'account' && (
               <AccountTab
