@@ -1,0 +1,25 @@
+[ 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "전공과목 학점",
+    "description": "전공과목 18학점 이상 이수",
+    "value": 18,
+    "targets": [
+      {
+        "categories": ["MR", "ME"], 
+        "departments": ["PH"]
+      }
+    ]
+  }, 
+  {
+    "type": "MIN_SUBJECTS_AMONG", 
+    "title": "필수 전공과목",
+    "description": "양자역학I, 물리학실험III 필수 이수",
+    "value": 2,
+    "targets": [
+      {
+        "codes": ["PH.30001", "PH.30051"]
+      }
+    ]
+  }
+]

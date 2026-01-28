@@ -1,0 +1,14 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "title": "심화전공 학점",
+    "description": "전공선택 과목 12학점 이상 추가 이수",
+    "value": 12,
+    "targets": [
+      {
+        "categories": ["ME", "MR"],
+        "departments": ["EE"]
+      }
+    ]
+  }
+]

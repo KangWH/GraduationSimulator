@@ -2,8 +2,8 @@
   {
     "type": "MIN_CREDITS_AMONG", 
     "title": "전공필수 학점",
-    "description": "전공필수 15학점 이상 이수",
-    "value": 15,
+    "description": "전공필수 19학점 이상 이수",
+    "value": 19,
     "targets": [
       {
         "categories": ["MR"], 
@@ -14,8 +14,8 @@
   {
     "type": "MIN_CREDITS_AMONG", 
     "title": "전공선택 학점",
-    "description": "전공선택 6학점 이상 이수",
-    "value": 6,
+    "description": "전공선택 30학점 이상 이수",
+    "value": 30,
     "targets": [
       {
         "categories": ["ME"],
