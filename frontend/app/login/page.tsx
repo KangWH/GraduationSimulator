@@ -158,6 +158,7 @@ export default function LoginPage() {
                 id="email"
                 name="email"
                 type="email"
+                inputMode="email"
                 required
                 placeholder="이메일을 입력하세요"
               />

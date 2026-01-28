@@ -13,6 +13,8 @@ export default function ProfileSetupPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showEnrollmentDialog, setShowEnrollmentDialog] = useState(false);
+  const [cancelSheetVisible, setCancelSheetVisible] = useState(false);
+  const [enrollSheetVisible, setEnrollSheetVisible] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [logoLanguage, setLogoLanguage] = useState<'ko' | 'en'>('en');
   const [prevLogoLanguage, setPrevLogoLanguage] = useState<'ko' | 'en' | null>(null);
@@ -22,7 +24,7 @@ export default function ProfileSetupPage() {
     name: '',
     admissionYear: new Date().getFullYear(),
     isFallAdmission: false,
-    major: '',
+    major: 'PH',
     doubleMajors: [] as string[],
     minors: [] as string[],
     advancedMajor: false,
@@ -135,9 +137,38 @@ export default function ProfileSetupPage() {
   };
 
   const handleCancelModalClose = () => {
-    setShowCancelModal(false);
-    setDeletePassword('');
+    setCancelSheetVisible(false);
+    window.setTimeout(() => {
+      setShowCancelModal(false);
+      setDeletePassword('');
+    }, 200);
   };
+
+  const closeEnrollmentDialog = (next: 'simulation' | 'courses') => {
+    setEnrollSheetVisible(false);
+    window.setTimeout(() => {
+      setShowEnrollmentDialog(false);
+      router.push(next === 'simulation' ? '/simulation' : '/profile/settings?tab=courses');
+    }, 200);
+  };
+
+  useEffect(() => {
+    if (showCancelModal) {
+      setCancelSheetVisible(false);
+      const t = window.setTimeout(() => setCancelSheetVisible(true), 10);
+      return () => window.clearTimeout(t);
+    }
+    setCancelSheetVisible(false);
+  }, [showCancelModal]);
+
+  useEffect(() => {
+    if (showEnrollmentDialog) {
+      setEnrollSheetVisible(false);
+      const t = window.setTimeout(() => setEnrollSheetVisible(true), 10);
+      return () => window.clearTimeout(t);
+    }
+    setEnrollSheetVisible(false);
+  }, [showEnrollmentDialog]);
 
   // 인증 확인 중일 때는 로딩 표시
   if (isCheckingAuth) {
@@ -216,8 +247,16 @@ export default function ProfileSetupPage() {
                 id="studentId"
                 name="studentId"
                 type="text"
+                inputMode="numeric"
                 value={formData.studentId}
-                onChange={(v) => setFormData((p) => ({ ...p, studentId: v }))}
+                onChange={(v) => {
+                  const studentId = v.replace(/[^0-9]/g, '');
+                  const admissionYear = Number(v.slice(0, 4));
+                  if (admissionYear >= 2016)
+                    setFormData((p) => ({ ...p, admissionYear, studentId }))
+                  else
+                    setFormData((p) => ({ ...p, studentId }));
+                }}
                 required
                 placeholder="학번을 입력하세요"
               />
@@ -242,8 +281,8 @@ export default function ProfileSetupPage() {
               <NumberInput
                 id="admissionYear"
                 name="admissionYear"
-                min="2000"
-                max="2030"
+                min="2016"
+                max="2050"
                 value={String(formData.admissionYear)}
                 onChange={(v) => setFormData((p) => ({ ...p, admissionYear: Number(v) || 0 }))}
                 required
@@ -340,8 +379,12 @@ export default function ProfileSetupPage() {
 
         {/* 취소 확인 모달 */}
         {showCancelModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-md rounded-lg bg-gray-50 p-6 shadow-xl dark:bg-zinc-900">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 select-none">
+            <div
+              className={`w-full sm:max-w-md mx-0 sm:mx-4 rounded-t-2xl sm:rounded-lg bg-gray-50 p-6 shadow-xl dark:bg-zinc-900 transition-transform duration-200 ${
+                cancelSheetVisible ? 'translate-y-0' : 'translate-y-full sm:translate-y-0'
+              }`}
+            >
               <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 계정 삭제 확인
               </h3>
@@ -384,8 +427,12 @@ export default function ProfileSetupPage() {
 
         {/* 수강한 과목 등록 다이얼로그 */}
         {showEnrollmentDialog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="w-full max-w-md rounded-lg bg-gray-50 p-6 shadow-xl dark:bg-zinc-900">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 select-none">
+            <div
+              className={`w-full sm:max-w-md mx-0 sm:mx-4 rounded-t-2xl sm:rounded-lg bg-gray-50 p-6 shadow-xl dark:bg-zinc-900 transition-transform duration-200 ${
+                enrollSheetVisible ? 'translate-y-0' : 'translate-y-full sm:translate-y-0'
+              }`}
+            >
               <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 기본 정보 저장 완료
               </h3>
@@ -396,8 +443,7 @@ export default function ProfileSetupPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setShowEnrollmentDialog(false);
-                    router.push('/simulation');
+                    closeEnrollmentDialog('simulation');
                   }}
                   className="flex-1 rounded-md bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 active:scale-96 transition-all dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700 shadow-md"
                 >
@@ -406,8 +452,7 @@ export default function ProfileSetupPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setShowEnrollmentDialog(false);
-                    router.push('/profile/settings?tab=courses');
+                    closeEnrollmentDialog('courses');
                   }}
                   className="flex-1 rounded-md bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 active:scale-96 transition-all shadow-md"
                 >
