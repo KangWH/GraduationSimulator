@@ -2898,11 +2898,12 @@ export default function SimulationPage() {
         )}
       </div>
 
-      <div className="min-h-screen md:hidden bg-gray-50 dark:bg-zinc-900 pb-24">
+      {/* 모바일 UI */}
+      <div className="min-h-screen md:hidden bg-gray-50 dark:bg-zinc-900 pb-24 select-none">
         {/* 상단바 */}
         <div className="sticky top-0 z-20 backdrop-blur-md">
           <div className="p-2 flex flex-row justify-between items-center">
-            <button 
+            <button
               onClick={() => setIsScenarioModalOpen(true)}
               className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-90 transition-all flex items-center gap-2"
               aria-label="메뉴"
@@ -2926,12 +2927,12 @@ export default function SimulationPage() {
         </div>
 
         {/* 본문 영역 */}
-        <div className="pb-12">
-          {/* 전공 탭 */}
+        <div>
+          {/* 전공 지정 탭 */}
           {mobileTab === 'major' && (
-            <div className="p-4 space-y-4">
-              <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'var(--font-logo)' }}>전공 설정</h2>
-              <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-4 space-y-4">
+            <div className="p-4 space-y-6">
+              <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'var(--font-logo)' }}>전공 지정</h2>
+              <div className="space-y-6 px-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     전공 이수 기준 연도
@@ -3136,11 +3137,11 @@ export default function SimulationPage() {
                   주전공을 선택하면 섹션이 구성됩니다.
                 </p>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {/* 기초과목 그룹 */}
                   {groupedSections.basicGroup.length > 0 && (
                     <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
-                      {groupedSections.basicGroup.map((s) => {
+                      {groupedSections.basicGroup.map((s, i) => {
                         const isCollapsed = collapsedSections.has(s.id);
                         return (
                           <div key={s.id}>
@@ -3190,6 +3191,9 @@ export default function SimulationPage() {
                                 </div>
                               </div>
                             </div>
+                            {i < groupedSections.basicGroup.length - 1 && (
+                              <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                            )}
                           </div>
                         );
                       })}
@@ -3199,7 +3203,7 @@ export default function SimulationPage() {
                   {/* 주전공/심화전공/연구 그룹 */}
                   {groupedSections.majorGroup.length > 0 && (
                     <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
-                      {groupedSections.majorGroup.map((s) => {
+                      {groupedSections.majorGroup.map((s, i) => {
                         const isCollapsed = collapsedSections.has(s.id);
                         return (
                           <div key={s.id}>
@@ -3252,6 +3256,9 @@ export default function SimulationPage() {
                                 </div>
                               </div>
                             </div>
+                            {i < groupedSections.majorGroup.length - 1 && (
+                              <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                            )}
                           </div>
                         );
                       })}
@@ -3324,41 +3331,41 @@ export default function SimulationPage() {
                 <div className="p-4">
                   {/* 요약 영역 */}
                   {sections.length > 0 && (
-                    <div className="grid grid-cols-4 gap-3">
-                    <div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">이수 학점</span>
-                      <p className="text-base sm:text-lg font-semibold">{totalStats.totalCredit} <span className="text-xs text-gray-400 dark:text-gray-500">/ 138</span></p>
+                    <div className="flex flex-row justify-between gap-3">
+                      <div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">이수 학점</span>
+                        <p className="text-base sm:text-lg font-semibold">{totalStats.totalCredit} <span className="text-xs text-gray-400 dark:text-gray-500">/ 138</span></p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">총 AU</span>
+                        <p className="text-base sm:text-lg font-semibold">{totalStats.totalAu} <span className="text-xs text-gray-400 dark:text-gray-500">/ 4</span></p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">평점</span>
+                        <p className="text-base sm:text-lg font-semibold">{totalStats.gpa} <span className="text-xs text-gray-400 dark:text-gray-500">/ 2.0</span></p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">시뮬레이션 결과</span>
+                        <p className={`text-base sm:text-lg font-bold ${canGraduate ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                          졸업 {canGraduate ? '가능' : '불가'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">총 AU</span>
-                      <p className="text-base sm:text-lg font-semibold">{totalStats.totalAu} <span className="text-xs text-gray-400 dark:text-gray-500">/ 4</span></p>
-                    </div>
-                    <div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">평점</span>
-                      <p className="text-base sm:text-lg font-semibold">{totalStats.gpa} <span className="text-xs text-gray-400 dark:text-gray-500">/ 2.0</span></p>
-                    </div>
-                    <div>
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">시뮬레이션 결과</span>
-                      <p className={`text-base sm:text-lg font-bold ${canGraduate ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        졸업 {canGraduate ? '가능' : '불가'}
-                      </p>
-                    </div>
-                  </div>
                   )}
                 </div>
               </div>
 
-              <div className="p-4 space-y-4 pb-24">
+              <div className="p-4 space-y-6 pb-24">
               {sections.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
                   주전공을 선택하면 섹션이 구성됩니다.
                 </p>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                     {/* 기초과목 */}
                     {groupedSections.basicGroup.length > 0 && (
                       <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
-                        {groupedSections.basicGroup.map((s) => {
+                        {groupedSections.basicGroup.map((s, i) => {
                           const requirements = s.requirements || [];
                           const isCollapsed = collapsedSections.has(`center-${s.id}`);
                           return (
@@ -3420,6 +3427,9 @@ export default function SimulationPage() {
                                   </div>
                                 </div>
                               </div>
+                              {i < groupedSections.basicGroup.length - 1 && (
+                                <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                              )}
                             </div>
                           );
                         })}
@@ -3429,7 +3439,7 @@ export default function SimulationPage() {
                     {/* 주전공/심화전공/연구 그룹 */}
                     {groupedSections.majorGroup.length > 0 && (
                       <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
-                        {groupedSections.majorGroup.map((s) => {
+                        {groupedSections.majorGroup.map((s, i) => {
                           const requirements = s.requirements || [];
                           const isCollapsed = collapsedSections.has(`center-${s.id}`);
                           return (
@@ -3498,6 +3508,9 @@ export default function SimulationPage() {
                                   </div>
                                 </div>
                               </div>
+                              {i < groupedSections.majorGroup.length - 1 && (
+                                <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                              )}
                             </div>
                           );
                         })}
@@ -3585,11 +3598,11 @@ export default function SimulationPage() {
         </div>
 
         {/* 하단 내비게이션 */}
-        <div className="fixed bottom-0 left-0 right-0 z-30 p-4 flex justify-center pointer-events-none">
+        <div className="fixed bottom-0 left-0 right-0 z-30 p-2 flex justify-center pointer-events-none">
           <nav className="p-1 flex flex-row backdrop-blur-md pointer-events-auto rounded-full bg-white/50 dark:bg-zinc-900/50 shadow-lg">
             <button
               onClick={() => setMobileTab('major')}
-              className={`w-24 flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-all active:scale-90 rounded-full ${
+              className={`w-20 flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-all active:scale-85 rounded-full ${
                 mobileTab === 'major'
                   ? 'text-violet-600 dark:text-violet-400 bg-violet-100/50 dark:bg-violet-900/20'
                   : 'text-gray-600 dark:text-gray-400'
@@ -3598,11 +3611,11 @@ export default function SimulationPage() {
               <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
-              <span className="text-xs font-medium">전공</span>
+              <span className="text-xs font-medium">전공 지정</span>
             </button>
             <button
               onClick={() => setMobileTab('courses')}
-              className={`w-24 flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-all active:scale-90 rounded-full ${
+              className={`w-20 flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-all active:scale-85 rounded-full ${
                 mobileTab === 'courses'
                   ? 'text-violet-600 dark:text-violet-400 bg-violet-100/50 dark:bg-violet-900/20'
                   : 'text-gray-600 dark:text-gray-400'
@@ -3611,11 +3624,11 @@ export default function SimulationPage() {
               <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              <span className="text-xs font-medium">과목</span>
+              <span className="text-xs font-medium">과목 담기</span>
             </button>
             <button
               onClick={() => setMobileTab('credits')}
-              className={`w-24 flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-all active:scale-90 rounded-full ${
+              className={`w-20 flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-all active:scale-85 rounded-full ${
                 mobileTab === 'credits'
                   ? 'text-violet-600 dark:text-violet-400 bg-violet-100/50 dark:bg-violet-900/20'
                   : 'text-gray-600 dark:text-gray-400'
@@ -3628,7 +3641,7 @@ export default function SimulationPage() {
             </button>
             <button
               onClick={() => setMobileTab('requirements')}
-              className={`w-24 flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-all active:scale-90 rounded-full ${
+              className={`w-20 flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-all active:scale-85 rounded-full ${
                 mobileTab === 'requirements'
                   ? 'text-violet-600 dark:text-violet-400 bg-violet-100/50 dark:bg-violet-900/20'
                   : 'text-gray-600 dark:text-gray-400'
@@ -3654,11 +3667,12 @@ export default function SimulationPage() {
               className="bg-gray-50 dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md mx-4 max-h-[80vh] flex flex-col"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-4 border-b border-gray-200 dark:border-zinc-700 flex items-center justify-between">
+              <div className="p-4 flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">시나리오 선택</h2>
+                {/* 닫기 버튼 */}
                 <button
                   onClick={() => setIsScenarioModalOpen(false)}
-                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-90 transition-all"
+                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -3675,7 +3689,7 @@ export default function SimulationPage() {
                     }
                     setIsScenarioModalOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 rounded-lg p-3 mb-2 transition-all active:scale-95 ${
+                  className={`w-full flex items-center gap-3 rounded-lg p-3 mb-2 transition-all active:scale-95 shadow-md ${
                     currentSimulationId === null
                       ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300'
                       : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700'
@@ -3700,7 +3714,7 @@ export default function SimulationPage() {
                           }
                           setIsScenarioModalOpen(false);
                         }}
-                        className={`w-full flex items-center gap-3 rounded-lg p-3 transition-all active:scale-95 cursor-pointer ${
+                        className={`w-full flex items-center gap-3 rounded-lg p-3 transition-all active:scale-95 cursor-pointer shadow-md ${
                           currentSimulationId === sim.id
                             ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300'
                             : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700'
@@ -3752,7 +3766,7 @@ export default function SimulationPage() {
                 )}
               </div>
 
-              <div className="p-4 border-t border-gray-200 dark:border-zinc-700">
+              <div className="p-4">
                 <button
                   onClick={() => {
                     setIsScenarioModalOpen(false);
