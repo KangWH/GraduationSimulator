@@ -1294,12 +1294,15 @@ export default function SimulationPage() {
         return { type: 'basicRequired', data: (data.requirements || []) as Requirement[] };
       })());
       promises.push((async () => {
-        const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${profile?.major}&type=${filters.doubleMajors.length > 0 ? 'BE_D' : 'BE'}`);
+        const majorForBE = filters.major || profile?.major || '';
+        if (!majorForBE) return { type: 'basicElective', data: [] as Requirement[] };
+        const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${majorForBE}&type=${filters.doubleMajors.length > 0 ? 'BE_D' : 'BE'}`);
         const data = await res.json();
         return { type: 'basicElective', data: (data.requirements || []) as Requirement[] };
       })());
       promises.push((async () => {
-        const res = await fetch(`${API}/rules/major?year=${filters.requirementYear}&department=${profile?.major}&type=Major`);
+        if (!filters.major) return { type: 'major', data: [] as Requirement[] };
+        const res = await fetch(`${API}/rules/major?year=${filters.requirementYear}&department=${filters.major}&type=Major`);
         const data = await res.json();
         return { type: 'major', data: (data.requirements || []) as Requirement[] };
       })());
@@ -1317,15 +1320,16 @@ export default function SimulationPage() {
           return { type: 'minor', department: d, data: (data.requirements || []) as Requirement[] };
         })());
       });
-      if (filters.advancedMajor) {
+      if (filters.advancedMajor && filters.major) {
         promises.push((async () => {
-          const res = await fetch(`${API}/rules/major?year=${filters.requirementYear}&department=${profile?.major}&type=AdvancedMajor`);
+          const res = await fetch(`${API}/rules/major?year=${filters.requirementYear}&department=${filters.major}&type=AdvancedMajor`);
           const data = await res.json();
           return { type: 'advancedMajor', data: (data.requirements || []) as Requirement[] };
         })());
       }
       promises.push((async () => {
-        const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${profile?.major}&type=${filters.doubleMajors.length > 0 ? 'RS_D' : 'RS'}`);
+        if (!filters.major) return { type: 'research', data: [] as Requirement[] };
+        const res = await fetch(`${API}/rules/major?year=${profile?.admissionYear}&department=${filters.major}&type=${filters.doubleMajors.length > 0 ? 'RS_D' : 'RS'}`);
         const data = await res.json();
         return { type: 'research', data: (data.requirements || []) as Requirement[] };
       })());
