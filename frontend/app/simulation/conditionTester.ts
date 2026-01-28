@@ -53,6 +53,11 @@ function testCourses(enrolledCourses: CourseSimulation[], requirement: Requireme
         return;
     }
 
+    // 심전: 기준 넘기면 그만 세기
+    if (type === 'advancedMajor' && currentValue >= (requirement.value || Number.MAX_SAFE_INTEGER)) {
+      return;
+    }
+
     const constraintTests = requirement.constraints?.map(constraint => {
       // 이미 계산한 과목들 중 제약에 일치하는 과목들
       const currentlyTaken = courses.filter(c => checkCourseConditions(constraint.targets, c, allowDifferentDepartments ? undefined : department));

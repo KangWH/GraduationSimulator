@@ -1,0 +1,37 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "title": "전공필수 학점",
+    "description": "전공필수 과목 24학점 이수",
+    "value": 24,
+    "targets": [
+      {
+        "categories": ["MR"],
+        "departments": ["IE"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "title": "전공선택 학점",
+    "description": "전공선택 과목 21학점 이상 이수",
+    "value": 21,
+    "targets": [
+      {
+        "categories": ["ME"],
+        "departments": ["IE", "CoE"]
+      }
+    ],
+    "constraints": [
+      {
+        "type": "MAX_CREDITS_AMONG",
+        "value": 3,
+        "targets": [
+          {
+            "departments": ["CoE"]
+          }
+        ]
+      }
+    ]
+  }
+]
