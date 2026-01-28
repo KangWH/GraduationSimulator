@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Input, NumberInput } from '../../components/formFields';
-import { DepartmentDropdown, MultipleDepartmentDropdown } from '../../components/DepartmentDropeown';
+import { DepartmentDropdown, MultipleDepartmentDropdown } from '../../components/DepartmentDropdown';
 import { API } from '../../lib/api';
 import type { Profile } from './types';
 
@@ -52,7 +52,6 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId) return;
     if (!form.name || !form.major) {
       alert('이름과 주전공을 입력해주세요.');
       return;
@@ -64,7 +63,6 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          userId,
           name: form.name,
           admissionYear: form.admissionYear,
           isFallAdmission: form.isFallAdmission,
@@ -98,7 +96,7 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">프로필 수정</h1>
-      <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-zinc-900">
+      <form onSubmit={handleSubmit} className="space-y-6 rounded-lg bg-white p-6 dark:bg-zinc-900 shadow-lg">
         <div>
           <label htmlFor="name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
             이름 <span className="text-red-500">*</span>
@@ -114,7 +112,7 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">학번</label>
-          <p className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-600 dark:border-gray-700 dark:bg-zinc-800 dark:text-gray-400">
+          <p className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-600 dark:border-gray-700 dark:bg-zinc-800 dark:text-gray-400 shadow-sm">
             {profile?.studentId}
           </p>
         </div>
@@ -200,7 +198,7 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
         <button
           type="submit"
           disabled={profileSubmitting}
-          className="rounded-lg bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 disabled:opacity-50"
+          className="rounded-lg bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 disabled:opacity-50 active:scale-90 transition-all"
         >
           저장하기
         </button>

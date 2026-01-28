@@ -1,0 +1,22 @@
+[ 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "description": "기초선택 9학점 이상 이수",
+    "value": 9,
+    "targets": [
+      {
+        "categories": ["BE"]
+      }
+    ]
+  }, 
+  {
+    "type": "MIN_COURSES_AMONG", 
+    "description": "선형대수학개론 이수",
+    "value": 1,
+    "targets": [
+      {
+        "codes": ["MAS.10009", "MAS.10010"]
+      }
+    ]
+  }
+]

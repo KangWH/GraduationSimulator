@@ -1,0 +1,34 @@
+[
+  {
+    "description": "21학점 이상 이수",
+    "type": "MIN_CREDITS_AMONG",
+    "value": 21,
+    "targets": [
+      {
+        "categories": ["HSE"]
+      }
+    ]
+  },
+  {
+    "description": "3개 계열 중 2계열에서 1과목 이상씩 이수",
+    "type": "MIN_TAGS_AMONG",
+    "value": 2,
+    "targetTags": ["인문", "사회", "문학예술"],
+    "targets": [
+      {
+        "categories": ["HSE"]
+      }
+    ]
+  },
+  {
+    "description": "핵심교과목을 1과목 이상 포함하여 이수",
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "targets": [
+      {
+        "categories": ["HSE"],
+        "tags": ["핵심"]
+      }
+    ]
+  }
+]

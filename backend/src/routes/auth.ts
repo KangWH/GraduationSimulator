@@ -2,6 +2,8 @@ import express, { type Request, type Response } from 'express';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { JWT_SECRET, authenticate } from '../middleware/auth.js';
 
 const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"] ?? '' })
 const prisma = new PrismaClient({ adapter });
@@ -117,6 +119,22 @@ router.post('/login', async (req: Request, res: Response) => {
       where: { userId: user.id },
     });
 
+    // JWT 토큰 생성
+    const token = jwt.sign(
+      { userId: user.id },
+      JWT_SECRET,
+      { expiresIn: '7d' } // 7일 유효
+    );
+
+    // HTTP-only 쿠키로 토큰 설정
+    res.cookie('token', token, {
+      httpOnly: true, // JavaScript에서 접근 불가 (XSS 방지)
+      secure: process.env.NODE_ENV === 'production', // HTTPS에서만 전송 (프로덕션)
+      sameSite: 'lax', // CSRF 방지
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+      path: '/',
+    });
+
     // 로그인 성공
     res.status(200).json({
       success: true,
@@ -136,11 +154,23 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/me', async (req: Request, res: Response) => {
+// 로그아웃
+router.post('/logout', (req: Request, res: Response) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
+  res.status(200).json({ success: true, message: '로그아웃되었습니다.' });
+});
+
+// 현재 사용자 정보 조회 (쿠키 기반)
+router.get('/me', authenticate, async (req: Request, res: Response) => {
   try {
-    const { userId } = req.query;
-    if (!userId || typeof userId !== 'string') {
-      return res.status(400).json({ success: false, message: 'userId가 필요합니다.' });
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
     }
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -156,11 +186,15 @@ router.get('/me', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/change-password', async (req: Request, res: Response) => {
+router.post('/change-password', authenticate, async (req: Request, res: Response) => {
   try {
-    const { userId, currentPassword, newPassword } = req.body;
-    if (!userId || !currentPassword || !newPassword) {
-      return res.status(400).json({ success: false, message: 'userId, 현재 비밀번호, 새 비밀번호를 입력해주세요.' });
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: '현재 비밀번호와 새 비밀번호를 입력해주세요.' });
     }
     if (newPassword.length < 6) {
       return res.status(400).json({ success: false, message: '새 비밀번호는 최소 6자 이상이어야 합니다.' });
@@ -182,11 +216,15 @@ router.post('/change-password', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/delete-account', async (req: Request, res: Response) => {
+router.post('/delete-account', authenticate, async (req: Request, res: Response) => {
   try {
-    const { userId, password } = req.body;
-    if (!userId || !password) {
-      return res.status(400).json({ success: false, message: 'userId와 비밀번호를 입력해주세요.' });
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({ success: false, message: '비밀번호를 입력해주세요.' });
     }
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -203,6 +241,15 @@ router.post('/delete-account', async (req: Request, res: Response) => {
       await prisma.profile.delete({ where: { userId: user.id } });
     }
     await prisma.user.delete({ where: { id: userId } });
+    
+    // 쿠키 삭제
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
+    
     res.status(200).json({ success: true, message: '회원 탈퇴가 완료되었습니다.' });
   } catch (error) {
     console.error('Delete account error:', error);

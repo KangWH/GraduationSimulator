@@ -1,4 +1,5 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard-std.css');
+@import url("https://cdn.jsdelivr.net/gh/sun-typeface/SUITE@2/fonts/variable/woff2/SUITE-Variable.css");
 @import "tailwindcss";
 
 :root {
@@ -11,6 +12,9 @@
   --color-foreground: var(--foreground);
   --font-sans: 'Pretendard Std', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   --font-mono: 'Pretendard Std', monospace;
+  --font-logo: "SUITE Variable", "SUITE", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-family-logo: var(--font-logo);
+  --font-weight-logo: 750;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -24,4 +28,19 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: 'Pretendard Std', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out forwards;
 }

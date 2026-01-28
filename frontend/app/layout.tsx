@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "졸업시뮬레이터",
-  description: "졸업 요건을 시뮬레이션하고 관리하는 플랫폼",
+  title: "졸업로그 — KAIST 졸업시뮬레이터",
+  description: "KAIST 학부 재학생의 졸업요건을 확인하고 예비 졸업사정을 진행합니다.",
 };
 
 export default function RootLayout({

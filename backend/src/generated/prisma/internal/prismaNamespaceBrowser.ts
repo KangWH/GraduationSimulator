@@ -111,6 +111,8 @@ export const SimulationScalarFieldEnum = {
   major: 'major',
   doubleMajors: 'doubleMajors',
   minors: 'minors',
+  advancedMajor: 'advancedMajor',
+  individuallyDesignedMajor: 'individuallyDesignedMajor',
   courses: 'courses'
 } as const
 
@@ -121,11 +123,14 @@ export const CourseOfferingScalarFieldEnum = {
   id: 'id',
   code: 'code',
   title: 'title',
+  searchTitle: 'searchTitle',
   department: 'department',
   category: 'category',
   tags: 'tags',
   credit: 'credit',
-  au: 'au'
+  au: 'au',
+  level: 'level',
+  crossRecognition: 'crossRecognition'
 } as const
 
 export type CourseOfferingScalarFieldEnum = (typeof CourseOfferingScalarFieldEnum)[keyof typeof CourseOfferingScalarFieldEnum]
@@ -134,7 +139,8 @@ export type CourseOfferingScalarFieldEnum = (typeof CourseOfferingScalarFieldEnu
 export const GeneralEdRequirementScalarFieldEnum = {
   id: 'id',
   year: 'year',
-  logicTree: 'logicTree'
+  type: 'type',
+  requirements: 'requirements'
 } as const
 
 export type GeneralEdRequirementScalarFieldEnum = (typeof GeneralEdRequirementScalarFieldEnum)[keyof typeof GeneralEdRequirementScalarFieldEnum]
@@ -144,7 +150,8 @@ export const MajorRequirementScalarFieldEnum = {
   id: 'id',
   year: 'year',
   department: 'department',
-  logicTree: 'logicTree'
+  type: 'type',
+  requirements: 'requirements'
 } as const
 
 export type MajorRequirementScalarFieldEnum = (typeof MajorRequirementScalarFieldEnum)[keyof typeof MajorRequirementScalarFieldEnum]

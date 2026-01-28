@@ -1,18 +1,23 @@
 import express, { type Request, type Response } from 'express';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
+import { authenticate } from '../middleware/auth.js';
 
 const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"] ?? '' })
 const prisma = new PrismaClient({ adapter });
 const router = express.Router();
 
 // 시뮬레이션 저장
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', authenticate, async (req: Request, res: Response) => {
   try {
-    const { userId, title, referenceYear, major, doubleMajors, minors, courses } = req.body;
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+    const { title, referenceYear, major, doubleMajors, minors, advancedMajor, individuallyDesignedMajor, courses } = req.body;
 
     // 필수 필드 검증
-    if (!userId || !title || !referenceYear || !major) {
+    if (!title || !referenceYear || !major) {
       return res.status(400).json({
         success: false,
         message: '필수 정보를 모두 입력해주세요.'
@@ -41,6 +46,8 @@ router.post('/', async (req: Request, res: Response) => {
         major: major,
         doubleMajors: Array.isArray(doubleMajors) ? doubleMajors : [],
         minors: Array.isArray(minors) ? minors : [],
+        advancedMajor: Boolean(advancedMajor),
+        individuallyDesignedMajor: Boolean(individuallyDesignedMajor),
         courses: courses || [],
       },
     });
@@ -65,15 +72,11 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // 사용자의 시뮬레이션 목록 조회
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
-    const userId = typeof req.query.userId === 'string' ? req.query.userId : null;
-
+    const userId = req.userId;
     if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'userId가 필요합니다.'
-      });
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
     }
 
     const profile = await prisma.profile.findUnique({
@@ -94,7 +97,7 @@ router.get('/', async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      simulations: profile.simulations.map((sim) => ({
+      simulations: profile.simulations.map((sim: any) => ({
         id: sim.id,
         title: sim.title,
         updatedAt: sim.updatedAt,
@@ -102,6 +105,9 @@ router.get('/', async (req: Request, res: Response) => {
         major: sim.major,
         doubleMajors: sim.doubleMajors,
         minors: sim.minors,
+        advancedMajor: sim.advancedMajor,
+        individuallyDesignedMajor: sim.individuallyDesignedMajor,
+        courses: sim.courses,
       })),
     });
   } catch (error: any) {
@@ -109,6 +115,226 @@ router.get('/', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: '시뮬레이션 목록 조회 중 오류가 발생했습니다.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+// 개별 시뮬레이션 조회
+router.get('/:id', authenticate, async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const id = typeof idParam === 'string' ? idParam : null;
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: '시뮬레이션 ID가 필요합니다.'
+      });
+    }
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: '프로필을 찾을 수 없습니다.',
+      });
+    }
+
+    const simulation = await prisma.simulation.findUnique({
+      where: { id },
+    });
+
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        message: '시뮬레이션을 찾을 수 없습니다.',
+      });
+    }
+
+    // 시뮬레이션이 해당 프로필에 속하는지 확인
+    if (simulation.profileId !== profile.id) {
+      return res.status(403).json({
+        success: false,
+        message: '이 시뮬레이션에 접근할 권한이 없습니다.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      simulation: {
+        id: simulation.id,
+        title: simulation.title,
+        updatedAt: simulation.updatedAt,
+        referenceYear: simulation.referenceYear,
+        major: simulation.major,
+        doubleMajors: simulation.doubleMajors,
+        minors: simulation.minors,
+        advancedMajor: simulation.advancedMajor,
+        individuallyDesignedMajor: simulation.individuallyDesignedMajor,
+        courses: simulation.courses,
+      },
+    });
+  } catch (error: any) {
+    console.error('시뮬레이션 조회 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: '시뮬레이션 조회 중 오류가 발생했습니다.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+// 시뮬레이션 삭제
+router.delete('/:id', authenticate, async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const id = typeof idParam === 'string' ? idParam : null;
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: '시뮬레이션 ID가 필요합니다.'
+      });
+    }
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: '프로필을 찾을 수 없습니다.',
+      });
+    }
+
+    const simulation = await prisma.simulation.findUnique({
+      where: { id },
+    });
+
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        message: '시뮬레이션을 찾을 수 없습니다.',
+      });
+    }
+
+    // 시뮬레이션이 해당 프로필에 속하는지 확인
+    if (simulation.profileId !== profile.id) {
+      return res.status(403).json({
+        success: false,
+        message: '이 시뮬레이션을 삭제할 권한이 없습니다.',
+      });
+    }
+
+    await prisma.simulation.delete({
+      where: { id },
+    });
+
+    return res.json({
+      success: true,
+      message: '시뮬레이션이 삭제되었습니다.',
+    });
+  } catch (error: any) {
+    console.error('시뮬레이션 삭제 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: '시뮬레이션 삭제 중 오류가 발생했습니다.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+// 시뮬레이션 업데이트
+router.put('/:id', authenticate, async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const id = typeof idParam === 'string' ? idParam : null;
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+    const { title, referenceYear, major, doubleMajors, minors, advancedMajor, individuallyDesignedMajor, courses } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: '시뮬레이션 ID가 필요합니다.'
+      });
+    }
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: '프로필을 찾을 수 없습니다.',
+      });
+    }
+
+    const simulation = await prisma.simulation.findUnique({
+      where: { id },
+    });
+
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        message: '시뮬레이션을 찾을 수 없습니다.',
+      });
+    }
+
+    // 시뮬레이션이 해당 프로필에 속하는지 확인
+    if (simulation.profileId !== profile.id) {
+      return res.status(403).json({
+        success: false,
+        message: '이 시뮬레이션을 수정할 권한이 없습니다.',
+      });
+    }
+
+    // 업데이트
+    const updated = await prisma.simulation.update({
+      where: { id },
+      data: {
+        ...(title && { title: title.trim() }),
+        updatedAt: new Date(),
+        ...(referenceYear !== undefined && { referenceYear: parseInt(String(referenceYear)) }),
+        ...(major !== undefined && { major }),
+        ...(doubleMajors !== undefined && { doubleMajors: Array.isArray(doubleMajors) ? doubleMajors : [] }),
+        ...(minors !== undefined && { minors: Array.isArray(minors) ? minors : [] }),
+        ...(advancedMajor !== undefined && { advancedMajor: Boolean(advancedMajor) }),
+        ...(individuallyDesignedMajor !== undefined && { individuallyDesignedMajor: Boolean(individuallyDesignedMajor) }),
+        ...(courses !== undefined && { courses }),
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: '시뮬레이션이 업데이트되었습니다.',
+      simulation: {
+        id: updated.id,
+        title: updated.title,
+        updatedAt: updated.updatedAt,
+      },
+    });
+  } catch (error: any) {
+    console.error('시뮬레이션 업데이트 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: '시뮬레이션 업데이트 중 오류가 발생했습니다.',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }

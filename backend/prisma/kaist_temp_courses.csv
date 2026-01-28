@@ -46,6 +46,326 @@ MSE.10001,인체와 질병,MSE,BE,3,0,
 NQE.10001,원자력과 양자의 세계,NQE,BE,3,0,
 PH.10052,일반물리학실험 II,PH,BE,1,0,
 STP.10010,엔지니어의 삶,STP,BE,3,0,
+HSS.10001,논리적글쓰기,HSS,MGC,3,0,
+HSS.10004,창의적 글쓰기,HSS,MGC,3,0,
+HSS.10006,초급한국어 I,HSS,MGC,3,0,
+HSS.10006,한국어1 (학부),HSS,MGC,3,0,
+HSS.10022,English Presentation & Discussion,HSS,MGC,1,0,
+HSS.10023,Advanced English Listening,HSS,MGC,1,0,
+HSS.10024,Advanced English Writing,HSS,MGC,1,0,
+HSS.10025,Advanced English Reading,HSS,MGC,1,0,
+HSS.10038,체육자격증,HSS,MGC,0,2,
+HSS.10039,건강한 캠퍼스 생활,HSS,MGC,0,2,
+HSS.10040,배드민턴,HSS,MGC,0,2,
+HSS.10041,수영,HSS,MGC,0,2,
+HSS.10043,농구,HSS,MGC,0,2,
+HSS.10046,골프,HSS,MGC,0,2,
+HSS.10047,축구와 풋살,HSS,MGC,0,2,
+HSS.10048,체육동아리,HSS,MGC,0,2,
+HSS.10050,댄스스포츠,HSS,MGC,0,2,
+HSS.10051,한국어3,HSS,MGC,3,0,
+HSS.10051,한국어3(학부),HSS,MGC,3,0,
+HSS.10052,코어 운동,HSS,MGC,0,2,
+HSS.10053,발레핏,HSS,MGC,0,2,
+HSS.10054,고급수영,HSS,MGC,0,2,
+HSS.10072,인성/리더십 I,HSS,MGC,0,1,
+HSS.10073,인성/리더십 II,HSS,MGC,0,1,
+HSS.10074,인성/리더십 III,HSS,MGC,0,1,
+HSS.10081,체력육성,HSS,MGC,0,2,
+HSS.10082,테니스,HSS,MGC,0,2,
+HSS.10099,신나는 대학생활,HSS,MGC,0,1,
+HSS.10175,인성/리더십 IV,HSS,MGC,0,1,
+HSS.10195,즐거운 대학생활,HSS,MGC,0,1,
+HSS.10005,논리학,HSS,HSE,3,0,
+HSS.10042,문명과 사상,HSS,HSE,3,0,
+HSS.10042,문명과 사상,HSS,HSE,3,0,인문|핵심
+HSS.10075,German Conversation,HSS,HSE,3,0,
+HSS.10075,독일어 회화,HSS,HSE,3,0,
+HSS.10076,Japanese Conversation,HSS,HSE,3,0,
+HSS.10076,일본어 회화,HSS,HSE,3,0,
+HSS.10077,French Conversation,HSS,HSE,3,0,
+HSS.10077,불어 회화,HSS,HSE,3,0,
+HSS.10078,Chinese Conversation,HSS,HSE,3,0,
+HSS.10078,중국어 회화,HSS,HSE,3,0,
+HSS.10079,Spanish Conversation,HSS,HSE,3,0,
+HSS.10079,스페인어 회화,HSS,HSE,3,0,
+HSS.10123,History of Western Civilization,HSS,HSE,3,0,
+HSS.10126,현대 영문학,HSS,HSE,3,0,
+HSS.10137,북한의 이해,HSS,HSE,3,0,
+HSS.10138,"과학기술, 민주주의 시장",HSS,HSE,3,0,
+HSS.10148,사회학개론,HSS,HSE,3,0,
+HSS.10148,사회학의 이해,HSS,HSE,3,0,사회|일반
+HSS.10150,정치학 개론,HSS,HSE,3,0,
+HSS.10150,정치학 개론,HSS,HSE,3,0,사회|일반
+HSS.10154,영화 속의 법,HSS,HSE,3,0,
+HSS.10172,"Vision, Brain and Art",HSS,HSE,3,0,
+HSS.10172,"시각, 뇌, 예술",HSS,HSE,3,0,
+HSS.10177,The world of Musicals,HSS,HSE,3,0,
+HSS.10177,뮤지컬의 세계,HSS,HSE,3,0,
+HSS.10187,미술사와 시각문화,HSS,HSE,3,0,
+HSS.10187,미술사와 시각문화,HSS,HSE,3,0,문학예술|일반
+HSS.20000,History of Science,HSS,HSE,3,0,
+HSS.20000,과학사,HSS,HSE,3,0,
+HSS.20000,과학사,HSS,HSE,3,0,인문|일반
+HSS.20003,Environmentalism: A History Survey,HSS,HSE,3,0,
+HSS.20003,환경주의: 역사학적 개론,HSS,HSE,3,0,
+HSS.20003,환경주의: 역사학적 개론,HSS,HSE,3,0,인문|일반
+HSS.20006,분석철학,HSS,HSE,3,0,
+HSS.20007,철학개론,HSS,HSE,3,0,
+HSS.20007,철학개론,HSS,HSE,3,0,인문|일반
+HSS.20008,한국사회경제사,HSS,HSE,3,0,
+HSS.20008,한국사회경제사,HSS,HSE,3,0,인문|일반
+HSS.20010,"언어,마음,뇌",HSS,HSE,3,0,인문|핵심
+HSS.20011,English Structure and Grammar,HSS,HSE,3,0,
+HSS.20011,영어의 구조와 문법,HSS,HSE,3,0,
+HSS.20011,영어의 구조와 문법,HSS,HSE,3,0,인문|일반
+HSS.20013,언어와 문화,HSS,HSE,3,0,인문|핵심
+HSS.20015,근현대 미국사,HSS,HSE,3,0,
+HSS.20015,근현대 미국사,HSS,HSE,3,0,인문|일반
+HSS.20017,헐리우드와 중국의 판타지 영화,HSS,HSE,3,0,
+HSS.20017,헐리우드와 중국의 판타지 영화,HSS,HSE,3,0,문학예술|일반
+HSS.20018,서양 고전의 이해,HSS,HSE,3,0,인문|핵심
+HSS.20024,아동언어습득,HSS,HSE,3,0,인문|일반
+HSS.20025,단어의 세계,HSS,HSE,3,0,인문|일반
+HSS.20026,고전 라틴어,HSS,HSE,3,0,
+HSS.20027,고전문학과 절학,HSS,HSE,3,0,
+HSS.20027,고전문학과 절학,HSS,HSE,3,0,인문|일반
+HSS.20028,고대 그리스인들의 세계,HSS,HSE,3,0,인문|일반
+HSS.20029,인간과 환경-지속가능한 사회생태 시스템,HSS,HSE,3,0,사회|핵심
+HSS.20032,과학기술사회학,HSS,HSE,3,0,
+HSS.20032,과학기술사회학,HSS,HSE,3,0,사회|일반
+HSS.20038,커뮤니케이션 연구의 이해,HSS,HSE,3,0,사회|핵심
+HSS.20041,정치화 정부 재정,HSS,HSE,3,0,
+HSS.20044,Understanding Globalization,HSS,HSE,3,0,
+HSS.20044,세계화의 이해,HSS,HSE,3,0,
+HSS.20048,Nations and Cultures,HSS,HSE,3,0,
+HSS.20048,민족과 문화,HSS,HSE,3,0,
+HSS.20048,민족과 문화,HSS,HSE,3,0,사회|일반
+HSS.20049,음식 인류학,HSS,HSE,3,0,
+HSS.20049,음식 인류학,HSS,HSE,3,0,사회|일반
+HSS.20050,동아시아 지정학의 이해,HSS,HSE,3,0,
+HSS.20050,동아시아 지정학의 이해,HSS,HSE,3,0,사회|일반
+HSS.20050,동아시아 지정학의 이해,HSS,HSE,3,0,사회|핵심
+HSS.20051,인문학으로서의 소설 읽기,HSS,HSE,3,0,문학예술|핵심
+HSS.20052,도시·지역 개발의 이해,HSS,HSE,3,0,
+HSS.20052,도시·지역 개발의 이해,HSS,HSE,3,0,사회|핵심
+HSS.20055,성과 사회,HSS,HSE,3,0,
+HSS.20055,젠더와 사회,HSS,HSE,3,0,
+HSS.20055,젠더와 사회,HSS,HSE,3,0,사회|핵심
+HSS.20056,중국의 사회와 문화,HSS,HSE,3,0,
+HSS.20058,국제개발의 지리,HSS,HSE,3,0,
+HSS.20058,국제개발의 지리,HSS,HSE,3,0,사회|핵심
+HSS.20059,글로컬라이제이션과 한국문학,HSS,HSE,3,0,문학예술|핵심
+HSS.20060,언어학의 이해,HSS,HSE,3,0,인문|핵심
+HSS.20065,한국시 다시읽기,HSS,HSE,3,0,
+HSS.20065,한국시 다시읽기,HSS,HSE,3,0,문학예술|핵심
+HSS.20066,한국소설다시읽기,HSS,HSE,3,0,
+HSS.20066,한국소설다시읽기,HSS,HSE,3,0,문학예술|핵심
+HSS.20069,Animation in East Asia,HSS,HSE,3,0,
+HSS.20069,동아시아 애니메이션,HSS,HSE,3,0,문학예술|일반
+HSS.20069,동아시아 애니메이션,HSS,HSE,3,0,문학예술|핵심
+HSS.20070,British and American Poetry,HSS,HSE,3,0,
+HSS.20070,영미 시,HSS,HSE,3,0,
+HSS.20070,영미 시,HSS,HSE,3,0,문학예술|일반
+HSS.20071,British and American Novel,HSS,HSE,3,0,
+HSS.20071,영미소설,HSS,HSE,3,0,
+HSS.20071,영미소설,HSS,HSE,3,0,문학예술|일반
+HSS.20072,영미 드라마와 영화,HSS,HSE,3,0,
+HSS.20073,English Short Stories,HSS,HSE,3,0,
+HSS.20073,영미 단편소설,HSS,HSE,3,0,
+HSS.20073,영미 단편소설,HSS,HSE,3,0,문학예술|일반
+HSS.20074,영미 과학소설,HSS,HSE,3,0,
+HSS.20074,영미 과학소설,HSS,HSE,3,0,문학예술|일반
+HSS.20074,영미 과학소설,HSS,HSE,3,0,문학예술|핵심
+HSS.20075,아시아 미술의 이해,HSS,HSE,3,0,
+HSS.20075,아시아 미술의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20076,Comic Books and American Cinema,HSS,HSE,3,0,
+HSS.20076,만화와 미국영화,HSS,HSE,3,0,
+HSS.20076,만화와 미국영화,HSS,HSE,3,0,문학예술|핵심
+HSS.20079,Art after 1945,HSS,HSE,3,0,
+HSS.20079,1945년 이후 미술,HSS,HSE,3,0,
+HSS.20079,1945년 이후 미술,HSS,HSE,3,0,문학예술|핵심
+HSS.20081,European Literature and Art,HSS,HSE,3,0,
+HSS.20083,디지털인문학의 이해,HSS,HSE,3,0,인문|핵심
+HSS.20084,인문사회과학 연구를 위한 통계 입문,HSS,HSE,3,0,사회|핵심
+HSS.20095,현대사회이론,HSS,HSE,3,0,
+HSS.20095,현대사회이론,HSS,HSE,3,0,사회|핵심
+HSS.20110,한국문화사,HSS,HSE,3,0,
+HSS.20110,한국문화사,HSS,HSE,3,0,인문|일반
+HSS.20111,한국근현대사,HSS,HSE,3,0,
+HSS.20111,한국근현대사,HSS,HSE,3,0,인문|일반
+HSS.20112,과학기술과 철학,HSS,HSE,3,0,
+HSS.20112,과학기술과 철학,HSS,HSE,3,0,인문|일반
+HSS.20114,"한글, 글자, 문명",HSS,HSE,3,0,
+HSS.20114,"한글, 글자, 문명",HSS,HSE,3,0,인문|일반
+HSS.20114,"한글, 글자, 문명",HSS,HSE,3,0,인문|핵심
+HSS.20115,한국 근대의 재발견,HSS,HSE,3,0,
+HSS.20116,언어의 이해,HSS,HSE,3,0,
+HSS.20116,언어학의 이해,HSS,HSE,3,0,인문|일반
+HSS.20117,스타트업 101,HSS,HSE,3,0,
+HSS.20117,스타트업 101,HSS,HSE,3,0,사회|일반
+HSS.20119,독일어권 문화 이해,HSS,HSE,3,0,
+HSS.20119,독일어권 문화 이해,HSS,HSE,3,0,인문|일반
+HSS.20120,Understanding Korean Cinema,HSS,HSE,3,0,
+HSS.20120,한국영화의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20122,한국과학기술사,HSS,HSE,3,0,인문|일반
+HSS.20123,한국사상사,HSS,HSE,3,0,
+HSS.20123,한국사상사,HSS,HSE,3,0,인문|일반
+HSS.20124,동양문화사,HSS,HSE,3,0,
+HSS.20124,동아시아 역사와 문화,HSS,HSE,3,0,인문|일반
+HSS.20126,Understanding of American Culture,HSS,HSE,3,0,
+HSS.20126,영어와 미국문화,HSS,HSE,3,0,
+HSS.20126,영어와 미국문화,HSS,HSE,3,0,인문|일반
+HSS.20126,영어사와 미국문화,HSS,HSE,3,0,인문|일반
+HSS.20126,영어사와 미국문화,HSS,HSE,3,0,인문|핵심
+HSS.20127,윤리학,HSS,HSE,3,0,
+HSS.20127,윤리학,HSS,HSE,3,0,인문|일반
+HSS.20130,"Science, Technology and Society",HSS,HSE,3,0,
+HSS.20130,과학기술과사회,HSS,HSE,3,0,
+HSS.20130,과학기술과사회,HSS,HSE,3,0,사회|핵심
+HSS.20133,Introduction to Psychology,HSS,HSE,3,0,
+HSS.20133,심리학개론,HSS,HSE,3,0,
+HSS.20133,심리학개론,HSS,HSE,3,0,사회|일반
+HSS.20134,인지과학입문,HSS,HSE,3,0,
+HSS.20138,Korean History and Culture for International Students,HSS,HSE,3,0,
+HSS.20138,외국인을 위한 한국역사와 문화,HSS,HSE,3,0,
+HSS.20138,외국인을 위한 한국역사와 문화,HSS,HSE,3,0,인문|일반
+HSS.20139,종교학의 이해,HSS,HSE,3,0,
+HSS.20143,현대 중국의 이해,HSS,HSE,3,0,
+HSS.20143,현대 중국의 이해,HSS,HSE,3,0,사회|일반
+HSS.20144,서양문명의 기원,HSS,HSE,3,0,
+HSS.20145,중세이후의 서양문명,HSS,HSE,3,0,
+HSS.20145,중세이후의 서양문명,HSS,HSE,3,0,인문|일반
+HSS.20146,인간관계와 커뮤니케이션,HSS,HSE,3,0,
+HSS.20147,사회언어학개론,HSS,HSE,3,0,
+HSS.20147,사회언어학의 이해,HSS,HSE,3,0,인문|일반
+HSS.20153,한국미술의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20155,Introduction to Mass Communication,HSS,HSE,3,0,
+HSS.20155,매스 커뮤니케이션의 이해,HSS,HSE,3,0,
+HSS.20155,매스 커뮤니케이션의 이해,HSS,HSE,3,0,사회|일반
+HSS.20156,법학개론,HSS,HSE,3,0,
+HSS.20156,법학개론,HSS,HSE,3,0,사회|일반
+HSS.20157,Introduction to Anthropology,HSS,HSE,3,0,
+HSS.20157,문화인류학개론,HSS,HSE,3,0,
+HSS.20157,인류학의 이해,HSS,HSE,3,0,
+HSS.20157,인류학의 이해,HSS,HSE,3,0,사회|일반
+HSS.20159,Introduction to Economics,HSS,HSE,3,0,
+HSS.20159,경제학개론,HSS,HSE,3,0,
+HSS.20159,경제학개론,HSS,HSE,3,0,사회|일반
+HSS.20163,법과 사회생활,HSS,HSE,3,0,
+HSS.20167,한국문학과사회,HSS,HSE,3,0,
+HSS.20167,한국문학의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20169,경제와 법,HSS,HSE,3,0,
+HSS.20169,경제와 법,HSS,HSE,3,0,사회|일반
+HSS.20171,영미문학의 이해,HSS,HSE,3,0,
+HSS.20171,영미문학의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20186,Understanding Music & Music History,HSS,HSE,3,0,
+HSS.20186,서양음악사,HSS,HSE,3,0,
+HSS.20186,서양음악의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.20228,Introduction to Oriental Philosophy,HSS,HSE,3,0,
+HSS.20228,동양철학입문,HSS,HSE,3,0,
+HSS.20228,동양철학입문,HSS,HSE,3,0,인문|일반
+HSS.20700,디지털 역사학 입문,HSS,HSE,3,0,인문|핵심
+HSS.30020,건축사,HSS,HSE,3,0,
+HSS.30021,한문으로 읽는 동양고전,HSS,HSE,3,0,
+HSS.30021,한문으로 읽는 동양고전,HSS,HSE,3,0,문학예술|일반
+HSS.30022,음악과 뇌,HSS,HSE,3,0,
+HSS.30022,음악과 뇌,HSS,HSE,3,0,문학예술|융합
+HSS.30023,인류의 진화,HSS,HSE,3,0,사회|일반
+HSS.30023,인류의 진화,HSS,HSE,3,0,사회|핵심
+HSS.30024,Science Fiction Cinema,HSS,HSE,3,0,
+HSS.30024,영미 과학영화,HSS,HSE,3,0,
+HSS.30024,영미 과학영화,HSS,HSE,3,0,문학예술|융합
+HSS.30027,환경거버넌스,HSS,HSE,3,0,사회|일반
+HSS.30028,수학철학,HSS,HSE,3,0,
+HSS.30028,수학철학,HSS,HSE,3,0,인문|일반
+HSS.30029,기후변화대응,HSS,HSE,3,0,사회|일반
+HSS.30037,뉴미디어와 커뮤니케이션,HSS,HSE,3,0,
+HSS.30039,인터넷 커뮤니케이션,HSS,HSE,3,0,
+HSS.30039,인터넷 커뮤니케이션,HSS,HSE,3,0,사회|융합
+HSS.30039,인터넷 커뮤니케이션,HSS,HSE,3,0,사회|핵심
+HSS.30040,한국정치의 이해,HSS,HSE,3,0,
+HSS.30045,복지국가와 사회보장,HSS,HSE,3,0,
+HSS.30047,실험 심리학 입문,HSS,HSE,3,0,사회|핵심
+HSS.30048,인문학 택스트 분석,HSS,HSE,3,0,인문|핵심
+HSS.30049,외국어학습의 이해,HSS,HSE,3,0,인문|핵심
+HSS.30053,창조적 활동과 법,HSS,HSE,3,0,
+HSS.30071,20세기 아시아 건축,HSS,HSE,3,0,
+HSS.30071,20세기 아시아 건축,HSS,HSE,3,0,문학예술|일반
+HSS.30071,20세기 아시아 건축,HSS,HSE,3,0,문학예술|핵심
+HSS.30074,근대 건축사,HSS,HSE,3,0,
+HSS.30074,건축과 현대사회,HSS,HSE,3,0,문학예술|핵심
+HSS.30075,20세기 동아시아 미술,HSS,HSE,3,0,
+HSS.30075,한국현대미술의 이해,HSS,HSE,3,0,문학예술|일반
+HSS.30076,음악현상의 이해,HSS,HSE,3,0,
+HSS.30078,Violin Family Instrument Making & Experimentation,HSS,HSE,3,0,
+HSS.30078,바이올린 제작과 실험,HSS,HSE,3,0,
+HSS.32201,심리학적 데이터 기반 계산인지모델링,HSS,HSE,3,0,사회|핵심
+HSS.34200,의학과 사회,HSS,HSE,3,0,사회|융합
+HSS.35300,SF영화: 외계세계탐험,HSS,HSE,3,0,문학예술|핵심
+HSS.39900,Topics in Philosophy,HSS,HSE,3,0,특강
+HSS.39900,철학 특강,HSS,HSE,3,0,특강
+HSS.39900,철학 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39901,Special Lectures on Linguistics,HSS,HSE,3,0,특강
+HSS.39901,언어학 특강,HSS,HSE,3,0,특강
+HSS.39901,언어학 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39902,한국사 특강,HSS,HSE,3,0,특강
+HSS.39902,한국사 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39903,Special issues in History,HSS,HSE,3,0,특강
+HSS.39903,역사학 특강,HSS,HSE,3,0,특강
+HSS.39903,역사학 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39904,Special Lectures on World Languages and Cultures,HSS,HSE,3,0,특강
+HSS.39904,세계문화 특강,HSS,HSE,3,0,특강
+HSS.39904,세계문화 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39905,경제학특강,HSS,HSE,3,0,특강
+HSS.39905,경제학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39906,법학특강,HSS,HSE,3,0,특강
+HSS.39906,법학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39907,사회학특강,HSS,HSE,3,0,특강
+HSS.39907,사회학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39908,정치학특강,HSS,HSE,3,0,특강
+HSS.39908,정치학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39909,언론정보학특강,HSS,HSE,3,0,특강
+HSS.39910,인류학특강,HSS,HSE,3,0,특강
+HSS.39911,외국인을 위한 한국학 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39912,세계문학 특강,HSS,HSE,3,0,특강
+HSS.39912,세계문학 특강,HSS,HSE,3,0,특강|문학예술|일반
+HSS.39913,환경학특강,HSS,HSE,3,0,특강
+HSS.39914,인문학 특강,HSS,HSE,3,0,특강
+HSS.39914,인문학 특강,HSS,HSE,3,0,특강|인문|일반
+HSS.39915,과학기술학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39916,Special Topics in Social Sciences,HSS,HSE,3,0,특강
+HSS.39916,사회과학특강,HSS,HSE,3,0,특강
+HSS.39916,사회과학특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39917,심리학 특강,HSS,HSE,3,0,특강
+HSS.39917,심리학 특강,HSS,HSE,3,0,특강|사회|일반
+HSS.39919,한국문학특강,HSS,HSE,3,0,특강
+HSS.39919,한국문학특강,HSS,HSE,3,0,특강|문학예술|일반
+HSS.39920,Special Lectures on English Literature,HSS,HSE,3,0,특강
+HSS.39920,영문학 특강,HSS,HSE,3,0,특강
+HSS.39920,영문학 특강,HSS,HSE,3,0,특강|문학예술|일반
+HSS.39921,Special Lectures on Art,HSS,HSE,3,0,특강
+HSS.39921,예술학특강,HSS,HSE,3,0,특강
+HSS.39921,예술학특강,HSS,HSE,3,0,특강|문학예술|일반
+HSS.39942,인문핵심특강,HSS,HSE,3,0,특강|인문|핵심
+HSS.39943,사회 핵심 특강,HSS,HSE,3,0,특강|사회|핵심
+HSS.39944,문예 핵심 특강,HSS,HSE,3,0,특강|문학예술|핵심
+HSS.40002,음성언어와 컴퓨터,HSS,HSE,3,0,인문|융합
+HSS.40005,논리학과 인공지능,HSS,HSE,3,0,
+HSS.40005,논리학과 인공지능,HSS,HSE,3,0,인문|일반
+HSS.40007,계산사회과학,HSS,HSE,3,0,사회|융합
+HSS.40007,계산사회과학의 이해,HSS,HSE,3,0,사회|융합
+HSS.40030,운동학의 이해,HSS,HSE,3,0,
+HSS.40035,"시각, 뇌, 예술",HSS,HSE,3,0,문학예술|융합
+HSS.40036,심리철학,HSS,HSE,3,0,
+HSS.40038,"세계만들기, 폭력, 소설",HSS,HSE,3,0,문학예술|핵심
+HSS.40039,고급논리,HSS,HSE,3,0,인문|핵심
+HSS.40041,커뮤니케이션 연구: 이해와 적용,HSS,HSE,3,0,사회|핵심
+HSS.40072,Art and Philosophy,HSS,HSE,3,0,
+HSS.40072,예술과 철학,HSS,HSE,3,0,
+HSS.49900,체육학 특강,HSS,HSE,3,0,
+HSS.49901,인문융합특강,HSS,HSE,3,0,특강|인문|융합
+HSS.49903,사회융합특강,HSS,HSE,3,0,특강|사회|융합
 AE.20000,기초 우주 프로젝트,AE,ME,3,0,
 AE.20001,기초항공프로젝트,AE,ME,3,0,
 AE.20008,항공우주공학 실험 I,AE,MR,3,0,
@@ -519,6 +839,7 @@ CS.20004,이산구조,CS,MR,3,0,
 CS.20006,데이타구조,CS,MR,3,0,
 CS.20101,디지탈시스템 및 실험,CS,ME,4,0,
 CS.20200,프로그래밍의 이해,CS,ME,3,0,
+CS.20300,시스템프로그래밍,CS,ME,3,0,
 CS.20700,지능 로봇 설계 및 프로그래밍,CS,ME,3,0,
 CS.30000,알고리즘 개론,CS,MR,3,0,
 CS.30100,내장형 컴퓨터 시스템,CS,ME,4,0,
@@ -603,6 +924,180 @@ CS.50806,로봇 모션 플래닝 및 응용,CS,GE,3,0,
 CS.50808,심층 학습 기반 이미지 검색,CS,GE,3,0,
 CS.50900,시맨틱 웹,CS,GE,3,0,
 CS.59900,컴퓨팅 특강,CS,GE,3,0,특강
+EE.20001,회로이론,EE,MR,3,0,
+EE.20002,신호 및 시스템,EE,MR,3,0,
+EE.20004,전기자기학,EE,MR,3,0,
+EE.20005,전자공학을 위한 자료구조 및 알고리듬,EE,ME,3,0,
+EE.20009,전자공학을 위한 프로그래밍 구조,EE,MR,3,0,
+EE.20010,확률과 기초 확률과정,EE,MR,3,0,
+EE.20010,확률과 기초 확률과정,EE,ME,3,0,
+EE.20011,물리전자개론,EE,MR,3,0,
+EE.20011,물리전자개론,EE,ME,3,0,
+EE.20012,전자 설계 실습,EE,ME,3,0,
+EE.20013,전자공학을 위한 이선 방법론,EE,ME,3,0,
+EE.20014,기계학습 기초와 실습,EE,ME,3,0,
+EE.20015,EE 커리어 설계 I,EE,ME,1,0,
+EE.20016,EE 커리어 설계 II,EE,ME,1,0,
+EE.20017,최신 소프트웨어 개발 연습,EE,ME,1,0,
+EE.30003,디지털시스템,EE,ME,3,0,
+EE.30004,전자회로,EE,ME,3,0,
+EE.30005,전자설계 및 실험,EE,MR,3,0,
+EE.30009,전기공학을 위한 고급 프로그래밍 기술,EE,ME,3,0,
+EE.30012,컴퓨터구조개론,EE,ME,3,0,
+EE.30021,통신공학,EE,ME,3,0,
+EE.30023,컴퓨터 네트워크,EE,ME,3,0,
+EE.30024,네트워크 프로그래밍,EE,ME,3,0,
+EE.30026,정보이론 및 부호화 개론,EE,ME,3,0,
+EE.30031,기계학습개론,EE,ME,3,0,
+EE.30041,전자파 및 안테나,EE,ME,3,0,
+EE.30041,전기자기학 II,EE,ME,3,0,
+EE.30042,무선공학,EE,ME,3,0,
+EE.30052,광공학개론,EE,ME,3,0,
+EE.30062,반도체소자,EE,ME,3,0,
+EE.30072,디지털 전자회로,EE,ME,3,0,
+EE.30081,제어시스템공학,EE,ME,3,0,
+EE.30091,전력전자제어,EE,ME,3,0,
+EE.40003,아날로그 전자회로,EE,ME,3,0,
+EE.40005,전자디자인 랩,EE,MR,3,0,
+EE.40012,빅데이터 분석 개론,EE,ME,3,0,
+EE.40014,임베디드시스템,EE,ME,3,0,
+EE.40015,전자공학을 위한 운영체제 및 시스템 프로그래밍,EE,ME,3,0,
+EE.40021,통신시스템,EE,ME,3,0,
+EE.40024,최적화개론,EE,ME,3,0,
+EE.40025,무선 통신망,EE,ME,3,0,
+EE.40026,인공지능 반도체 시스템,EE,ME,3,0,
+EE.40032,디지털신호처리,EE,ME,3,0,
+EE.40034,시각적 이해를 위한 심층학습,EE,ME,3,0,
+EE.40041,광통신개론,EE,ME,3,0,
+EE.40042,집적광학개론,EE,ME,3,0,
+EE.40052,광공학 개론,EE,ME,3,0,
+EE.40053,광전자소자의 이해,EE,ME,3,0,
+EE.40063,반도체 집적회로 기술,EE,ME,3,0,
+EE.40064,그린에너지 전자공학,EE,ME,3,0,
+EE.40065,이중집적 반도체소자,EE,ME,3,0,
+EE.40066,바이오 및 의용 전자 공학 개론,EE,ME,3,0,
+EE.40067,센서전자공학,EE,ME,3,0,
+EE.40068,박막 트랜지스터,EE,ME,3,0,
+EE.40069,"뇌, 기계, 사회",EE,ME,3,0,
+EE.40070,디스플레이공학,EE,ME,3,0,
+EE.40073,반도체 나노구조,EE,ME,3,0,
+EE.40074,멀티미디어개론,EE,ME,3,0,
+EE.40076,시청각 인지모델,EE,ME,3,0,
+EE.40077,데이터베이스 및 빅데이터 시스템,EE,ME,3,0,
+EE.40078,융합적 로봇공학 개론,EE,ME,3,0,
+EE.40079,과학계산 및 데이터,EE,ME,3,0,
+EE.40080,양자 정보 및 컴퓨팅 기초,EE,ME,3,0,
+EE.49901,전자공학특강 I,EE,ME,1,0,특강
+EE.49904,전기 전자공학특강,EE,ME,3,0,특강
+EE.50009,연구논문작성법,EE,GE,1,0,
+EE.50011,전산기구조,EE,GE,3,0,
+EE.50013,네트워크 시스템 및 보안,EE,GE,3,0,
+EE.50014,병렬컴퓨터구조,EE,GE,3,0,
+EE.50015,보안 공격론,EE,GE,3,0,
+EE.50016,임베디드 소프트웨어,EE,GE,3,0,
+EE.50017,소프트웨어 해킹 이론과 실습,EE,GE,3,0,
+EE.50020,정보통신네트워크,EE,GE,3,0,
+EE.50022,통신이론,EE,GE,3,0,
+EE.50023,블록 최적화 기법,EE,GE,3,0,
+EE.50027,데이타통신,EE,GE,3,0,
+EE.50028,공학 확률과정,EE,GE,3,0,
+EE.50029,무선통신,EE,GE,3,0,
+EE.50031,통계적 학습이론,EE,GE,3,0,
+EE.50032,브레인IT개론,EE,GE,3,0,
+EE.50033,디지털음성처리,EE,GE,3,0,
+EE.50034,패턴인식,EE,GE,3,0,
+EE.50035,영상처리,EE,GE,3,0,
+EE.50038,신경회로망,EE,GE,3,0,
+EE.50041,전자장이론,EE,GE,3,0,
+EE.50042,마이크로파공학,EE,GE,3,0,
+EE.50043,안테나 공학,EE,GE,3,0,
+EE.50045,양자역학 입문,EE,GE,3,0,
+EE.50046,장 및 파동론,EE,GE,3,0,
+EE.50047,양자정보처리개론,EE,GE,3,0,
+EE.50048,신호처리를 위한 행렬 계산,EE,GE,3,0,
+EE.50052,양자컴퓨팅,EE,GE,3,0,
+EE.50055,광전자공학,EE,GE,3,0,
+EE.50057,부호이론,EE,GE,3,0,
+EE.50061,집적회로소자 개론,EE,GE,3,0,
+EE.50063,디스플레이공학,EE,GE,3,0,
+EE.50065,공학자를 위한 현대물리,EE,GE,3,0,
+EE.50066,MEMS 전자공학,EE,GE,3,0,
+EE.50067,태양광발전,EE,GE,3,0,
+EE.50068,유기전자공학,EE,GE,3,0,
+EE.50069,나노바이오 전자 공학,EE,GE,3,0,
+EE.50070,미래 반도체 회로기술,EE,GE,3,0,
+EE.50071,전자회로특론,EE,GE,3,0,특론
+EE.50074,VLSI를 위한 CAD,EE,GE,3,0,
+EE.50076,저잡음 전자회로,EE,GE,3,0,
+EE.50077,미래 반도체 소자기술,EE,GE,3,0,
+EE.50081,선형시스템,EE,GE,3,0,
+EE.50085,모바일 로봇공학 및 자율주행,EE,GE,3,0,
+EE.50091,전기자동차개론,EE,GE,3,0,
+EE.50094,전력전자 시스템,EE,GE,3,0,
+EE.59900,전기전자컴퓨터공학특강,EE,GE,3,0,특강
+HSS.10006,한국어 1 (학부),HSS,OE,3,0,
+HSS.10008,글쓰기의 기초,HSS,OE,1,0,
+HSS.10010,Intermediate English Speaking & Listening,HSS,OE,2,0,
+HSS.10011,Intermediate English Reading & Writing,HSS,OE,2,0,
+HSS.10075,독일어 회화,HSS,OE,3,0,인선
+HSS.10076,일본어 회화,HSS,OE,3,0,인선
+HSS.10077,불어 회화,HSS,OE,3,0,인선
+HSS.10078,중국어 회화,HSS,OE,3,0,인선
+HSS.10079,스페인어 회화,HSS,OE,3,0,인선
+HSS.10089,새내기 세미나 1,HSS,OE,1,0,
+HSS.10090,새내기 세미나 2,HSS,OE,1,0,
+HSS.10093,한국어2 (학부),HSS,OE,3,0,
+HSS.10152,한국어4,HSS,OE,3,0,
+HSS.10152,한국어4(학부),HSS,OE,3,0,
+HSS.19900,영어특강,HSS,OE,3,0,특강
+HSS.19901,읽기와 토론 특강,HSS,OE,1,0,특강
+HSS.20026,고전 라틴어,HSS,OE,3,0,인선
+HSS.29982,예술활동특강,HSS,OE,2,0,특강
+HSS.30092,English Science Writing,HSS,OE,3,0,
+HSS.30094,미디어영어,HSS,OE,3,0,
+HSS.30099,Creative English Writing,HSS,OE,3,0,
+HSS.39918,예술실기특강,HSS,OE,2,0,특강
+HSS.40010,건강한 캠퍼스 생활,HSS,OE,2,0,
+HSS.40011,골프,HSS,OE,2,0,
+HSS.40013,농구,HSS,OE,2,0,
+HSS.40015,라이프 아카데미,HSS,OE,2,0,
+HSS.40015,라이프 아카데미 I,HSS,OE,2,0,
+HSS.40016,발레핏,HSS,OE,2,0,
+HSS.40017,배드민턴,HSS,OE,2,0,
+HSS.40018,수영,HSS,OE,2,0,
+HSS.40019,고급수영,HSS,OE,2,0,
+HSS.40021,체력육성,HSS,OE,2,0,
+HSS.40022,축구와 풋살,HSS,OE,2,0,
+HSS.40024,코어운동,HSS,OE,2,0,
+HSS.40025,테니스,HSS,OE,2,0,
+HSS.40029,라이프 아카데미II,HSS,OE,2,0,
+HSS.40083,과학기술정책 사례연구,HSS,OE,3,0,
+HSS.49902,스포츠특강,HSS,OE,2,0,특강
+HSS.49910,정책특강,HSS,OE,1,0,특강
+HSS.50010,인문사회과학과 자연어처리,HSS,GE,3,0,
+HSS.50012,인문사회과학 연구를 위한 실험방법론,HSS,GE,3,0,
+HSS.50013,인문사회과학 연구를 위한 통계 이론과 실습,HSS,GE,3,0,
+HSS.50014,인문사회과학 연구 설계와 수행,HSS,GE,3,0,
+HSS.50036,음악 인지과학,HSS,GE,3,0,
+HSS.50053,인간-컴퓨터 커뮤니케이션,HSS,GE,3,0,
+HSS.50054,에너지환경데이터를 이용한 계산사회과학,HSS,GE,3,0,
+HSS.50055,현대계산사회과학,HSS,GE,3,0,
+HSS.50056,인지과학과 응용,HSS,GE,3,0,
+HSS.50057,디지털 역사학,HSS,GE,3,0,
+HSS.50081,Graduate English Writing,HSS,GE,3,0,
+HSS.50083,Graduate English Presentations,HSS,GE,3,0,
+HSS.50086,한국어1 (대학원),HSS,GE,3,0,
+HSS.50087,한국어2 (대학원),HSS,GE,3,0,
+HSS.50089,한국어3,HSS,GE,3,0,
+HSS.50089,한국어3(대학원),HSS,GE,3,0,
+HSS.50090,한국어4,HSS,GE,3,0,
+HSS.50090,한국어4(대학원),HSS,GE,3,0,
+HSS.50100,인공지능과 비평이론,HSS,GE,3,0,
+HSS.50201,음성과학의 이해와 응용,HSS,GE,3,0,
+HSS.50202,에스노그라피와 융합연구,HSS,GE,3,0,
+HSS.50203,사회연결망 데이터의 통계적 분석,HSS,GE,3,0,
+HSS.51000,서사와 공간: 메타버스 스토리텔링,HSS,GE,3,0,
+HSS.59900,디지털인문학특강,HSS,GE,3,0,특강
 MAS.10000,대학수학,MAS,OE,3,0,
 MAS.20010,정수론 개론,MAS,ME,3,0,
 MAS.20012,선형대수학,MAS,ME,3,0,
@@ -647,7 +1142,7 @@ MAS.49900,수학특강,MAS,ME,3,0,특강
 MAS.49901,수학특강 I,MAS,ME,1,0,특강
 MAS.50001,공학자를 위한 해석학개론,MAS,GE,3,0,
 MAS.50002,공학자를 위한 함수해석학,MAS,GE,3,0,
-MAS.50010,정수론 개론,MAS,GE,3,0,
+MAS.50010,정수론,MAS,GE,3,0,
 MAS.50011,대수학 I,MAS,GE,3,0,
 MAS.50012,대수학 II,MAS,GE,3,0,
 MAS.50013,호몰로지 대수학,MAS,GE,3,0,
@@ -665,3 +1160,43 @@ MAS.50071,금융수학의 확률적 방법론,MAS,GE,3,0,
 MAS.50075,조합수학,MAS,GE,3,0,
 MAS.59901,수학특론 I,MAS,GE,1,0,특론
 MAS.59903,수학특론 I,MAS,GE,3,0,특론
+PH.20011,수리물리학 I,PH,ME,3,0,
+PH.20012,수리물리학 II,PH,ME,3,0,
+PH.20021,고전역학 I,PH,MR,3,0,
+PH.20022,고전역학 II,PH,ME,3,0,
+PH.20031,전자기학 I,PH,MR,3,0,
+PH.20032,전자기학 II,PH,ME,3,0,
+PH.20041,현대물리학,PH,ME,3,0,
+PH.20042,체감형 현대물리,PH,ME,3,0,
+PH.20051,물리학실험 I,PH,MR,2,0,
+PH.20052,물리학실험 II,PH,ME,2,0,
+PH.30001,양자역학 I,PH,MR,3,0,
+PH.30002,양자역학 II,PH,MR,3,0,
+PH.30011,열물리학,PH,MR,3,0,
+PH.30012,통계물리학,PH,ME,3,0,
+PH.30051,물리학실험 III,PH,MR,2,0,
+PH.30061,고체물리학 I,PH,ME,3,0,
+PH.30091,광학,PH,ME,3,0,
+PH.40001,원자.분자물리학,PH,ME,3,0,
+PH.40002,레이저광학,PH,ME,3,0,
+PH.40013,전산물리학개론,PH,ME,3,0,
+PH.40030,생물물리학,PH,ME,3,0,
+PH.40041,플라즈마물리학개론,PH,ME,3,0,
+PH.40050,핵.소립자물리학,PH,ME,3,0,
+PH.40062,고체물리학 II,PH,ME,3,0,
+PH.40065,물리학에서의 대칭성과 위상학,PH,ME,3,0,
+PH.40071,상대성이론및우주론,PH,ME,3,0,
+PH.40075,양자 정보 I,PH,ME,3,0,
+PH.40076,양자 정보 II,PH,ME,3,0,
+PH.40081,천체물리학,PH,ME,3,0,
+PH.49901,최신물리학 연구주제 특강 I,PH,ME,1,0,특강
+PH.49903,물리학특강,PH,ME,3,0,특강
+PH.50003,양자역학 I,PH,GE,3,0,
+PH.50004,양자역학 II,PH,GE,3,0,
+PH.50005,고전역학,PH,GE,3,0,
+PH.50007,전자기학I,PH,GE,3,0,
+PH.50008,전자기학II,PH,MR,3,0,
+PH.50009,통계역학,PH,GE,3,0,
+PH.50010,양자 컴퓨팅,PH,GE,3,0,
+PH.50011,양자계측 및 센싱,PH,GE,3,0,
+PH.50012,양자 시뮬레이터,PH,GE,3,0,

@@ -38,19 +38,22 @@ export type MajorRequirementMinAggregateOutputType = {
   id: string | null
   year: number | null
   department: string | null
+  type: string | null
 }
 
 export type MajorRequirementMaxAggregateOutputType = {
   id: string | null
   year: number | null
   department: string | null
+  type: string | null
 }
 
 export type MajorRequirementCountAggregateOutputType = {
   id: number
   year: number
   department: number
-  logicTree: number
+  type: number
+  requirements: number
   _all: number
 }
 
@@ -67,19 +70,22 @@ export type MajorRequirementMinAggregateInputType = {
   id?: true
   year?: true
   department?: true
+  type?: true
 }
 
 export type MajorRequirementMaxAggregateInputType = {
   id?: true
   year?: true
   department?: true
+  type?: true
 }
 
 export type MajorRequirementCountAggregateInputType = {
   id?: true
   year?: true
   department?: true
-  logicTree?: true
+  type?: true
+  requirements?: true
   _all?: true
 }
 
@@ -173,7 +179,8 @@ export type MajorRequirementGroupByOutputType = {
   id: string
   year: number
   department: string
-  logicTree: runtime.JsonValue
+  type: string
+  requirements: runtime.JsonValue
   _count: MajorRequirementCountAggregateOutputType | null
   _avg: MajorRequirementAvgAggregateOutputType | null
   _sum: MajorRequirementSumAggregateOutputType | null
@@ -203,31 +210,36 @@ export type MajorRequirementWhereInput = {
   id?: Prisma.StringFilter<"MajorRequirement"> | string
   year?: Prisma.IntFilter<"MajorRequirement"> | number
   department?: Prisma.StringFilter<"MajorRequirement"> | string
-  logicTree?: Prisma.JsonFilter<"MajorRequirement">
+  type?: Prisma.StringFilter<"MajorRequirement"> | string
+  requirements?: Prisma.JsonFilter<"MajorRequirement">
 }
 
 export type MajorRequirementOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   year?: Prisma.SortOrder
   department?: Prisma.SortOrder
-  logicTree?: Prisma.SortOrder
+  type?: Prisma.SortOrder
+  requirements?: Prisma.SortOrder
 }
 
 export type MajorRequirementWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  year_department_type?: Prisma.MajorRequirementYearDepartmentTypeCompoundUniqueInput
   AND?: Prisma.MajorRequirementWhereInput | Prisma.MajorRequirementWhereInput[]
   OR?: Prisma.MajorRequirementWhereInput[]
   NOT?: Prisma.MajorRequirementWhereInput | Prisma.MajorRequirementWhereInput[]
   year?: Prisma.IntFilter<"MajorRequirement"> | number
   department?: Prisma.StringFilter<"MajorRequirement"> | string
-  logicTree?: Prisma.JsonFilter<"MajorRequirement">
-}, "id">
+  type?: Prisma.StringFilter<"MajorRequirement"> | string
+  requirements?: Prisma.JsonFilter<"MajorRequirement">
+}, "id" | "year_department_type">
 
 export type MajorRequirementOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   year?: Prisma.SortOrder
   department?: Prisma.SortOrder
-  logicTree?: Prisma.SortOrder
+  type?: Prisma.SortOrder
+  requirements?: Prisma.SortOrder
   _count?: Prisma.MajorRequirementCountOrderByAggregateInput
   _avg?: Prisma.MajorRequirementAvgOrderByAggregateInput
   _max?: Prisma.MajorRequirementMaxOrderByAggregateInput
@@ -242,63 +254,78 @@ export type MajorRequirementScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"MajorRequirement"> | string
   year?: Prisma.IntWithAggregatesFilter<"MajorRequirement"> | number
   department?: Prisma.StringWithAggregatesFilter<"MajorRequirement"> | string
-  logicTree?: Prisma.JsonWithAggregatesFilter<"MajorRequirement">
+  type?: Prisma.StringWithAggregatesFilter<"MajorRequirement"> | string
+  requirements?: Prisma.JsonWithAggregatesFilter<"MajorRequirement">
 }
 
 export type MajorRequirementCreateInput = {
   id?: string
   year: number
   department: string
-  logicTree: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  type: string
+  requirements: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MajorRequirementUncheckedCreateInput = {
   id?: string
   year: number
   department: string
-  logicTree: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  type: string
+  requirements: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MajorRequirementUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   year?: Prisma.IntFieldUpdateOperationsInput | number
   department?: Prisma.StringFieldUpdateOperationsInput | string
-  logicTree?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  requirements?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MajorRequirementUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   year?: Prisma.IntFieldUpdateOperationsInput | number
   department?: Prisma.StringFieldUpdateOperationsInput | string
-  logicTree?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  requirements?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MajorRequirementCreateManyInput = {
   id?: string
   year: number
   department: string
-  logicTree: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  type: string
+  requirements: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MajorRequirementUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   year?: Prisma.IntFieldUpdateOperationsInput | number
   department?: Prisma.StringFieldUpdateOperationsInput | string
-  logicTree?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  requirements?: Prisma.JsonNullValueInput | runtime.InputJsonValue
 }
 
 export type MajorRequirementUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   year?: Prisma.IntFieldUpdateOperationsInput | number
   department?: Prisma.StringFieldUpdateOperationsInput | string
-  logicTree?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  requirements?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+}
+
+export type MajorRequirementYearDepartmentTypeCompoundUniqueInput = {
+  year: number
+  department: string
+  type: string
 }
 
 export type MajorRequirementCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   year?: Prisma.SortOrder
   department?: Prisma.SortOrder
-  logicTree?: Prisma.SortOrder
+  type?: Prisma.SortOrder
+  requirements?: Prisma.SortOrder
 }
 
 export type MajorRequirementAvgOrderByAggregateInput = {
@@ -309,12 +336,14 @@ export type MajorRequirementMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   year?: Prisma.SortOrder
   department?: Prisma.SortOrder
+  type?: Prisma.SortOrder
 }
 
 export type MajorRequirementMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   year?: Prisma.SortOrder
   department?: Prisma.SortOrder
+  type?: Prisma.SortOrder
 }
 
 export type MajorRequirementSumOrderByAggregateInput = {
@@ -327,31 +356,35 @@ export type MajorRequirementSelect<ExtArgs extends runtime.Types.Extensions.Inte
   id?: boolean
   year?: boolean
   department?: boolean
-  logicTree?: boolean
+  type?: boolean
+  requirements?: boolean
 }, ExtArgs["result"]["majorRequirement"]>
 
 export type MajorRequirementSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   year?: boolean
   department?: boolean
-  logicTree?: boolean
+  type?: boolean
+  requirements?: boolean
 }, ExtArgs["result"]["majorRequirement"]>
 
 export type MajorRequirementSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   year?: boolean
   department?: boolean
-  logicTree?: boolean
+  type?: boolean
+  requirements?: boolean
 }, ExtArgs["result"]["majorRequirement"]>
 
 export type MajorRequirementSelectScalar = {
   id?: boolean
   year?: boolean
   department?: boolean
-  logicTree?: boolean
+  type?: boolean
+  requirements?: boolean
 }
 
-export type MajorRequirementOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "year" | "department" | "logicTree", ExtArgs["result"]["majorRequirement"]>
+export type MajorRequirementOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "year" | "department" | "type" | "requirements", ExtArgs["result"]["majorRequirement"]>
 
 export type $MajorRequirementPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "MajorRequirement"
@@ -360,7 +393,8 @@ export type $MajorRequirementPayload<ExtArgs extends runtime.Types.Extensions.In
     id: string
     year: number
     department: string
-    logicTree: runtime.JsonValue
+    type: string
+    requirements: runtime.JsonValue
   }, ExtArgs["result"]["majorRequirement"]>
   composites: {}
 }
@@ -787,7 +821,8 @@ export interface MajorRequirementFieldRefs {
   readonly id: Prisma.FieldRef<"MajorRequirement", 'String'>
   readonly year: Prisma.FieldRef<"MajorRequirement", 'Int'>
   readonly department: Prisma.FieldRef<"MajorRequirement", 'String'>
-  readonly logicTree: Prisma.FieldRef<"MajorRequirement", 'Json'>
+  readonly type: Prisma.FieldRef<"MajorRequirement", 'String'>
+  readonly requirements: Prisma.FieldRef<"MajorRequirement", 'Json'>
 }
     
 

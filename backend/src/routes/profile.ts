@@ -1,20 +1,23 @@
 import express, { type Request, type Response } from 'express';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
+import { authenticate } from '../middleware/auth.js';
 
 const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"] ?? '' })
 const prisma = new PrismaClient({ adapter });
 const router = express.Router();
 
 // Profile 생성 (기본 정보 입력)
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', authenticate, async (req: Request, res: Response) => {
   try {
-    // TODO: 실제로는 JWT 토큰에서 userId를 가져와야 함
-    // 임시로 body에서 userId를 받음 (나중에 인증 미들웨어로 변경)
-    const { userId, studentId, name, admissionYear, isFallAdmission, major, doubleMajor, minor, advancedMajor, individuallyDesignedMajor } = req.body;
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+    const { studentId, name, admissionYear, isFallAdmission, major, doubleMajor, minor, advancedMajor, individuallyDesignedMajor } = req.body;
 
     // 필수 필드 검증
-    if (!userId || !name || !studentId || !admissionYear || !major) {
+    if (!name || !studentId || !admissionYear || !major) {
       return res.status(400).json({ 
         success: false,
         message: '필수 정보를 모두 입력해주세요.'
@@ -104,16 +107,11 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // Profile 조회
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authenticate, async (req: Request, res: Response) => {
   try {
-    // TODO: 실제로는 JWT 토큰에서 userId를 가져와야 함
-    const { userId } = req.query;
-
-    if (!userId || typeof userId !== 'string') {
-      return res.status(400).json({ 
-        success: false,
-        message: '사용자 ID가 필요합니다.' 
-      });
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
     }
 
     const profile = await prisma.profile.findUnique({
@@ -141,13 +139,13 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // Profile 수정
-router.patch('/', async (req: Request, res: Response) => {
+router.patch('/', authenticate, async (req: Request, res: Response) => {
   try {
-    const { userId, name, admissionYear, isFallAdmission, major, doubleMajor, minor, advancedMajor, individuallyDesignedMajor, enrollments } = req.body;
-
-    if (!userId || typeof userId !== 'string') {
-      return res.status(400).json({ success: false, message: '사용자 ID가 필요합니다.' });
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
     }
+    const { name, admissionYear, isFallAdmission, major, doubleMajor, minor, advancedMajor, individuallyDesignedMajor, enrollments } = req.body;
 
     const profile = await prisma.profile.findUnique({ where: { userId } });
     if (!profile) {
@@ -193,28 +191,126 @@ router.patch('/', async (req: Request, res: Response) => {
   }
 });
 
-// 수강 과목 삭제 (들은 과목 변경용)
-router.delete('/enrollments/:id', async (req: Request, res: Response) => {
+// 수강 내역 저장 (POST/PUT/PATCH 모두 지원)
+// 수강 내역 조회
+router.get('/enrollments', authenticate, async (req: Request, res: Response) => {
   try {
-    const idParam = req.params.id;
-    const userIdParam = req.query.userId;
-    const id = typeof idParam === 'string' ? idParam : Array.isArray(idParam) ? idParam[0] : undefined;
-    let userId: string | undefined;
-    if (typeof userIdParam === 'string') {
-      userId = userIdParam;
-    } else if (Array.isArray(userIdParam) && userIdParam.length > 0 && typeof userIdParam[0] === 'string') {
-      userId = userIdParam[0];
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
     }
-    if (!userId || !id) {
-      return res.status(400).json({ success: false, message: 'userId와 enrollment id가 필요합니다.' });
-    }
+
     const profile = await prisma.profile.findUnique({ where: { userId } });
     if (!profile) {
       return res.status(404).json({ success: false, message: '프로필을 찾을 수 없습니다.' });
     }
-    res.status(200).json({ success: true, message: '수강 과목이 삭제되었습니다.' });
+
+    let enrollments: unknown = profile.enrollments;
+    if (enrollments == null) {
+      enrollments = [];
+    } else if (typeof enrollments === 'string') {
+      try {
+        enrollments = JSON.parse(enrollments);
+      } catch {
+        enrollments = [];
+      }
+    }
+    if (!Array.isArray(enrollments)) {
+      enrollments = [];
+    }
+
+    res.status(200).json({ success: true, enrollments });
   } catch (error) {
-    console.error('Enrollment delete error:', error);
+    console.error('Enrollment fetch error:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+// 수강 내역 저장
+router.post('/enrollments', authenticate, async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+    const { enrollments } = req.body;
+
+    if (!Array.isArray(enrollments)) {
+      return res.status(400).json({ success: false, message: 'enrollments는 배열이어야 합니다.' });
+    }
+
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+    if (!profile) {
+      return res.status(404).json({ success: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    const payload = JSON.stringify(enrollments);
+    const updated = await prisma.profile.update({
+      where: { userId },
+      data: { enrollments: payload as any },
+    });
+
+    res.status(200).json({ success: true, message: '수강 내역이 저장되었습니다.', profile: updated });
+  } catch (error) {
+    console.error('Enrollment save error:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+router.put('/enrollments', authenticate, async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+    const { enrollments } = req.body;
+
+    if (!Array.isArray(enrollments)) {
+      return res.status(400).json({ success: false, message: 'enrollments는 배열이어야 합니다.' });
+    }
+
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+    if (!profile) {
+      return res.status(404).json({ success: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    const updated = await prisma.profile.update({
+      where: { userId },
+      data: { enrollments },
+    });
+
+    res.status(200).json({ success: true, message: '수강 내역이 저장되었습니다.', profile: updated });
+  } catch (error) {
+    console.error('Enrollment save error:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
+router.patch('/enrollments', authenticate, async (req: Request, res: Response) => {
+  try {
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+    const { enrollments } = req.body;
+
+    if (!Array.isArray(enrollments)) {
+      return res.status(400).json({ success: false, message: 'enrollments는 배열이어야 합니다.' });
+    }
+
+    const profile = await prisma.profile.findUnique({ where: { userId } });
+    if (!profile) {
+      return res.status(404).json({ success: false, message: '프로필을 찾을 수 없습니다.' });
+    }
+
+    const updated = await prisma.profile.update({
+      where: { userId },
+      data: { enrollments },
+    });
+
+    res.status(200).json({ success: true, message: '수강 내역이 저장되었습니다.', profile: updated });
+  } catch (error) {
+    console.error('Enrollment save error:', error);
     res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 });

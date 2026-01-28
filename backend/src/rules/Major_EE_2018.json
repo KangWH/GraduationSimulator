@@ -12,7 +12,7 @@
     ]
   }, 
   {
-    "type": "MIN_SUBJECTS_AMONG", 
+    "type": "MIN_COURSES_AMONG", 
     "title": "전공필수 과목",
     "description": "전공필수 전자설계 및 실험(3), 전자디자인 랩(3) 필수 이수",
     "value": 2,

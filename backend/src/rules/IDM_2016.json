@@ -1,0 +1,13 @@
+[
+  {
+    "description": "소속 학사조직 이외의 2개 이상의 학사조직의 전공교과목 중 12학점 이상 이수",
+    "type": "MIN_CREDITS_AMONG",
+    "value": 12,
+    "targets": [
+      {
+        "categories": ["MR", "ME", "GE"],
+        "departments": ["NOT_AFFILIATED"]
+      }
+    ]
+  }
+]

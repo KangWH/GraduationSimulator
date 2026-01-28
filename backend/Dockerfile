@@ -8,16 +8,18 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# 4. 전체 코드 복사
+# 4. Prisma schema 파일 복사 (generate에 필요)
+COPY prisma ./prisma
+
+# 5. Prisma 클라이언트 생성
+RUN npx prisma generate
+
+# 6. 전체 코드 복사
 COPY . .
 
-# 5. Prisma 클라이언트 생성 및 빌드
-RUN npx prisma generate
+# 7. TypeScript 빌드
 RUN npm run build
 
-# 6. 프로덕션 의존성만 유지 (선택사항)
-# RUN npm ci --only=production && npm cache clean --force
-
-# 7. 서버 실행
+# 8. 서버 실행
 EXPOSE 4000
 CMD ["npm", "run", "start"]

@@ -41,16 +41,18 @@ model Profile {
 
 // 시뮬레이션 내역
 model Simulation {
-  id            String   @id @default(uuid())
-  profileId     String
-  profile       Profile  @relation("ProfileToSimulation", fields: [profileId], references: [id])
-  title         String
-  updatedAt     DateTime
-  referenceYear Int
-  major         String
-  doubleMajors  String[]
-  minors        String[]
-  courses       Json
+  id                        String   @id @default(uuid())
+  profileId                 String
+  profile                   Profile  @relation("ProfileToSimulation", fields: [profileId], references: [id])
+  title                     String
+  updatedAt                 DateTime
+  referenceYear             Int
+  major                     String
+  doubleMajors              String[]
+  minors                    String[]
+  advancedMajor             Boolean
+  individuallyDesignedMajor Boolean
+  courses                   Json
 }
 
 // 과목 개설 내역
@@ -58,27 +60,38 @@ model CourseOffering {
   id                 String @id @default(uuid())
   code               String
   title              String
+  searchTitle        String
   department         String
   category           String // 인선, 자선, 전필 등
   tags               String[] // 인선의 경우, 핵심·융합·일반, 인문 등의 분류를 기록
   credit             Int
   au                 Int
+  level              String // 학부: UG, 대학원: GR
+  crossRecognition   Boolean // 학부-대학원 상호인정
 
-  @@unique([code, title, category, credit, au])
-  @@index([code])
+  @@unique([code, title, category, tags, credit, au])
+  @@index([code, searchTitle])
 }
 
-// 교양과목 이수요건 데이터
+// 기필, 교필, 인선 이수 요건
 model GeneralEdRequirement {
-  id        String @id @default(uuid())
-  year      Int
-  logicTree Json
+  id           String @id @default(uuid())
+  year         Int
+  type         String // COMMON, BR, MGC, HSE, HSE_D
+  requirements Json
+
+  @@unique([year, type])
+  @@index([year, type])
 }
 
-// 전공과목 이수요건 데이터
+// 학과별 기필, 연구, 전공 이수 요건
 model MajorRequirement {
-  id         String @id @default(uuid())
-  year       Int
-  department String
-  logicTree  Json
+  id           String @id @default(uuid())
+  year         Int
+  department   String
+  type         String // BE, BE_D, Major, DoubleMajor, Minor, AdvancedMajor, RS, RS_D
+  requirements Json
+
+  @@unique([year, department, type])
+  @@index([year, department, type])
 }

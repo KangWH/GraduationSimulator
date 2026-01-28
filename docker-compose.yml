@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 데이터베이스 서비스
   db:
@@ -27,3 +25,15 @@ services:
       DATABASE_URL: "postgresql://user_id:user_pw@db:5432/grad_db?schema=public"
     depends_on:
       - db
+
+  # 프론트엔드 서비스
+  client:
+    build: ./frontend
+    restart: always
+    ports:
+      - "3000:3000" # 외부포트:내부포트
+    environment:
+      # 브라우저에서 접근하므로 호스트의 localhost를 사용
+      NEXT_PUBLIC_API_URL: "http://localhost:4000"
+    depends_on:
+      - server

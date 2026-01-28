@@ -14,7 +14,7 @@
   {
     "type": "MIN_SUBJECTS_AMONG", 
     "title": "전공필수 과목",
-    "description": "전자설계 및 실험(3) 필수 이수",
+    "description": "전자설계 및 실험 이수",
     "value": 1,
     "targets": [
       {
