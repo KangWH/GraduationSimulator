@@ -1,0 +1,29 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "title": "전공필수+전공선택 학점",
+    "description": "전공과목 18학점 이상 이수",
+    "value": 18,
+    "targets": [
+      {
+        "categories": ["MR"],
+        "departments": ["IE"]
+      },
+      {
+        "categories": ["ME"],
+        "departments": ["IE", "CoE"]
+      }
+    ],
+    "constraints": [
+      {
+        "type": "MAX_CREDITS_AMONG",
+        "value": 3,
+        "targets": [
+          {
+            "departments": ["CoE"]
+          }
+        ]
+      }
+    ]
+  }
+]
