@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Select } from '../../components/formFields';
 import type { Enrollment, Semester, Grade } from './types';
 import { API } from '../../lib/api';
+import Accordion, { ACBody, ACTitle } from '@/app/components/Accordion';
 
 const VALID_GRADES: Grade[] = ['A+', 'A0', 'A-', 'B+', 'B0', 'B-', 'C+', 'C0', 'C-', 'D+', 'D0', 'D-', 'F', 'S', 'U', 'P', 'NR', 'W'];
 const SEMESTER_LABELS: Record<Semester, string> = {
@@ -121,7 +122,7 @@ export default function EnrollmentsList({
         return (
           <div
             key={semesterKey}
-            className="rounded-lg bg-white dark:bg-zinc-900 overflow-hidden transition-colors shadow-lg"
+            className="rounded-lg bg-white dark:bg-black overflow-hidden transition-colors shadow-lg"
             onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -140,104 +141,81 @@ export default function EnrollmentsList({
               onDrop(e, semesterKey);
             }}
           >
-            <div className="px-3 py-4">
-              <button
-                onClick={() => toggleSemester(semesterKey)}
-                className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
-              >
-                <svg
-                  className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+            <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSemester(semesterKey)}>
+              <ACTitle>
                 <h3 className="font-medium text-base flex-1 text-gray-800 dark:text-gray-200">
                   {sectionTitle}
                 </h3>
-              </button>
-              <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+              </ACTitle>
+              <ACBody>
                 <div className="space-y-2">
-              {[...groupEnrollments]
-                .sort((a, b) => (a.course.code || '').localeCompare(b.course.code || ''))
-                .map((enrollment, idx) => (
-                  <div
-                    key={`${enrollment.courseId}-${enrollment.enrolledYear}-${enrollment.enrolledSemester}-${idx}`}
-                    draggable
-                    onDragStart={(e) => {
-                      onDragStart(e, enrollment, semesterKey);
-                      e.dataTransfer.effectAllowed = 'move';
-                      (e.currentTarget as HTMLElement).style.opacity = '0.5';
-                    }}
-                    onDragEnd={(e) => {
-                      (e.currentTarget as HTMLElement).style.opacity = '1';
-                    }}
-                    className="flex items-center justify-between gap-4 rounded p-2 bg-gray-50 cursor-move dark:bg-zinc-800"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className="min-w-0 flex-1 flex items-baseline gap-2">
-                          <p className="font-medium text-sm text-gray-900 dark:text-white truncate min-w-0">
-                            {enrollment.course.title}
-                          </p>
-                          <span className="text-xs text-gray-500 dark:text-gray-400 font-mono shrink-0">
-                            {enrollment.course.code}
-                          </span>
-                        </div>
-                        {enrollment.course.tags && enrollment.course.tags.length > 0 && (
-                          <div className="flex items-center gap-1 flex-wrap shrink-0">
-                            {enrollment.course.tags
-                              .filter((tag: string) => ['사회', '인문', '문학예술', '일반', '핵심', '융합'].includes(tag))
-                              .map((tag: string) => (
-                                <span
-                                  key={tag}
-                                  className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
+                  {[...groupEnrollments]
+                    .sort((a, b) => (a.course.code || '').localeCompare(b.course.code || ''))
+                    .map((enrollment, idx) => {
+                      const tags = enrollment.course.tags.filter((tag) => ['사회', '인문', '문학예술', '일반', '핵심', '융합'].includes(tag));
+                      return <div
+                        key={`${enrollment.courseId}-${enrollment.enrolledYear}-${enrollment.enrolledSemester}-${idx}`}
+                        draggable
+                        onDragStart={(e) => {
+                          onDragStart(e, enrollment, semesterKey);
+                          e.dataTransfer.effectAllowed = 'move';
+                          (e.currentTarget as HTMLElement).style.opacity = '0.5';
+                        }}
+                        onDragEnd={(e) => {
+                          (e.currentTarget as HTMLElement).style.opacity = '1';
+                        }}
+                        className="flex items-center justify-between gap-4 rounded p-2 bg-gray-50 cursor-move dark:bg-zinc-900"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className="min-w-0 flex-1 flex items-baseline gap-2">
+                              <p className="font-medium text-sm text-gray-900 dark:text-white truncate min-w-0">
+                                {enrollment.course.title}
+                              </p>
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-mono shrink-0">
+                                {enrollment.course.code}
+                              </span>
+                            </div>
                           </div>
-                        )}
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                            {getDepartmentName(enrollment.course.department)}
+                            {enrollment.course.category && ` · ${getCategoryName(enrollment.course.category)}`}
+                            {tags.length > 0 && ` (${tags.join('·')})`}
+                            {enrollment.course.au > 0
+                              ? ` · ${enrollment.course.au}AU`
+                              : ` · ${enrollment.course.credit}학점`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Select
+                            value={enrollment.grade}
+                            onChange={(v) => onGradeChange(enrollment, v as Grade)}
+                            size="small"
+                            className="w-24"
+                          >
+                            {VALID_GRADES.map((grade) => (
+                              <option key={grade} value={grade}>
+                                {grade}
+                              </option>
+                            ))}
+                          </Select>
+                          <button
+                            type="button"
+                            onClick={() => onRemove(enrollment)}
+                            className="rounded p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 active:scale-85 transition-all"
+                            title="삭제"
+                            aria-label="삭제"
+                          >
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
-                        {getDepartmentName(enrollment.course.department)}
-                        {enrollment.course.category && ` · ${getCategoryName(enrollment.course.category)}`}
-                        {enrollment.course.au > 0
-                          ? ` · ${enrollment.course.au}AU`
-                          : ` · ${enrollment.course.credit}학점`}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Select
-                        value={enrollment.grade}
-                        onChange={(v) => onGradeChange(enrollment, v as Grade)}
-                        size="small"
-                        className="w-24"
-                      >
-                        {VALID_GRADES.map((grade) => (
-                          <option key={grade} value={grade}>
-                            {grade}
-                          </option>
-                        ))}
-                      </Select>
-                      <button
-                        type="button"
-                        onClick={() => onRemove(enrollment)}
-                        className="rounded p-1 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50 active:scale-85 transition-all"
-                        title="삭제"
-                        aria-label="삭제"
-                      >
-                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                    })}
                 </div>
-              </div>
-            </div>
+              </ACBody>
+            </Accordion>
           </div>
         );
       })}

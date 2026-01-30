@@ -14,6 +14,8 @@ import EnrollmentsList from '../profile/settings/EnrollmentsList';
 import { group } from 'console';
 import { classifyCourses, RequirementsProps } from './conditionTester';
 import Logo from '../components/Logo';
+import Accordion, { ACBody, ACTitle } from '../components/Accordion';
+import { CourseBar, RequirementBar } from '../components/CourseElements';
 
 type Dept = { id: string; name: string };
 type Section = {
@@ -48,9 +50,7 @@ export default function SimulationPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [userName, setUserName] = useState<string>('');
-  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [isScenarioModalOpen, setIsScenarioModalOpen] = useState(false);
-  const [saveSheetVisible, setSaveSheetVisible] = useState(false);
   const [scenarioSheetVisible, setScenarioSheetVisible] = useState(false);
   const [saveName, setSaveName] = useState('');
   const [addToEnrollments, setAddToEnrollments] = useState(false);
@@ -90,11 +90,6 @@ export default function SimulationPage() {
   
   // 모바일 탭 상태
   const [mobileTab, setMobileTab] = useState<'major' | 'courses' | 'credits' | 'requirements'>('requirements');
-
-  const closeSaveModal = useCallback(() => {
-    setSaveSheetVisible(false);
-    window.setTimeout(() => setIsSaveModalOpen(false), 200);
-  }, []);
 
   const closeScenarioModal = useCallback(() => {
     setScenarioSheetVisible(false);
@@ -165,15 +160,6 @@ export default function SimulationPage() {
       return false;
     }
   }, [simulationCourses, filters]);
-
-  useEffect(() => {
-    if (isSaveModalOpen) {
-      setSaveSheetVisible(false);
-      const t = window.setTimeout(() => setSaveSheetVisible(true), 10);
-      return () => window.clearTimeout(t);
-    }
-    setSaveSheetVisible(false);
-  }, [isSaveModalOpen]);
 
   useEffect(() => {
     if (isScenarioModalOpen) {
@@ -1862,12 +1848,12 @@ export default function SimulationPage() {
 
   return (
     <>
-      <div className="h-screen bg-zinc-50 dark:bg-black select-none hidden md:flex">
+      <div className="h-screen bg-gray-50 dark:bg-zinc-900 select-none hidden md:flex">
         {/* 사이드바 */}
         <aside
           className={`${
             sidebarOpen ? 'w-64' : 'w-14'
-          } relative z-300 transition-all duration-300 bg-white dark:bg-zinc-900 flex flex-col overflow-hidden flex-shrink-0 shadow-[0.1rem_0_1rem_rgba(0,0,0,0.1)] dark:shadow-[0.2rem_0_2rem_rgba(255,255,255,0.2)]`}
+          } relative z-300 transition-all duration-300 bg-white dark:bg-black flex flex-col overflow-hidden flex-shrink-0 shadow-[0.1rem_0_1rem_rgba(0,0,0,0.1)] dark:shadow-[0.1rem_0_1rem_rgba(255,255,255,0.1)]`}
         >
           {/* 사이드바 토글 버튼 - 좌상단 햄버거 */}
           <div
@@ -1920,7 +1906,7 @@ export default function SimulationPage() {
             {/* 이전 시나리오 조회 */}
             <div className={sidebarOpen ? 'mt-6' : 'mt-4'}>
               {sidebarOpen && (
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 px-2 whitespace-nowrap min-w-0 truncate">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 px-2 whitespace-nowrap min-w-0">
                   저장된 시나리오
                 </h3>
               )}
@@ -2000,6 +1986,37 @@ export default function SimulationPage() {
                 )}
               </div>
             </div>
+
+            {/* 시나리오 저장 섹션 (모바일처럼 이름 필드 바로 노출) */}
+            {sidebarOpen && (
+              <div className="mt-4 pt-3">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 px-2 whitespace-nowrap min-w-0">
+                  시나리오 저장
+                </h3>
+                <div className="flex gap-2 px-2">
+                  <Input
+                    type="text"
+                    value={saveName}
+                    onChange={setSaveName}
+                    placeholder="시나리오 이름"
+                    size="small"
+                    className="flex-1 min-w-0"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const success = await handleSaveSimulation(saveName);
+                      if (success) {
+                        setSaveName('');
+                      }
+                    }}
+                    className="flex-shrink-0 px-3 bg-violet-600 hover:bg-violet-700 text-white text-sm rounded-md active:scale-85 transition-all font-medium shadow-sm whitespace-nowrap"
+                  >
+                    저장
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 하단 메뉴: 계정 이름 + 로그아웃 */}
@@ -2143,16 +2160,6 @@ export default function SimulationPage() {
                   </div>
                 </div>
               </div>
-              {/* 다른 이름으로 저장 버튼 */}
-              <div className="flex-shrink-0 pr-6">
-                <button
-                  type="button"
-                  onClick={() => setIsSaveModalOpen(true)}
-                  className="px-3 py-2 bg-white dark:bg-zinc-900 text-sm shadow-sm font-medium text-gray-700 dark:text-gray-300 rounded-lg active:scale-90 transition-all hover:bg-gray-50 dark:hover:bg-zinc-800 whitespace-nowrap"
-                >
-                  다른 이름으로 저장
-                </button>
-              </div>
             </div>
           </div>
 
@@ -2165,95 +2172,52 @@ export default function SimulationPage() {
                 <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>수업별 학점 인정 분야</h2>
                 <button
                   onClick={() => setGradeBlindMode(!gradeBlindMode)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg shadow-sm bg-white dark:bg-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all"
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg shadow-sm bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all"
                   title={gradeBlindMode ? '성적 표시' : '성적 숨기기'}
                 >
-                  <span className="text-xs text-gray-600 dark:text-gray-300">
+                  <span className="text-xs text-gray-600 dark:text-zinc-300">
                     {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
                   </span>
                 </button>
               </div>
 
               {/* 본문 영역 */}
-              <div className="flex-1 overflow-y-auto px-4 pt-2 pb-8">
+              <div className="flex-1 overflow-y-auto px-4 pb-8">
+                <div className="sticky top-0 z-10 h-2 bg-gradient-to-t from-transparent via-gray-50/80 to-gray-50 dark:via-zinc-900/80 dark:to-zinc-900"></div>
+
                 <div>
                   {sections.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
+                    <p className="text-sm text-gray-500 dark:text-zinc-400 py-4">
                       주전공을 선택하면 섹션이 구성됩니다.
                     </p>
                   ) : (
                     <>
                       {/* 기초과목 그룹 */}
                       {groupedSections.basicGroup.length > 0 && (
-                        <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
+                        <div className="bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
                           {groupedSections.basicGroup.map((s, i) => {
                             const isCollapsed = collapsedSections.has(s.id);
                             return (
                               <div key={s.id}>
-                                <div className="px-3 py-4">
-                                  <button
-                                    onClick={() => toggleSection(s.id)}
-                                    className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
-                                  >
-                                    <svg
-                                      className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
-                                    <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                                    <p className="text-gray-600 dark:text-gray-400 text-sm">{calculateSectionCredits(s.courses)}</p>
-                                  </button>
-                                  <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)}>
+                                  <ACTitle>
+                                    <h3 className="font-medium text-base flex-1 leading-tight">{s.title}</h3>
+                                    <p className="text-gray-600 dark:text-zinc-400 text-sm leading-tight">{calculateSectionCredits(s.courses)}</p>
+                                  </ACTitle>
+                                  <ACBody>
                                     <div className="space-y-2">
                                       {s.courses.length === 0 ? (
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                        <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                       ) : (
                                         s.courses.map((c) => (
-                                          <div
-                                            key={c.courseId}
-                                            className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                          >
-                                            <div className="min-w-0 flex-1 flex items-center font-medium text-sm gap-2 flex-wrap">
-                                              <div className="min-w-0 flex-1 flex items-center gap-2">
-                                                <p className="truncate min-w-0">{c.course.title}</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{c.course.code}</p>
-                                              </div>
-                                              {c.course.tags && c.course.tags.length > 0 && (
-                                                <div className="flex items-center gap-1 flex-wrap shrink-0">
-                                                  {c.course.tags
-                                                    .filter((tag: string) => ['사회', '인문', '문학예술', '일반', '핵심', '융합'].includes(tag))
-                                                    .map((tag: string) => (
-                                                      <span
-                                                        key={tag}
-                                                        className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
-                                                      >
-                                                        {tag}
-                                                      </span>
-                                                    ))}
-                                                </div>
-                                              )}
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              {!gradeBlindMode && (
-                                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                  {c.grade}
-                                                </span>
-                                              )}
-                                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                              </p>
-                                            </div>
-                                          </div>
+                                          <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
                                         ))
                                       )}
                                     </div>
-                                  </div>
-                                </div>
+                                  </ACBody>
+                                </Accordion>
                                 {i < groupedSections.basicGroup.length - 1 && (
-                                  <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                                  <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
                                 )}
                               </div>
                             );
@@ -2264,62 +2228,37 @@ export default function SimulationPage() {
                       {/* 주전공/심화전공/연구 그룹 */}
                       {groupedSections.majorGroup.length > 0 && (
                         <>
-                          <div className="mt-6 bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
+                          <div className="mt-6 bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
                             {groupedSections.majorGroup.map((s, idx) => {
                               const isCollapsed = collapsedSections.has(s.id);
                               return (
                                 <div key={s.id}>
-                                  <div className="px-3 py-4">
-                                    <button
-                                      onClick={() => toggleSection(s.id)}
-                                      className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
-                                    >
-                                      <svg
-                                        className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                      </svg>
-                                      <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                                      <p className="text-gray-600 dark:text-gray-400 text-sm">{calculateSectionCredits(s.courses)}</p>
-                                    </button>
-                                    <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                  <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)}>
+                                    <ACTitle>
+                                      <h3 className="font-medium text-base flex-1 leading-tight">
+                                        {s.titleElements.length > 1 ? (
+                                          <>
+                                            <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
+                                            <span>{s.titleElements.slice(1).join(' ')}</span>
+                                          </>
+                                        ) : s.titleElements[0]}
+                                      </h3>
+                                      <p className="text-gray-600 dark:text-zinc-400 text-sm leading-tight">{calculateSectionCredits(s.courses)}</p>
+                                    </ACTitle>
+                                    <ACBody>
                                       <div className="space-y-2">
                                         {s.courses.length === 0 ? (
-                                          <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                          <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                         ) : (
                                           s.courses.map((c) => (
-                                            <div
-                                              key={c.courseId}
-                                              className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                            >
-                                              <div className="flex items-center font-medium text-sm gap-2">
-                                                <p>{c.course.title}</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
-                                              </div>
-                                              <div className="flex items-center gap-2">
-                                                {!gradeBlindMode && (
-                                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                    {c.grade}
-                                                  </span>
-                                                )}
-                                                {c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
-                                                  <span className="text-xs text-gray-500 dark:text-gray-400">중복인정</span>
-                                                )}
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                  {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                                </p>
-                                              </div>
-                                            </div>
+                                            <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
                                           ))
                                         )}
                                       </div>
-                                    </div>
-                                  </div>
+                                    </ACBody>
+                                  </Accordion>
                                   {idx < groupedSections.majorGroup.length - 1 && (
-                                    <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                                    <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
                                   )}
                                 </div>
                               );
@@ -2332,122 +2271,53 @@ export default function SimulationPage() {
                       {groupedSections.otherSections.map((s) => {
                         const isCollapsed = collapsedSections.has(s.id);
                         return (
-                          <div key={s.id} className="mt-6 bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
-                            <div className="px-3 py-4">
-                              <button
-                                onClick={() => toggleSection(s.id)}
-                                className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
-                              >
-                                <svg
-                                  className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                                <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                                <p className="text-gray-600 dark:text-gray-400 text-sm">{calculateSectionCredits(s.courses)}</p>
-                              </button>
-                              <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                          <div key={s.id} className="mt-6 bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
+                            <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)}>
+                              <ACTitle>
+                                <h3 className="font-medium text-base flex-1 leading-tight">
+                                  {s.titleElements.length > 1 ? (
+                                    <>
+                                      <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
+                                      <span>{s.titleElements.slice(1).join(' ')}</span>
+                                    </>
+                                  ) : s.titleElements[0]}
+                                </h3>
+                                <p className="text-gray-600 dark:text-zinc-400 text-sm leading-tight">{calculateSectionCredits(s.courses)}</p>
+                              </ACTitle>
+                              <ACBody>
                                 <div className="space-y-2">
                                   {s.courses.length === 0 ? (
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                    <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <div
-                                        key={c.courseId}
-                                        className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                      >
-                                        <div className="min-w-0 flex-1 flex items-center font-medium text-sm gap-2 flex-wrap">
-                                          <div className="min-w-0 flex-1 flex items-center gap-2">
-                                            <p className="truncate min-w-0">{c.course.title}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{c.course.code}</p>
-                                          </div>
-                                          {c.course.tags && c.course.tags.length > 0 && (
-                                            <div className="flex items-center gap-1 flex-wrap shrink-0">
-                                              {c.course.tags
-                                                .filter((tag: string) => ['사회', '인문', '문학예술', '일반', '핵심', '융합'].includes(tag))
-                                                .map((tag: string) => (
-                                                  <span
-                                                    key={tag}
-                                                    className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
-                                                  >
-                                                    {tag}
-                                                  </span>
-                                                ))}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          {!gradeBlindMode && (
-                                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                              {c.grade}
-                                            </span>
-                                          )}
-                                          {c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
-                                            <span className="text-xs text-gray-500 dark:text-gray-400">중복인정</span>
-                                          )}
-                                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                          </p>
-                                        </div>
-                                      </div>
+                                      <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
                                     ))
                                   )}
                                 </div>
-                              </div>
-                            </div>
+                              </ACBody>
+                            </Accordion>
                           </div>
                         );
                       })}
 
+                      {/* 자선, 미분류 */}
                       {groupedSections.miscSections.map((s) => {
                         const isCollapsed = collapsedSections.has(s.id);
                         return s.courses.length === 0 ? null : (
-                          <div key={s.id} className="mt-6 bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
-                            <div className="px-3 py-4">
-                              <button
-                                onClick={() => toggleSection(s.id)}
-                                className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
-                              >
-                                <svg
-                                  className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
+                          <div key={s.id} className="mt-6 bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
+                            <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)}>
+                              <ACTitle>
                                 <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                                <p className="text-gray-600 dark:text-gray-400">{calculateSectionCredits(s.courses)}</p>
-                              </button>
-                              <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                <p className="text-gray-600 dark:text-zinc-400">{calculateSectionCredits(s.courses)}</p>
+                              </ACTitle>
+                              <ACBody>
                                 <div className="space-y-2">
                                   {s.courses.map((c) => (
-                                    <div
-                                      key={c.courseId}
-                                      className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                    >
-                                      <div className="flex items-center font-medium text-sm gap-2">
-                                        <p>{c.course.title}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        {!gradeBlindMode && (
-                                          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                            {c.grade}
-                                          </span>
-                                        )}
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                                          {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                        </p>
-                                      </div>
-                                    </div>
+                                    <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
                                   ))}
                                 </div>
-                              </div>
-                            </div>
+                              </ACBody>
+                            </Accordion>
                           </div>
                         );
                       })}
@@ -2466,11 +2336,11 @@ export default function SimulationPage() {
                   <button
                     type="button"
                     onClick={() => setRightPanelOpen(true)}
-                    className="flex-shrink-0 p-1 rounded-lg bg-white dark:bg-zinc-900 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all shadow-sm"
+                    className="flex-shrink-0 p-1 rounded-lg bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all shadow-sm"
                     title="패널 펼치기"
                   >
                     <svg
-                      className="w-5 h-5 text-gray-600 dark:text-gray-400 rotate-180"
+                      className="w-5 h-5 text-gray-600 dark:text-zinc-400 rotate-180"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -2482,99 +2352,60 @@ export default function SimulationPage() {
               </div>
 
               {/* 본문 영역 */}
-              <div className="flex-1 overflow-y-auto px-4 pt-2">
+              <div className="flex-1 overflow-y-auto px-4">
+                <div className="sticky top-0 z-10 h-2 bg-gradient-to-t from-transparent via-gray-50/80 to-gray-50 dark:via-zinc-900/80 dark:to-zinc-900"></div>
+
                 {sections.length === 0 ? (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 py-4">
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 py-4">
                     주전공을 선택하면 섹션이 구성됩니다.
                   </p>
                 ) : (
                   <>
                     {/* 기초과목 */}
                     {groupedSections.basicGroup.length > 0 && (
-                      <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
+                      <div className="bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
                         {groupedSections.basicGroup.map((s, idx) => {
                           const requirements = s.requirements || [];
                           const isCollapsed = collapsedSections.has(`center-${s.id}`);
                           return (
                             <div key={s.id}>
-                              <div className="px-3 py-4">
-                                <button
-                                  onClick={() => toggleSection(`center-${s.id}`)}
-                                  className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
-                                >
-                                  <svg
-                                    className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                  </svg>
-                                  <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                                  <p
-                                    className={`text-sm font-medium ${
-                                      s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                                    }`}
-                                  >
-                                    {s.fulfilled ? '달성' : '미달'}
-                                  </p>
-                                </button>
-                                <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
-                                  <div className="px-1">
-                                    {requirements.length > 0 ? (
-                                      <div className="space-y-2">
-                                        {requirements.map((req, reqIdx) => {
-                                          const currentValue = req.currentValue || 0;
-                                          const targetValue = req.value || 0;
-                                          const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
-                                          return (
-                                            <div
-                                              key={reqIdx}
-                                              className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
-                                            >
-                                              <div
-                                                className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
-                                                style={{ width: `${percentage}%` }}
-                                              />
-                                              <div className="relative flex items-center justify-between">
-                                                <div className="relative flex-1 min-w-0">
-                                                  <p 
-                                                    className="font-medium text-sm truncate cursor-help"
-                                                    onMouseEnter={(e) => {
-                                                      if (req.title && req.title !== req.description && req.description !== undefined) {
-                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                        setTooltipState({
-                                                          text: req.description,
-                                                          x: rect.left + rect.width / 2,
-                                                          y: rect.top - 8
-                                                        });
-                                                      }
-                                                    }}
-                                                    onMouseLeave={() => {
-                                                      setTooltipState(null);
-                                                    }}
-                                                  >
-                                                    {req.title || req.description || ''}
-                                                  </p>
-                                                </div>
-                                                {req.value != null && (
-                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
-                                                    {currentValue} / {targetValue}
-                                                  </p>
-                                                )}
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
+                              <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(`center-${s.id}`)}>
+                                <ACTitle>
+                                  <h3 className="font-medium text-base flex-1 leading-tight">{s.title}</h3>
+                                  {s.fulfilled ? (
+                                    <p className="text-sm font-medium leading-tight text-green-600 dark:text-green-400">달성</p>
+                                  ) : (
+                                    <p className="text-sm font-medium leading-tight text-red-600 dark:text-red-400">미달</p>
+                                  )}
+                                </ACTitle>
+                                <ACBody>
+                                  {requirements.length > 0 ? (
+                                    <div className="space-y-2">
+                                      {requirements.map((req, reqIdx) => (
+                                        <RequirementBar
+                                          key={reqIdx}
+                                          requirement={req}
+                                          onMouseEnter={(e) => {
+                                            if (req.title && req.title !== req.description && req.description !== undefined) {
+                                              const rect = e.currentTarget.getBoundingClientRect();
+                                              setTooltipState({
+                                                text: req.description,
+                                                x: rect.left + rect.width / 2,
+                                                y: rect.top - 8
+                                              });
+                                            }
+                                          }}
+                                          onMouseLeave={() => {setTooltipState(null)}}
+                                        />
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">요건 없음</p>
+                                  )}
+                                </ACBody>
+                              </Accordion>
                               {idx < groupedSections.basicGroup.length - 1 && (
-                                <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                                <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
                               )}
                             </div>
                           );
@@ -2584,26 +2415,15 @@ export default function SimulationPage() {
 
                     {/* 주전공/심화전공/연구 그룹 */}
                     {groupedSections.majorGroup.length > 0 && (
-                      <div className="mt-6 bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
+                      <div className="mt-6 bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
                         {groupedSections.majorGroup.map((s, idx) => {
                           const requirements = s.requirements || [];
                           const isCollapsed = collapsedSections.has(`center-${s.id}`);
                           return (
                             <div key={s.id}>
-                              <div className="px-3 py-4">
-                                <button
-                                  onClick={() => toggleSection(`center-${s.id}`)}
-                                  className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
-                                >
-                                  <svg
-                                    className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                  </svg>
-                                  <h3 className="font-medium text-base flex-1">
+                              <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(`center-${s.id}`)}>
+                                <ACTitle>
+                                  <h3 className="font-medium text-base flex-1 leading-tight">
                                     {s.titleElements.length > 1 ? (
                                       <>
                                         <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
@@ -2611,70 +2431,40 @@ export default function SimulationPage() {
                                       </>
                                     ) : s.titleElements[0]}
                                   </h3>
-                                  <p
-                                    className={`text-sm font-medium ${
-                                      s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                                    }`}
-                                  >
-                                    {s.fulfilled ? '달성' : '미달'}
-                                  </p>
-                                </button>
-                                <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
-                                  <div className="px-1">
-                                    {requirements.length > 0 ? (
-                                      <div className="space-y-2">
-                                        {requirements.map((req, reqIdx) => {
-                                          const currentValue = req.currentValue || 0;
-                                          const targetValue = req.value || 0;
-                                          const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
-                                          return (
-                                            <div
-                                              key={reqIdx}
-                                              className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
-                                            >
-                                              <div
-                                                className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
-                                                style={{ width: `${percentage}%` }}
-                                              />
-                                              <div className="relative flex items-center justify-between">
-                                                <div className="relative flex-1 min-w-0">
-                                                  <p 
-                                                    className="font-medium text-sm truncate cursor-help"
-                                                    onMouseEnter={(e) => {
-                                                      if (req.title && req.title !== req.description && req.description !== undefined) {
-                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                        setTooltipState({
-                                                          text: req.description,
-                                                          x: rect.left + rect.width / 2,
-                                                          y: rect.top - 8
-                                                        });
-                                                      }
-                                                    }}
-                                                    onMouseLeave={() => {
-                                                      setTooltipState(null);
-                                                    }}
-                                                  >
-                                                    {req.title || req.description || ''}
-                                                  </p>
-                                                </div>
-                                                {req.value != null && (
-                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
-                                                    {currentValue} / {targetValue}
-                                                  </p>
-                                                )}
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
+                                  {s.fulfilled ? (
+                                    <p className="text-sm font-medium leading-tight text-green-600 dark:text-green-400">달성</p>
+                                  ) : (
+                                    <p className="text-sm font-medium leading-tight text-red-600 dark:text-red-400">미달</p>
+                                  )}
+                                </ACTitle>
+                                <ACBody>
+                                  {requirements.length > 0 ? (
+                                    <div className="space-y-2">
+                                      {requirements.map((req, reqIdx) => (
+                                        <RequirementBar
+                                          key={reqIdx}
+                                          requirement={req}
+                                          onMouseEnter={(e) => {
+                                            if (req.title && req.title !== req.description && req.description !== undefined) {
+                                              const rect = e.currentTarget.getBoundingClientRect();
+                                              setTooltipState({
+                                                text: req.description,
+                                                x: rect.left + rect.width / 2,
+                                                y: rect.top - 8
+                                              });
+                                            }
+                                          }}
+                                          onMouseLeave={() => {setTooltipState(null)}}
+                                        />
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">요건 없음</p>
+                                  )}
+                                </ACBody>
+                              </Accordion>
                               {idx < groupedSections.majorGroup.length - 1 && (
-                                <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                                <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
                               )}
                             </div>
                           );
@@ -2687,21 +2477,10 @@ export default function SimulationPage() {
                       const requirements = s.requirements || [];
                       const isCollapsed = collapsedSections.has(`center-${s.id}`);
                       return (
-                        <div key={s.id} className="mt-6 bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
-                          <div className="px-3 py-4">
-                            <button
-                              onClick={() => toggleSection(`center-${s.id}`)}
-                              className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
-                            >
-                              <svg
-                                className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
-                              <h3 className="font-medium text-base flex-1">
+                        <div key={s.id} className="mt-6 bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
+                          <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(`center-${s.id}`)}>
+                            <ACTitle>
+                              <h3 className="font-medium text-base flex-1 leading-tight">
                                 {s.titleElements.length > 1 ? (
                                   <>
                                     <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
@@ -2709,66 +2488,38 @@ export default function SimulationPage() {
                                   </>
                                 ) : s.titleElements[0]}
                               </h3>
-                              <p
-                                className={`text-sm font-medium ${
-                                  s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                                }`}
-                              >
-                                {s.fulfilled ? '달성' : '미달'}
-                              </p>
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
-                              <div className="px-1">
-                                {requirements.length > 0 ? (
-                                  <div className="space-y-2">
-                                    {requirements.map((req, reqIdx) => {
-                                      const currentValue = req.currentValue || 0;
-                                      const targetValue = req.value || 0;
-                                      const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
-                                      return (
-                                        <div
-                                          key={reqIdx}
-                                          className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
-                                        >
-                                          <div
-                                            className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
-                                            style={{ width: `${percentage}%` }}
-                                          />
-                                          <div className="relative flex items-center justify-between">
-                                            <p 
-                                              className="font-medium text-sm truncate cursor-help"
-                                              onMouseEnter={(e) => {
-                                                if (req.title && req.title !== req.description && req.description !== undefined) {
-                                                  const rect = e.currentTarget.getBoundingClientRect();
-                                                  setTooltipState({
-                                                    text: req.description,
-                                                    x: rect.left + rect.width / 2,
-                                                    y: rect.top - 8
-                                                  });
-                                                }
-                                              }}
-                                              onMouseLeave={() => {
-                                                setTooltipState(null);
-                                              }}
-                                            >
-                                              {req.title || req.description || ''}
-                                            </p>
-                                            {req.value != null && (
-                                              <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                                {currentValue} / {targetValue}
-                                              </p>
-                                            )}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                ) : (
-                                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                              {s.fulfilled ? (
+                                <p className="text-sm font-medium leading-tight text-green-600 dark:text-green-400">달성</p>
+                              ) : (
+                                <p className="text-sm font-medium leading-tight text-red-600 dark:text-red-400">미달</p>
+                              )}
+                            </ACTitle>
+                            <ACBody>
+                              {requirements.length > 0 ? (
+                                <div className="space-y-2">
+                                  {requirements.map((req, reqIdx) => (
+                                    <RequirementBar
+                                      key={reqIdx}
+                                      requirement={req}
+                                      onMouseEnter={(e) => {
+                                        if (req.title && req.title !== req.description && req.description !== undefined) {
+                                          const rect = e.currentTarget.getBoundingClientRect();
+                                          setTooltipState({
+                                            text: req.description,
+                                            x: rect.left + rect.width / 2,
+                                            y: rect.top - 8
+                                          });
+                                        }
+                                      }}
+                                      onMouseLeave={() => {setTooltipState(null)}}
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">요건 없음</p>
+                              )}
+                            </ACBody>
+                          </Accordion>
                         </div>
                       );
                     })}
@@ -2776,24 +2527,26 @@ export default function SimulationPage() {
                 )}
 
                 {/* 요약 영역 */}
-                <div className="sticky bottom-0 bg-gradient-to-b from-transparent to-gray-50 to-[30%] dark:to-black flex-shrink-0 mt-2 pt-4 mx-[-1rem] px-6 pb-6">
-                  <div className="flex items-center justify-between gap-4 whitespace-nowrap">
+                <div className="sticky bottom-0 flex-shrink-0 mx-[-1rem]">
+                  <div className="h-4 bg-gradient-to-b from-transparent to-gray-50 dark:to-zinc-900"></div>
+
+                  <div className="px-6 pt-2 pb-4 flex items-center justify-between gap-4 whitespace-nowrap bg-gray-50 dark:bg-zinc-900">
                     <div className="flex items-center gap-4 flex-1">
                       <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1/2">이수 학점</span>
-                        <p className="text-lg font-semibold">{totalStats.totalCredit} <span className="text-xs text-gray-400 dark:text-gray-500">/ 138</span></p>
+                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1/2">이수 학점</span>
+                        <p className="text-lg font-semibold">{totalStats.totalCredit} <span className="text-xs text-gray-500 dark:text-zinc-400">/ 138</span></p>
                       </div>
                       <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1/2">총 AU</span>
-                        <p className="text-lg font-semibold">{totalStats.totalAu} <span className="text-xs text-gray-400 dark:text-gray-500">/ 4</span></p>
+                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1/2">총 AU</span>
+                        <p className="text-lg font-semibold">{totalStats.totalAu} <span className="text-xs text-gray-500 dark:text-zinc-400">/ 4</span></p>
                       </div>
                       <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1/2">평점</span>
-                        <p className="text-lg font-semibold">{totalStats.gpa} <span className="text-xs text-gray-400 dark:text-gray-500">/ 2.0</span></p>
+                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1/2">평점</span>
+                        <p className="text-lg font-semibold">{totalStats.gpa} <span className="text-xs text-gray-500 dark:text-zinc-400">/ 2.0</span></p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1/2">시뮬레이션 결과</span>
+                      <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1/2">시뮬레이션 결과</span>
                       <p className={`text-xl font-bold ${canGraduate ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                         졸업 {canGraduate ? '가능' : '불가'}
                       </p>
@@ -2815,7 +2568,7 @@ export default function SimulationPage() {
                       className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
                         courseMode === 'add'
                           ? 'text-black dark:text-white'
-                          : 'text-gray-400 dark:text-gray-500'
+                          : 'text-gray-400 dark:text-zinc-500'
                       }`}
                     >
                       <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
@@ -2828,7 +2581,7 @@ export default function SimulationPage() {
                       className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
                         courseMode === 'view'
                           ? 'text-black dark:text-white'
-                          : 'text-gray-400 dark:text-gray-500'
+                          : 'text-gray-400 dark:text-zinc-500'
                       }`}
                     >
                       <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
@@ -2838,11 +2591,11 @@ export default function SimulationPage() {
                     <button
                       type="button"
                       onClick={() => setRightPanelOpen(false)}
-                      className="flex-shrink-0 p-1 rounded-lg bg-white dark:bg-zinc-900 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all shadow-sm"
+                      className="flex-shrink-0 p-1 rounded-lg bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all shadow-sm"
                       title="패널 접기"
                     >
                       <svg
-                        className="w-5 h-5 text-gray-600 dark:text-gray-400"
+                        className="w-5 h-5 text-gray-600 dark:text-zinc-400"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -2880,7 +2633,7 @@ export default function SimulationPage() {
                         />
                       ) : (
                         <>
-                          <p className="text-sm text-center mb-6 px-4 text-gray-500">
+                          <p className="text-sm text-center mb-6 px-4 text-gray-500 dark:text-zinc-400">
                             시뮬레이션에 사용할 과목들을 지정합니다. 아직 듣지 않았지만 들을 예정인 과목을 추가하여 시뮬레이션을 진행할 수 있습니다.
                           </p>
                           <EnrollmentsList
@@ -2924,7 +2677,7 @@ export default function SimulationPage() {
                             onDropOutside={handleDropOutside}
                             findNearestPastSemester={findNearestPastSemester}
                           />
-                          <p className="text-sm text-center mt-6 px-4 text-gray-500">
+                          <p className="text-sm text-center mt-6 px-4 text-gray-500 dark:text-zinc-400">
                             이곳에서 과목을 추가하거나 삭제하더라도 프로필에 저장된 수강 내역은 변경되지 않습니다.
                           </p>
                         </>
@@ -2936,103 +2689,16 @@ export default function SimulationPage() {
             </div>
           </div>
         </div>
-
-        {/* 저장 모달 */}
-        {isSaveModalOpen && (
-          <div
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 dark:bg-black/70"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) closeSaveModal();
-            }}
-          >
-            <div
-              className={`bg-gray-50 dark:bg-zinc-900 shadow-xl w-full sm:max-w-md sm:mx-4 mx-0 rounded-t-xl sm:rounded-xl transition-transform duration-200 ${
-                saveSheetVisible ? 'translate-y-0' : 'translate-y-full sm:translate-y-0'
-              }`}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">시나리오 저장</h2>
-                
-                <div className="space-y-4">
-                  {/* 이름 입력 */}
-                  <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      시나리오 이름
-                    </label>
-                    <Input
-                      type="text"
-                      value={saveName}
-                      onChange={setSaveName}
-                      placeholder="예: 산공+전산+수리+전자"
-                      size="medium"
-                    />
-                  </div>
-
-                  {/* 과목 추가 체크박스 */}
-                  {simulationCourses.length > 0 && (
-                    <div className="flex items-start gap-3 hidden">
-                      <input
-                        type="checkbox"
-                        id="addToEnrollments"
-                        checked={addToEnrollments}
-                        onChange={(e) => setAddToEnrollments(e.target.checked)}
-                        className="mt-1 w-4 h-4 text-violet-600 border-gray-300 rounded focus:ring-violet-500 dark:bg-zinc-800 dark:border-zinc-600"
-                      />
-                      <label
-                        htmlFor="addToEnrollments"
-                        className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                      >
-                        시뮬레이션에 사용한 과목들을 프로필의 수강한 과목에 추가하기
-                        <span className="text-gray-500 dark:text-gray-400 ml-1">
-                          ({simulationCourses.length}개 과목)
-                        </span>
-                      </label>
-                    </div>
-                  )}
-
-                  {/* 버튼 */}
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        closeSaveModal();
-                        setSaveName('');
-                        setAddToEnrollments(false);
-                      }}
-                      className="flex-1 px-4 py-2 text-gray-700 dark:text-gray-300 rounded-lg bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all shadow-md"
-                    >
-                      취소
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const success = await handleSaveSimulation(saveName);
-                        if (success) {
-                          closeSaveModal();
-                          setAddToEnrollments(false);
-                        }
-                      }}
-                      className="flex-1 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg active:scale-90 transition-all shadow-md"
-                    >
-                      저장
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* 모바일 UI */}
       <div className="min-h-screen md:hidden bg-gray-50 dark:bg-zinc-900 pb-24 select-none">
         {/* 상단바 */}
-        <div className="sticky top-0 z-20 backdrop-blur-md">
+        <div className="sticky top-0 z-20 bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-md">
           <div className="p-2 flex flex-row justify-between items-center">
             <button
               onClick={() => setIsScenarioModalOpen(true)}
-              className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-90 transition-all flex items-center gap-2"
+              className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-90 transition-all flex items-center gap-2"
               aria-label="메뉴"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3044,13 +2710,37 @@ export default function SimulationPage() {
             </div>
             <Link
               href="/profile/settings"
-              className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-90 transition-all flex items-center gap-2"
+              className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-90 transition-all flex items-center gap-2"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </Link>
           </div>
+
+          {/* 요약 */}
+          {mobileTab === 'requirements' && (
+            <div className="px-4 py-2 flex flex-row justify-between gap-3">
+              <div>
+                <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">이수 학점</span>
+                <p className="text-base sm:text-lg font-semibold">{totalStats.totalCredit} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 138</span></p>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">총 AU</span>
+                <p className="text-base sm:text-lg font-semibold">{totalStats.totalAu} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 4</span></p>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">평점</span>
+                <p className="text-base sm:text-lg font-semibold">{totalStats.gpa} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 2.0</span></p>
+              </div>
+              <div>
+                <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">시뮬레이션 결과</span>
+                <p className={`text-base sm:text-lg font-bold ${canGraduate ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  졸업 {canGraduate ? '가능' : '불가'}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 본문 영역 */}
@@ -3061,7 +2751,7 @@ export default function SimulationPage() {
               <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'var(--font-logo)' }}>전공 지정</h2>
               <div className="space-y-6 px-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
                     전공 이수 기준 연도
                   </label>
                   <NumberInput
@@ -3073,7 +2763,7 @@ export default function SimulationPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
                     주전공
                   </label>
                   <DepartmentDropdown
@@ -3084,7 +2774,7 @@ export default function SimulationPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
                     복수전공
                   </label>
                   <MultipleDepartmentDropdown
@@ -3096,7 +2786,7 @@ export default function SimulationPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
                     부전공
                   </label>
                   <MultipleDepartmentDropdown
@@ -3108,7 +2798,7 @@ export default function SimulationPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
                     심화전공
                   </label>
                   <Select
@@ -3121,7 +2811,7 @@ export default function SimulationPage() {
                   </Select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
                     자유융합전공
                   </label>
                   <Select
@@ -3148,7 +2838,7 @@ export default function SimulationPage() {
                   className={`flex-1 px-2 py-2 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
                     courseMode === 'add'
                       ? 'text-black dark:text-white'
-                      : 'text-gray-400 dark:text-gray-500'
+                      : 'text-gray-400 dark:text-zinc-500'
                   }`}
                 >
                   <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
@@ -3161,7 +2851,7 @@ export default function SimulationPage() {
                   className={`flex-1 px-2 py-2 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
                     courseMode === 'view'
                       ? 'text-black dark:text-white'
-                      : 'text-gray-400 dark:text-gray-500'
+                      : 'text-gray-400 dark:text-zinc-500'
                   }`}
                 >
                   <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
@@ -3197,7 +2887,7 @@ export default function SimulationPage() {
                   />
                 ) : (
                   <div className="space-y-4">
-                    <p className="text-sm text-center text-gray-500 dark:text-gray-400 px-4">
+                    <p className="text-sm text-center text-gray-500 dark:text-zinc-400 px-4">
                       시뮬레이션에 사용할 과목들을 지정합니다. 아직 듣지 않았지만 들을 예정인 과목을 추가하여 시뮬레이션을 진행할 수 있습니다.
                     </p>
                     <EnrollmentsList
@@ -3241,7 +2931,7 @@ export default function SimulationPage() {
                       onDropOutside={handleDropOutside}
                       findNearestPastSemester={findNearestPastSemester}
                     />
-                    <p className="text-sm text-center text-gray-500 dark:text-gray-400 px-4">
+                    <p className="text-sm text-center text-gray-500 dark:text-zinc-400 px-4">
                       이곳에서 과목을 추가하거나 삭제하더라도 프로필에 저장된 수강 내역은 변경되지 않습니다.
                     </p>
                   </div>
@@ -3257,89 +2947,44 @@ export default function SimulationPage() {
                 <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>수업별 학점 인정 분야</h2>
                 <button
                   onClick={() => setGradeBlindMode(!gradeBlindMode)}
-                  className="px-3 py-1.5 text-sm rounded-lg shadow-sm bg-white dark:bg-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all"
+                  className="px-3 py-1.5 text-sm rounded-lg shadow-sm bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all"
                 >
                   {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
                 </button>
               </div>
 
               {sections.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
+                <p className="text-sm text-gray-500 dark:text-zinc-400 py-4 text-center">
                   주전공을 선택하면 섹션이 구성됩니다.
                 </p>
               ) : (
                 <div className="space-y-6">
                   {/* 기초과목 그룹 */}
                   {groupedSections.basicGroup.length > 0 && (
-                    <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
+                    <div className="bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
                       {groupedSections.basicGroup.map((s, i) => {
                         const isCollapsed = collapsedSections.has(s.id);
                         return (
                           <div key={s.id}>
-                            <div className="px-4 py-3">
-                              <button
-                                onClick={() => toggleSection(s.id)}
-                                className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 active:scale-95 transition-all rounded"
-                              >
-                                <svg
-                                  className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
+                            <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)}>
+                              <ACTitle>
                                 <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                                <p className="text-gray-600 dark:text-gray-400 text-sm">{calculateSectionCredits(s.courses)}</p>
-                              </button>
-                              <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                <p className="text-gray-600 dark:text-zinc-400 text-sm">{calculateSectionCredits(s.courses)}</p>
+                              </ACTitle>
+                              <ACBody>
                                 <div className="space-y-2">
                                   {s.courses.length === 0 ? (
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                    <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <div
-                                        key={c.courseId}
-                                        className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                      >
-                                        <div className="min-w-0 flex-1 flex items-center font-medium text-sm gap-2 flex-wrap">
-                                          <div className="min-w-0 flex-1 flex items-center gap-2">
-                                            <p className="truncate min-w-0">{c.course.title}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{c.course.code}</p>
-                                          </div>
-                                          {c.course.tags && c.course.tags.length > 0 && (
-                                            <div className="flex items-center gap-1 flex-wrap shrink-0">
-                                              {c.course.tags
-                                                .filter((tag: string) => ['사회', '인문', '문학예술', '일반', '핵심', '융합'].includes(tag))
-                                                .map((tag: string) => (
-                                                  <span
-                                                    key={tag}
-                                                    className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
-                                                  >
-                                                    {tag}
-                                                  </span>
-                                                ))}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          {!gradeBlindMode && (
-                                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                              {c.grade}
-                                            </span>
-                                          )}
-                                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                          </p>
-                                        </div>
-                                      </div>
+                                      <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
                                     ))
                                   )}
                                 </div>
-                              </div>
-                            </div>
+                              </ACBody>
+                            </Accordion>
                             {i < groupedSections.basicGroup.length - 1 && (
-                              <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                              <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
                             )}
                           </div>
                         );
@@ -3349,78 +2994,30 @@ export default function SimulationPage() {
 
                   {/* 주전공/심화전공/연구 그룹 */}
                   {groupedSections.majorGroup.length > 0 && (
-                    <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
+                    <div className="bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
                       {groupedSections.majorGroup.map((s, i) => {
                         const isCollapsed = collapsedSections.has(s.id);
                         return (
                           <div key={s.id}>
-                            <div className="px-4 py-3">
-                              <button
-                                onClick={() => toggleSection(s.id)}
-                                className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 active:scale-95 transition-all rounded"
-                              >
-                                <svg
-                                  className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
+                            <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)}>
+                              <ACTitle>
                                 <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                                <p className="text-gray-600 dark:text-gray-400 text-sm">{calculateSectionCredits(s.courses)}</p>
-                              </button>
-                              <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                                <p className="text-gray-600 dark:text-zinc-400 text-sm">{calculateSectionCredits(s.courses)}</p>
+                              </ACTitle>
+                              <ACBody>
                                 <div className="space-y-2">
                                   {s.courses.length === 0 ? (
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                    <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <div
-                                        key={c.courseId}
-                                        className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                      >
-                                        <div className="min-w-0 flex-1 flex items-center font-medium text-sm gap-2 flex-wrap">
-                                          <div className="min-w-0 flex-1 flex items-center gap-2">
-                                            <p className="truncate min-w-0">{c.course.title}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{c.course.code}</p>
-                                          </div>
-                                          {c.course.tags && c.course.tags.length > 0 && (
-                                            <div className="flex items-center gap-1 flex-wrap shrink-0">
-                                              {c.course.tags
-                                                .filter((tag: string) => ['사회', '인문', '문학예술', '일반', '핵심', '융합'].includes(tag))
-                                                .map((tag: string) => (
-                                                  <span
-                                                    key={tag}
-                                                    className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
-                                                  >
-                                                    {tag}
-                                                  </span>
-                                                ))}
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          {!gradeBlindMode && (
-                                            <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                              {c.grade}
-                                            </span>
-                                          )}
-                                          {c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
-                                            <span className="text-xs text-gray-500 dark:text-gray-400">중복인정</span>
-                                          )}
-                                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                          </p>
-                                        </div>
-                                      </div>
+                                      <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
                                     ))
                                   )}
                                 </div>
-                              </div>
-                            </div>
+                              </ACBody>
+                            </Accordion>
                             {i < groupedSections.majorGroup.length - 1 && (
-                              <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                              <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
                             )}
                           </div>
                         );
@@ -3432,53 +3029,24 @@ export default function SimulationPage() {
                   {groupedSections.otherSections.map((s) => {
                     const isCollapsed = collapsedSections.has(s.id);
                     return (
-                      <div key={s.id} className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
-                        <div className="px-4 py-3">
-                          <button
-                            onClick={() => toggleSection(s.id)}
-                            className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 active:scale-95 transition-all rounded"
-                          >
-                            <svg
-                              className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
+                      <div key={s.id} className="bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
+                        <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)}>
+                          <ACTitle>
                             <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                            <p className="text-gray-600 dark:text-gray-400 text-sm">{calculateSectionCredits(s.courses)}</p>
-                          </button>
-                          <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
+                            <p className="text-gray-600 dark:text-zinc-400 text-sm">{calculateSectionCredits(s.courses)}</p>
+                          </ACTitle>
+                          <ACBody>
                             <div className="space-y-2">
                               {s.courses.length === 0 ? (
-                                <p className="text-sm text-gray-500 dark:text-gray-400">인정 과목 없음</p>
+                                <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                               ) : (
                                 s.courses.map((c) => (
-                                  <div
-                                    key={c.courseId}
-                                    className="flex items-center justify-between p-2 rounded bg-gray-50 dark:bg-zinc-800"
-                                  >
-                                    <div className="flex items-center font-medium text-sm gap-2">
-                                      <p>{c.course.title}</p>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400">{c.course.code}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      {!gradeBlindMode && (
-                                        <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                          {c.grade}
-                                        </span>
-                                      )}
-                                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        {c.course.au > 0 ? `${c.course.au}AU` : `${c.course.credit}학점`}
-                                      </p>
-                                    </div>
-                                  </div>
+                                  <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
                                 ))
                               )}
                             </div>
-                          </div>
-                        </div>
+                          </ACBody>
+                        </Accordion>
                       </div>
                     );
                   })}
@@ -3490,25 +3058,25 @@ export default function SimulationPage() {
           {/* 졸업 요건 탭 */}
           {mobileTab === 'requirements' && (
             <div>
-              <div className="sticky top-[52px] z-10 backdrop-blur-md">
+              {/* <div className="sticky top-[52px] z-10 backdrop-blur-md">
                 <div className="p-4">
-                  {/* 요약 영역 */}
+                  요약 영역
                   {sections.length > 0 && (
                     <div className="flex flex-row justify-between gap-3">
                       <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">이수 학점</span>
-                        <p className="text-base sm:text-lg font-semibold">{totalStats.totalCredit} <span className="text-xs text-gray-400 dark:text-gray-500">/ 138</span></p>
+                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">이수 학점</span>
+                        <p className="text-base sm:text-lg font-semibold">{totalStats.totalCredit} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 138</span></p>
                       </div>
                       <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">총 AU</span>
-                        <p className="text-base sm:text-lg font-semibold">{totalStats.totalAu} <span className="text-xs text-gray-400 dark:text-gray-500">/ 4</span></p>
+                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">총 AU</span>
+                        <p className="text-base sm:text-lg font-semibold">{totalStats.totalAu} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 4</span></p>
                       </div>
                       <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">평점</span>
-                        <p className="text-base sm:text-lg font-semibold">{totalStats.gpa} <span className="text-xs text-gray-400 dark:text-gray-500">/ 2.0</span></p>
+                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">평점</span>
+                        <p className="text-base sm:text-lg font-semibold">{totalStats.gpa} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 2.0</span></p>
                       </div>
                       <div>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 block mb-1">시뮬레이션 결과</span>
+                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">시뮬레이션 결과</span>
                         <p className={`text-base sm:text-lg font-bold ${canGraduate ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                           졸업 {canGraduate ? '가능' : '불가'}
                         </p>
@@ -3516,36 +3084,25 @@ export default function SimulationPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </div> */}
 
               <div className="p-4 space-y-6 pb-24">
               {sections.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-gray-400 py-4 text-center">
+                <p className="text-sm text-gray-500 dark:text-zinc-400 py-4 text-center">
                   주전공을 선택하면 섹션이 구성됩니다.
                 </p>
               ) : (
                 <div className="space-y-6">
                     {/* 기초과목 */}
                     {groupedSections.basicGroup.length > 0 && (
-                      <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
+                      <div className="bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
                         {groupedSections.basicGroup.map((s, i) => {
                           const requirements = s.requirements || [];
                           const isCollapsed = collapsedSections.has(`center-${s.id}`);
                           return (
                             <div key={s.id}>
-                              <div className="px-4 py-3">
-                                <button
-                                  onClick={() => toggleSection(`center-${s.id}`)}
-                                  className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 active:scale-95 transition-all rounded"
-                                >
-                                  <svg
-                                    className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                  </svg>
+                              <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(`center-${s.id}`)}>
+                                <ACTitle>
                                   <h3 className="font-medium text-base flex-1">{s.title}</h3>
                                   <p
                                     className={`text-sm font-medium ${
@@ -3554,63 +3111,35 @@ export default function SimulationPage() {
                                   >
                                     {s.fulfilled ? '달성' : '미달'}
                                   </p>
-                                </button>
-                                <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
-                                  <div className="px-1">
-                                    {requirements.length > 0 ? (
-                                      <div className="space-y-2">
-                                        {requirements.map((req, reqIdx) => {
-                                          const currentValue = req.currentValue || 0;
-                                          const targetValue = req.value || 0;
-                                          const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
-                                          return (
-                                            <div
-                                              key={reqIdx}
-                                              className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
-                                            >
-                                              <div
-                                                className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
-                                                style={{ width: `${percentage}%` }}
-                                              />
-                                              <div className="relative flex items-center justify-between">
-                                                <div className="relative flex-1 min-w-0">
-                                                  <p 
-                                                    className="font-medium text-sm truncate cursor-help"
-                                                    onMouseEnter={(e) => {
-                                                      if (req.title && req.title !== req.description && req.description !== undefined) {
-                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                        setTooltipState({
-                                                          text: req.description,
-                                                          x: rect.left + rect.width / 2,
-                                                          y: rect.top - 8
-                                                        });
-                                                      }
-                                                    }}
-                                                    onMouseLeave={() => {
-                                                      setTooltipState(null);
-                                                    }}
-                                                  >
-                                                    {req.title || req.description || ''}
-                                                  </p>
-                                                </div>
-                                                {req.value != null && (
-                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
-                                                    {currentValue} / {targetValue}
-                                                  </p>
-                                                )}
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
+                                </ACTitle>
+                                <ACBody>
+                                  {requirements.length > 0 ? (
+                                    <div className="space-y-2">
+                                      {requirements.map((req, reqIdx) => (
+                                        <RequirementBar
+                                          key={reqIdx}
+                                          requirement={req}
+                                          onMouseEnter={(e) => {
+                                            if (req.title && req.title !== req.description && req.description !== undefined) {
+                                              const rect = e.currentTarget.getBoundingClientRect();
+                                              setTooltipState({
+                                                text: req.description,
+                                                x: rect.left + rect.width / 2,
+                                                y: rect.top - 8
+                                              });
+                                            }
+                                          }}
+                                          onMouseLeave={() => {setTooltipState(null)}}
+                                        />
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-gray-500 dark:text-zinc-400 text-center py-2">요건 없음</p>
+                                  )}
+                                </ACBody>
+                              </Accordion>
                               {i < groupedSections.basicGroup.length - 1 && (
-                                <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                                <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
                               )}
                             </div>
                           );
@@ -3620,26 +3149,15 @@ export default function SimulationPage() {
 
                     {/* 주전공/심화전공/연구 그룹 */}
                     {groupedSections.majorGroup.length > 0 && (
-                      <div className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
+                      <div className="bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
                         {groupedSections.majorGroup.map((s, i) => {
                           const requirements = s.requirements || [];
                           const isCollapsed = collapsedSections.has(`center-${s.id}`);
                           return (
                             <div key={s.id}>
-                              <div className="px-4 py-3">
-                                <button
-                                  onClick={() => toggleSection(`center-${s.id}`)}
-                                  className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 active:scale-95 transition-all rounded"
-                                >
-                                  <svg
-                                    className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                  </svg>
-                                  <h3 className="font-medium text-base flex-1">
+                              <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(`center-${s.id}`)}>
+                                <ACTitle>
+                                  <h3 className="font-medium text-base flex-1 leading-tight">
                                     {s.titleElements.length > 1 ? (
                                       <>
                                         <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
@@ -3648,69 +3166,41 @@ export default function SimulationPage() {
                                     ) : s.titleElements[0]}
                                   </h3>
                                   <p
-                                    className={`text-sm font-medium ${
+                                    className={`text-sm font-medium leading-tight ${
                                       s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                     }`}
                                   >
                                     {s.fulfilled ? '달성' : '미달'}
                                   </p>
-                                </button>
-                                <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
-                                  <div className="px-1">
-                                    {requirements.length > 0 ? (
-                                      <div className="space-y-2">
-                                        {requirements.map((req, reqIdx) => {
-                                          const currentValue = req.currentValue || 0;
-                                          const targetValue = req.value || 0;
-                                          const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
-                                          return (
-                                            <div
-                                              key={reqIdx}
-                                              className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
-                                            >
-                                              <div
-                                                className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
-                                                style={{ width: `${percentage}%` }}
-                                              />
-                                              <div className="relative flex items-center justify-between">
-                                                <div className="relative flex-1 min-w-0">
-                                                  <p 
-                                                    className="font-medium text-sm truncate cursor-help"
-                                                    onMouseEnter={(e) => {
-                                                      if (req.title && req.title !== req.description && req.description !== undefined) {
-                                                        const rect = e.currentTarget.getBoundingClientRect();
-                                                        setTooltipState({
-                                                          text: req.description,
-                                                          x: rect.left + rect.width / 2,
-                                                          y: rect.top - 8
-                                                        });
-                                                      }
-                                                    }}
-                                                    onMouseLeave={() => {
-                                                      setTooltipState(null);
-                                                    }}
-                                                  >
-                                                    {req.title || req.description || ''}
-                                                  </p>
-                                                </div>
-                                                {req.value != null && (
-                                                  <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
-                                                    {currentValue} / {targetValue}
-                                                  </p>
-                                                )}
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
+                                </ACTitle>
+                                <ACBody>
+                                  {requirements.length > 0 ? (
+                                    <div className="space-y-2">
+                                      {requirements.map((req, reqIdx) => (
+                                        <RequirementBar
+                                          key={reqIdx}
+                                          requirement={req}
+                                          onMouseEnter={(e) => {
+                                            if (req.title && req.title !== req.description && req.description !== undefined) {
+                                              const rect = e.currentTarget.getBoundingClientRect();
+                                              setTooltipState({
+                                                text: req.description,
+                                                x: rect.left + rect.width / 2,
+                                                y: rect.top - 8
+                                              });
+                                            }
+                                          }}
+                                          onMouseLeave={() => {setTooltipState(null)}}
+                                        />
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">요건 없음</p>
+                                  )}
+                                </ACBody>
+                              </Accordion>
                               {i < groupedSections.majorGroup.length - 1 && (
-                                <div className="border-t border-dashed border-gray-300 dark:border-gray-600"></div>
+                                <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
                               )}
                             </div>
                           );
@@ -3723,21 +3213,10 @@ export default function SimulationPage() {
                       const requirements = s.requirements || [];
                       const isCollapsed = collapsedSections.has(`center-${s.id}`);
                       return (
-                        <div key={s.id} className="bg-white dark:bg-zinc-900 rounded-lg overflow-hidden shadow-lg">
-                          <div className="px-4 py-3">
-                            <button
-                              onClick={() => toggleSection(`center-${s.id}`)}
-                              className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 active:scale-95 transition-all rounded"
-                            >
-                              <svg
-                                className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
-                              <h3 className="font-medium text-base flex-1">
+                        <div key={s.id} className="bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
+                          <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(`center-${s.id}`)}>
+                            <ACTitle>
+                              <h3 className="font-medium text-base flex-1 leading-tight">
                                 {s.titleElements.length > 1 ? (
                                   <>
                                     <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
@@ -3746,65 +3225,39 @@ export default function SimulationPage() {
                                 ) : s.titleElements[0]}
                               </h3>
                               <p
-                                className={`text-sm font-medium ${
+                                className={`text-sm font-medium leading-tight ${
                                   s.fulfilled ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                                 }`}
                               >
                                 {s.fulfilled ? '달성' : '미달'}
                               </p>
-                            </button>
-                            <div className={`overflow-hidden transition-all duration-200 ${isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100 mt-3'}`}>
-                              <div className="px-1">
-                                {requirements.length > 0 ? (
-                                  <div className="space-y-2">
-                                    {requirements.map((req, reqIdx) => {
-                                      const currentValue = req.currentValue || 0;
-                                      const targetValue = req.value || 0;
-                                      const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
-                                      return (
-                                        <div
-                                          key={reqIdx}
-                                          className="relative p-2 rounded bg-gray-50 dark:bg-zinc-800 overflow-hidden"
-                                        >
-                                          <div
-                                            className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
-                                            style={{ width: `${percentage}%` }}
-                                          />
-                                          <div className="relative flex items-center justify-between">
-                                            <p 
-                                              className="font-medium text-sm truncate cursor-help"
-                                              onMouseEnter={(e) => {
-                                                if (req.title && req.title !== req.description && req.description !== undefined) {
-                                                  const rect = e.currentTarget.getBoundingClientRect();
-                                                  setTooltipState({
-                                                    text: req.description,
-                                                    x: rect.left + rect.width / 2,
-                                                    y: rect.top - 8
-                                                  });
-                                                }
-                                              }}
-                                              onMouseLeave={() => {
-                                                setTooltipState(null);
-                                              }}
-                                            >
-                                              {req.title || req.description || ''}
-                                            </p>
-                                            {req.value != null && (
-                                              <p className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                                {currentValue} / {targetValue}
-                                              </p>
-                                            )}
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                ) : (
-                                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                            </ACTitle>
+                            <ACBody>
+                              {requirements.length > 0 ? (
+                                <div className="space-y-2">
+                                  {requirements.map((req, reqIdx) => (
+                                    <RequirementBar
+                                      key={reqIdx}
+                                      requirement={req}
+                                      onMouseEnter={(e) => {
+                                        if (req.title && req.title !== req.description && req.description !== undefined) {
+                                          const rect = e.currentTarget.getBoundingClientRect();
+                                          setTooltipState({
+                                            text: req.description,
+                                            x: rect.left + rect.width / 2,
+                                            y: rect.top - 8
+                                          });
+                                        }
+                                      }}
+                                      onMouseLeave={() => {setTooltipState(null)}}
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">요건 없음</p>
+                              )}
+                            </ACBody>
+                          </Accordion>
                         </div>
                       );
                     })}
@@ -3817,7 +3270,7 @@ export default function SimulationPage() {
 
         {/* 하단 내비게이션 */}
         <div className="fixed bottom-0 left-0 right-0 z-30 p-2 flex justify-center pointer-events-none">
-          <nav className="p-1 flex flex-row backdrop-blur-md pointer-events-auto rounded-full bg-white/50 dark:bg-zinc-900/50 shadow-lg">
+          <nav className="p-1 flex flex-row backdrop-blur-md pointer-events-auto rounded-full bg-white/50 dark:bg-black/50 shadow-lg dark:shadow-[rgba(255,255,255,0.1)]">
             <button
               onClick={() => setMobileTab('major')}
               className={`w-20 flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-all active:scale-85 rounded-full ${
@@ -4015,6 +3468,7 @@ export default function SimulationPage() {
           </div>
         )}
       </div>
+
       {/* Fixed Tooltip */}
       {tooltipState && (
         <div
@@ -4025,9 +3479,9 @@ export default function SimulationPage() {
             transform: 'translate(-50%, -100%)',
           }}
         >
-          <div className="w-64 p-2 bg-black text-white text-xs rounded shadow-lg">
+          <div className="w-64 p-2 bg-black dark:bg-zinc-800 text-white text-xs rounded shadow-lg">
             {tooltipState.text}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black"></div>
+            <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black dark:border-t-zinc-800"></div>
           </div>
         </div>
       )}

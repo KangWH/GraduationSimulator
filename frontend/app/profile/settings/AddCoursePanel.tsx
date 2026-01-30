@@ -122,7 +122,7 @@ export default function AddCoursePanel({
   return (
     <div className="space-y-4">
       {/* 검색 창 */}
-      <div className={`sticky z-10 -mx-4 px-4 pt-0 pb-4 bg-gradient-to-b from-gray-50 via-gray-50/90 to-trasparent dark:from-black dark:via-black/90`} style={{ top: stickyTopOffset }}>
+      <div className={`sticky z-10 -mx-4 px-4 pt-0 pb-4 bg-gradient-to-b from-gray-50 via-gray-50/90 to-trasparent dark:from-zinc-900 dark:via-zinc-900/90`} style={{ top: stickyTopOffset }}>
         <div className="space-y-2">
           <div className="relative flex items-center gap-2">
             <div className="relative flex-1">
@@ -256,7 +256,7 @@ export default function AddCoursePanel({
                   className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer active:scale-96 transition-all animate-slide-up shadow ${
                     isSelected
                       ? 'border-violet-500 bg-violet-50 dark:border-violet-400 dark:bg-violet-900/20'
-                      : 'border-transparent bg-white dark:bg-zinc-900 hover:bg-gray-50 dark:hover:bg-zinc-800'
+                      : 'border-transparent bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-800'
                   }`}
                   style={{
                     animationDelay: `${index * 0.05}s`,
@@ -317,7 +317,7 @@ export default function AddCoursePanel({
 
       {/* 추가 옵션 및 버튼 */}
       {selectedCourseIds.size > 0 && (
-        <div className="sticky bottom-0 z-10 -mx-6 px-6 pt-0 pb-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent dark:from-black dark:via-black/90 dark:to-transparent">
+        <div className="sticky bottom-0 z-10 -mx-6 px-6 pt-0 pb-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent dark:from-zinc-900 dark:via-zinc-900/90 dark:to-transparent">
           <div className="rounded-lg bg-violet-50 p-4 dark:bg-violet-950 shadow-lg">
             {onAddAsPriorCreditChange && (
               <label className="mb-3 flex cursor-pointer items-center gap-2">
