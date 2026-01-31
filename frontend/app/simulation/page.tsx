@@ -2205,11 +2205,162 @@ export default function SimulationPage() {
 
           {/* 3분할 카드 래퍼 */}
           <div className="flex-1 flex min-h-0 px-4 gap-4">
-            {/* 좌측: 섹션별 요건 계산에 사용된 과목 */}
-            <div className="flex-1 flex-shrink-0 flex flex-col overflow-hidden transition-all duration-300">
+            {/* 좌측: 시뮬레이션에서 추가·삭제할 과목 선택 */}
+            <div className={`${rightPanelOpen ? 'flex-1' : 'flex-0'} flex-shrink-0 flex flex-col overflow-hidden transition-all duration-300`}>
+              {rightPanelOpen && (
+                <>
+                  {/* 상단: 모드 전환 */}
+                  <div className="flex items-center flex-shrink-0 gap-2 mb-2 px-6">
+                    <button
+                      type="button"
+                      onClick={() => setRightPanelOpen(false)}
+                      className="flex-shrink-0 p-1 rounded-lg bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all shadow-sm"
+                      title="패널 접기"
+                    >
+                      <svg
+                        className="w-5 h-5 text-gray-600 dark:text-zinc-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCourseMode('add')}
+                      className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
+                        courseMode === 'add'
+                          ? 'text-black dark:text-white'
+                          : 'text-gray-400 dark:text-zinc-500'
+                      }`}
+                    >
+                      <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
+                        과목 추가
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCourseMode('view')}
+                      className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
+                        courseMode === 'view'
+                          ? 'text-black dark:text-white'
+                          : 'text-gray-400 dark:text-zinc-500'
+                      }`}
+                    >
+                      <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
+                        수강한 과목<span className="opacity-40 ml-2">{enrollmentsForList.length}</span>
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* 본문 영역 */}
+                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                    <div className="px-4 pt-2 pb-8">
+                      {courseMode === 'add' ? (
+                        <AddCoursePanel
+                          searchQuery={courseSearchQuery}
+                          onSearchQueryChange={setCourseSearchQuery}
+                          searchResults={searchResults}
+                          isSearching={isSearching}
+                          selectedCourseIds={selectedCourseIds}
+                          onSelectionChange={updateSelectedCourseIds}
+                          addYear={addYear}
+                          onAddYearChange={setAddYear}
+                          addSemester={addSemester}
+                          onAddSemesterChange={setAddSemester}
+                          addGrade={addGrade}
+                          onAddGradeChange={setAddGrade}
+                          addAsPriorCredit={addAsPriorCredit}
+                          onAddAsPriorCreditChange={setAddAsPriorCredit}
+                          onAddSelected={handleAddSelected}
+                          onDragStart={(course) => setDraggedCourse(course)}
+                          filterDepartment={filterDepartment}
+                          onFilterDepartmentChange={setFilterDepartment}
+                          filterCategory={filterCategory}
+                          onFilterCategoryChange={setFilterCategory}
+                        />
+                      ) : (
+                        <>
+                          <p className="text-sm text-center mb-6 px-4 text-gray-500 dark:text-zinc-400">
+                            시뮬레이션에 사용할 과목들을 지정합니다. 아직 듣지 않았지만 들을 예정인 과목을 추가하여 시뮬레이션을 진행할 수 있습니다.
+                          </p>
+                          <EnrollmentsList
+                            enrollments={enrollmentsForList}
+                            semesterGroups={semesterGroups}
+                            sortedSemesterKeys={sortedSemesterKeys}
+                            onGradeChange={(enrollment, grade) => {
+                              const cs = simulationCourses.find(
+                                (c) =>
+                                  c.courseId === enrollment.courseId &&
+                                  c.enrolledYear === enrollment.enrolledYear &&
+                                  c.enrolledSemester === enrollment.enrolledSemester
+                              );
+                              if (cs) {
+                                handleGradeChange(cs, grade);
+                              }
+                            }}
+                            onRemove={(enrollment) => {
+                              const cs = simulationCourses.find(
+                                (c) =>
+                                  c.courseId === enrollment.courseId &&
+                                  c.enrolledYear === enrollment.enrolledYear &&
+                                  c.enrolledSemester === enrollment.enrolledSemester
+                              );
+                              if (cs) {
+                                handleRemove(cs);
+                              }
+                            }}
+                            onDragStart={(e, enrollment, semesterKey) => {
+                              const cs = simulationCourses.find(
+                                (c) =>
+                                  c.courseId === enrollment.courseId &&
+                                  c.enrolledYear === enrollment.enrolledYear &&
+                                  c.enrolledSemester === enrollment.enrolledSemester
+                              );
+                              if (cs) {
+                                handleDragStart(e, cs, semesterKey);
+                              }
+                            }}
+                            onDrop={handleDrop}
+                            onDropOutside={handleDropOutside}
+                            findNearestPastSemester={findNearestPastSemester}
+                          />
+                          <p className="text-sm text-center mt-6 px-4 text-gray-500 dark:text-zinc-400">
+                            이곳에서 과목을 추가하거나 삭제하더라도 프로필에 저장된 수강 내역은 변경되지 않습니다.
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* 가운데: 섹션별 요건 계산에 사용된 과목 */}
+            <div className={`${rightPanelOpen ? '' : 'ml-[-1rem]'} flex-1 flex-shrink-0 flex flex-col overflow-hidden transition-all duration-300`}>
               {/* 제목 영역 */}
               <div className="flex items-center justify-between mb-2 px-6">
-                <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>수업별 학점 인정 분야</h2>
+                <div className="flex gap-2">
+                  {!rightPanelOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setRightPanelOpen(true)}
+                      className="flex-shrink-0 p-1 rounded-lg bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all shadow-sm"
+                      title="패널 펼치기"
+                    >
+                      <svg
+                        className="w-5 h-5 text-gray-600 dark:text-zinc-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
+                  <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>수업별 학점 인정 분야</h2>
+                </div>
                 <button
                   onClick={() => setGradeBlindMode(!gradeBlindMode)}
                   className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg shadow-sm bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all"
@@ -2367,28 +2518,11 @@ export default function SimulationPage() {
               </div>
             </div>
 
-            {/* 가운데: 섹션별 세부 요건 달성 여부 */}
-            <div className={`${rightPanelOpen ? '' : 'mr-[-1rem]'} flex-1 flex-shrink-0 flex flex-col overflow-hidden transition-all duration-300`}>
+            {/* 우측: 섹션별 세부 요건 달성 여부 */}
+            <div className="flex-1 flex-shrink-0 flex flex-col overflow-hidden transition-all duration-300">
               {/* 제목 영역 */}
               <div className="flex items-center justify-between mb-2 px-6">
                 <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>졸업 요건</h2>
-                {!rightPanelOpen && (
-                  <button
-                    type="button"
-                    onClick={() => setRightPanelOpen(true)}
-                    className="flex-shrink-0 p-1 rounded-lg bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all shadow-sm"
-                    title="패널 펼치기"
-                  >
-                    <svg
-                      className="w-5 h-5 text-gray-600 dark:text-zinc-400 rotate-180"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
-                )}
               </div>
 
               {/* 본문 영역 */}
@@ -2594,138 +2728,6 @@ export default function SimulationPage() {
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* 우측: 시뮬레이션에서 추가·삭제할 과목 선택 */}
-            <div className={`${rightPanelOpen ? 'flex-1' : 'flex-0'} flex-shrink-0 flex flex-col overflow-hidden transition-all duration-300`}>
-              {rightPanelOpen && (
-                <>
-                  {/* 상단: 모드 전환 */}
-                  <div className="flex items-center flex-shrink-0 gap-2 mb-2 px-6">
-                    <button
-                      type="button"
-                      onClick={() => setCourseMode('add')}
-                      className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
-                        courseMode === 'add'
-                          ? 'text-black dark:text-white'
-                          : 'text-gray-400 dark:text-zinc-500'
-                      }`}
-                    >
-                      <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
-                        과목 추가
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCourseMode('view')}
-                      className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
-                        courseMode === 'view'
-                          ? 'text-black dark:text-white'
-                          : 'text-gray-400 dark:text-zinc-500'
-                      }`}
-                    >
-                      <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
-                        수강한 과목<span className="opacity-40 ml-2">{enrollmentsForList.length}</span>
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRightPanelOpen(false)}
-                      className="flex-shrink-0 p-1 rounded-lg bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all shadow-sm"
-                      title="패널 접기"
-                    >
-                      <svg
-                        className="w-5 h-5 text-gray-600 dark:text-zinc-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {/* 본문 영역 */}
-                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-                    <div className="px-4 pt-2 pb-8">
-                      {courseMode === 'add' ? (
-                        <AddCoursePanel
-                          searchQuery={courseSearchQuery}
-                          onSearchQueryChange={setCourseSearchQuery}
-                          searchResults={searchResults}
-                          isSearching={isSearching}
-                          selectedCourseIds={selectedCourseIds}
-                          onSelectionChange={updateSelectedCourseIds}
-                          addYear={addYear}
-                          onAddYearChange={setAddYear}
-                          addSemester={addSemester}
-                          onAddSemesterChange={setAddSemester}
-                          addGrade={addGrade}
-                          onAddGradeChange={setAddGrade}
-                          addAsPriorCredit={addAsPriorCredit}
-                          onAddAsPriorCreditChange={setAddAsPriorCredit}
-                          onAddSelected={handleAddSelected}
-                          onDragStart={(course) => setDraggedCourse(course)}
-                          filterDepartment={filterDepartment}
-                          onFilterDepartmentChange={setFilterDepartment}
-                          filterCategory={filterCategory}
-                          onFilterCategoryChange={setFilterCategory}
-                        />
-                      ) : (
-                        <>
-                          <p className="text-sm text-center mb-6 px-4 text-gray-500 dark:text-zinc-400">
-                            시뮬레이션에 사용할 과목들을 지정합니다. 아직 듣지 않았지만 들을 예정인 과목을 추가하여 시뮬레이션을 진행할 수 있습니다.
-                          </p>
-                          <EnrollmentsList
-                            enrollments={enrollmentsForList}
-                            semesterGroups={semesterGroups}
-                            sortedSemesterKeys={sortedSemesterKeys}
-                            onGradeChange={(enrollment, grade) => {
-                              const cs = simulationCourses.find(
-                                (c) =>
-                                  c.courseId === enrollment.courseId &&
-                                  c.enrolledYear === enrollment.enrolledYear &&
-                                  c.enrolledSemester === enrollment.enrolledSemester
-                              );
-                              if (cs) {
-                                handleGradeChange(cs, grade);
-                              }
-                            }}
-                            onRemove={(enrollment) => {
-                              const cs = simulationCourses.find(
-                                (c) =>
-                                  c.courseId === enrollment.courseId &&
-                                  c.enrolledYear === enrollment.enrolledYear &&
-                                  c.enrolledSemester === enrollment.enrolledSemester
-                              );
-                              if (cs) {
-                                handleRemove(cs);
-                              }
-                            }}
-                            onDragStart={(e, enrollment, semesterKey) => {
-                              const cs = simulationCourses.find(
-                                (c) =>
-                                  c.courseId === enrollment.courseId &&
-                                  c.enrolledYear === enrollment.enrolledYear &&
-                                  c.enrolledSemester === enrollment.enrolledSemester
-                              );
-                              if (cs) {
-                                handleDragStart(e, cs, semesterKey);
-                              }
-                            }}
-                            onDrop={handleDrop}
-                            onDropOutside={handleDropOutside}
-                            findNearestPastSemester={findNearestPastSemester}
-                          />
-                          <p className="text-sm text-center mt-6 px-4 text-gray-500 dark:text-zinc-400">
-                            이곳에서 과목을 추가하거나 삭제하더라도 프로필에 저장된 수강 내역은 변경되지 않습니다.
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </div>
