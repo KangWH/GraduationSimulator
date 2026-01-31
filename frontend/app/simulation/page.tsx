@@ -1893,6 +1893,7 @@ export default function SimulationPage() {
               onClick={() => {
                 if (profile) {
                   setCurrentSimulationId(null);
+                  setFilters((prev) => ({ ...prev, earlyGraduation: false }));
                   initializeSimulationData(profile);
                 }
               }}
@@ -3410,6 +3411,7 @@ export default function SimulationPage() {
                   onClick={() => {
                     if (profile) {
                       setCurrentSimulationId(null);
+                      setFilters((prev) => ({ ...prev, earlyGraduation: false }));
                       initializeSimulationData(profile);
                     }
                     closeScenarioModal();
