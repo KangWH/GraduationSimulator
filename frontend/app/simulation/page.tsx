@@ -2180,7 +2180,7 @@ export default function SimulationPage() {
                       <option value="true">예</option>
                     </Select>
                   </div>
-                  <div className="flex flex-col gap-1">
+                  <div className="hidden flex flex-col gap-1">
                     <label htmlFor="honorStudent" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
                       Honor Student
                     </label>
