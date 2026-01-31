@@ -52,6 +52,7 @@ model Simulation {
   minors                    String[]
   advancedMajor             Boolean
   individuallyDesignedMajor Boolean
+  earlyGraduation           Boolean  @default(false)
   courses                   Json
 }
 

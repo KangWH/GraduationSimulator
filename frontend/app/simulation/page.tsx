@@ -16,6 +16,7 @@ import { classifyCourses, RequirementsProps } from './conditionTester';
 import Logo from '../components/Logo';
 import Accordion, { ACBody, ACTitle } from '../components/Accordion';
 import { CourseBar, RequirementBar } from '../components/CourseElements';
+import { AnimatedNumber } from '../components/AnimatedNumber';
 
 type Dept = { id: string; name: string };
 type Section = {
@@ -45,6 +46,7 @@ export default function SimulationPage() {
     minors: [] as string[],
     advancedMajor: false,
     individuallyDesignedMajor: false,
+    earlyGraduation: false,
   });
   const [simulationCourses, setSimulationCourses] = useState<CourseSimulation[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -125,6 +127,7 @@ export default function SimulationPage() {
           minors: filters.minors,
           advancedMajor: filters.advancedMajor,
           individuallyDesignedMajor: filters.individuallyDesignedMajor,
+          earlyGraduation: filters.earlyGraduation,
           courses: rawCourses,
         }),
       });
@@ -242,6 +245,7 @@ export default function SimulationPage() {
           minors: Array.isArray(p.minors) ? p.minors : [],
           advancedMajor: p.advancedMajor || false,
           individuallyDesignedMajor: p.individuallyDesignedMajor || false,
+          earlyGraduation: false,
         });
         setUserName(p.name || '');
 
@@ -315,6 +319,7 @@ export default function SimulationPage() {
                   minors: Array.isArray(sim.minors) ? sim.minors : [],
                   advancedMajor: sim.advancedMajor || false,
                   individuallyDesignedMajor: sim.individuallyDesignedMajor || false,
+                  earlyGraduation: sim.earlyGraduation ?? false,
                 };
 
                 let requirements: RequirementsProps = { basicRequired: [], basicElective: [], mandatoryGeneralCourses: [], humanitiesSocietyElective: [], major: [], doubleMajors: {}, minors: {} };
@@ -556,7 +561,7 @@ export default function SimulationPage() {
                 const allSectionsFulfilled = requiredSections.length > 0 && requiredSections.every(s => s.fulfilled);
                 const creditRequirementMet = totalCredit >= 138;
                 const auRequirementMet = totalAu >= 4;
-                const gpaRequirementMet = gpa >= 2.0;
+                const gpaRequirementMet = gpa >= (filters.earlyGraduation ? 3.0 : 2.0);
                 const hasAdvancedMajor = simFilters.advancedMajor;
                 const hasIndividuallyDesignedMajor = simFilters.individuallyDesignedMajor;
                 const hasDoubleMajor = simFilters.doubleMajors && simFilters.doubleMajors.length > 0;
@@ -812,6 +817,7 @@ export default function SimulationPage() {
         minors: Array.isArray(sim.minors) ? sim.minors : [],
         advancedMajor: sim.advancedMajor || false,
         individuallyDesignedMajor: sim.individuallyDesignedMajor || false,
+        earlyGraduation: sim.earlyGraduation ?? false,
       });
 
       // courses 파싱 및 변환
@@ -864,6 +870,7 @@ export default function SimulationPage() {
           minors: filters.minors,
           advancedMajor: filters.advancedMajor,
           individuallyDesignedMajor: filters.individuallyDesignedMajor,
+          earlyGraduation: filters.earlyGraduation,
           courses: rawCourses,
         }),
       });
@@ -1795,8 +1802,8 @@ export default function SimulationPage() {
     // 3. AU가 4 이상
     const auRequirementMet = totalStats.totalAu >= 4;
 
-    // 4. 평점이 2.0 이상
-    const gpaRequirementMet = parseFloat(totalStats.gpa) >= 2.0;
+    // 4. 평점이 2.0 이상 (조기졸업이면 3.0)
+    const gpaRequirementMet = parseFloat(totalStats.gpa) >= (filters.earlyGraduation ? 3.0 : 2.0);
 
     // 5. 자유융합전공이나 심화전공을 하거나 복전이나 부전을 1개 이상의 학과에서 해야 함
     const hasAdvancedMajor = filters.advancedMajor;
@@ -2151,6 +2158,38 @@ export default function SimulationPage() {
                       id="individuallyDesignedMajor"
                       value={filters.individuallyDesignedMajor ? 'true' : 'false'}
                       onChange={(newValue) => setFilters({ ...filters, individuallyDesignedMajor: newValue === 'true' })}
+                      size="small"
+                      className="min-w-16"
+                    >
+                      <option value="false">아니오</option>
+                      <option value="true">예</option>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="earlyGraduation" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      조기졸업
+                    </label>
+                    <Select
+                      id="earlyGraduation"
+                      value={filters.earlyGraduation ? 'true' : 'false'}
+                      onChange={(newValue) => setFilters({ ...filters, earlyGraduation: newValue === 'true' })}
+                      size="small"
+                      className="min-w-16"
+                    >
+                      <option value="false">아니오</option>
+                      <option value="true">예</option>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="honorStudent" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      Honor Student
+                    </label>
+                    <Select
+                      id="honorStudent"
+                      // value={filters.individuallyDesignedMajor ? 'true' : 'false'}
+                      // onChange={(newValue) => setFilters({ ...filters, individuallyDesignedMajor: newValue === 'true' })}
+                      value={true}
+                      onChange={() => {}}
                       size="small"
                       className="min-w-16"
                     >
@@ -2534,15 +2573,15 @@ export default function SimulationPage() {
                     <div className="flex items-center gap-4 flex-1">
                       <div>
                         <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1/2">이수 학점</span>
-                        <p className="text-lg font-semibold">{totalStats.totalCredit} <span className="text-xs text-gray-500 dark:text-zinc-400">/ 138</span></p>
+                        <p className="text-lg font-semibold"><AnimatedNumber value={totalStats.totalCredit} duration={380} /> <span className="text-xs text-gray-500 dark:text-zinc-400">/ 138</span></p>
                       </div>
                       <div>
                         <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1/2">총 AU</span>
-                        <p className="text-lg font-semibold">{totalStats.totalAu} <span className="text-xs text-gray-500 dark:text-zinc-400">/ 4</span></p>
+                        <p className="text-lg font-semibold"><AnimatedNumber value={totalStats.totalAu} duration={380} /> <span className="text-xs text-gray-500 dark:text-zinc-400">/ 4</span></p>
                       </div>
                       <div>
                         <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1/2">평점</span>
-                        <p className="text-lg font-semibold">{totalStats.gpa} <span className="text-xs text-gray-500 dark:text-zinc-400">/ 2.0</span></p>
+                        <p className="text-lg font-semibold"><AnimatedNumber value={totalStats.gpa} decimals={2} duration={380} /> <span className="text-xs text-gray-500 dark:text-zinc-400">/ {filters.earlyGraduation ? '3.0' : '2.0'}</span></p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -2723,15 +2762,15 @@ export default function SimulationPage() {
             <div className="px-4 py-2 flex flex-row justify-between gap-3">
               <div>
                 <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">이수 학점</span>
-                <p className="text-base sm:text-lg font-semibold">{totalStats.totalCredit} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 138</span></p>
+                <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.totalCredit} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ 138</span></p>
               </div>
               <div>
                 <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">총 AU</span>
-                <p className="text-base sm:text-lg font-semibold">{totalStats.totalAu} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 4</span></p>
+                <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.totalAu} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ 4</span></p>
               </div>
               <div>
                 <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">평점</span>
-                <p className="text-base sm:text-lg font-semibold">{totalStats.gpa} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 2.0</span></p>
+                <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.gpa} decimals={2} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ {filters.earlyGraduation ? '3.0' : '2.0'}</span></p>
               </div>
               <div>
                 <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">시뮬레이션 결과</span>
@@ -2817,6 +2856,19 @@ export default function SimulationPage() {
                   <Select
                     value={filters.individuallyDesignedMajor ? 'true' : 'false'}
                     onChange={(newValue) => setFilters({ ...filters, individuallyDesignedMajor: newValue === 'true' })}
+                    size="medium"
+                  >
+                    <option value="false">아니오</option>
+                    <option value="true">예</option>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
+                    조기졸업
+                  </label>
+                  <Select
+                    value={filters.earlyGraduation ? 'true' : 'false'}
+                    onChange={(newValue) => setFilters({ ...filters, earlyGraduation: newValue === 'true' })}
                     size="medium"
                   >
                     <option value="false">아니오</option>

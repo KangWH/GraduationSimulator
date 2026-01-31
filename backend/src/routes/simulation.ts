@@ -14,7 +14,7 @@ router.post('/', authenticate, async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
     }
-    const { title, referenceYear, major, doubleMajors, minors, advancedMajor, individuallyDesignedMajor, courses } = req.body;
+    const { title, referenceYear, major, doubleMajors, minors, advancedMajor, individuallyDesignedMajor, earlyGraduation, courses } = req.body;
 
     // 필수 필드 검증
     if (!title || !referenceYear || !major) {
@@ -48,6 +48,7 @@ router.post('/', authenticate, async (req: Request, res: Response) => {
         minors: Array.isArray(minors) ? minors : [],
         advancedMajor: Boolean(advancedMajor),
         individuallyDesignedMajor: Boolean(individuallyDesignedMajor),
+        earlyGraduation: Boolean(earlyGraduation),
         courses: courses || [],
       },
     });
@@ -107,6 +108,7 @@ router.get('/', authenticate, async (req: Request, res: Response) => {
         minors: sim.minors,
         advancedMajor: sim.advancedMajor,
         individuallyDesignedMajor: sim.individuallyDesignedMajor,
+        earlyGraduation: sim.earlyGraduation,
         courses: sim.courses,
       })),
     });
@@ -179,6 +181,7 @@ router.get('/:id', authenticate, async (req: Request, res: Response) => {
         minors: simulation.minors,
         advancedMajor: simulation.advancedMajor,
         individuallyDesignedMajor: simulation.individuallyDesignedMajor,
+        earlyGraduation: simulation.earlyGraduation,
         courses: simulation.courses,
       },
     });
@@ -266,7 +269,7 @@ router.put('/:id', authenticate, async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
     }
-    const { title, referenceYear, major, doubleMajors, minors, advancedMajor, individuallyDesignedMajor, courses } = req.body;
+    const { title, referenceYear, major, doubleMajors, minors, advancedMajor, individuallyDesignedMajor, earlyGraduation, courses } = req.body;
 
     if (!id) {
       return res.status(400).json({
@@ -317,6 +320,7 @@ router.put('/:id', authenticate, async (req: Request, res: Response) => {
         ...(minors !== undefined && { minors: Array.isArray(minors) ? minors : [] }),
         ...(advancedMajor !== undefined && { advancedMajor: Boolean(advancedMajor) }),
         ...(individuallyDesignedMajor !== undefined && { individuallyDesignedMajor: Boolean(individuallyDesignedMajor) }),
+        ...(earlyGraduation !== undefined && { earlyGraduation: Boolean(earlyGraduation) }),
         ...(courses !== undefined && { courses }),
       },
     });
