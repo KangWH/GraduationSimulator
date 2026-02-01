@@ -435,14 +435,18 @@ export default function SimulationPage() {
                   id: 'BASIC_REQUIRED',
                   title: '기초필수',
                   titleElements: ['기초필수'],
-                  courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED'),
+                  courses: enrolledCourses
+                    .filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED')
+                    .sort((a, b) => a.course.code.localeCompare(b.course.code)),
                   fulfilled: false
                 });
                 computedSections.push({
                   id: 'BASIC_ELECTIVE',
                   title: '기초선택',
                   titleElements: ['기초선택'],
-                  courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE'),
+                  courses: enrolledCourses
+                    .filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE')
+                    .sort((a, b) => a.course.code.localeCompare(b.course.code)),
                   fulfilled: false
                 });
 
@@ -451,7 +455,9 @@ export default function SimulationPage() {
                     id: `MAJOR_${simFilters.major}`,
                     title: `주전공`,
                     titleElements: ['주전공'],
-                    courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR'),
+                    courses: enrolledCourses
+                      .filter(c => c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR')
+                      .sort((a, b) => a.course.code.localeCompare(b.course.code)),
                     fulfilled: false
                   });
                   if (simFilters.advancedMajor) {
@@ -459,7 +465,9 @@ export default function SimulationPage() {
                       id: 'ADVANCED_MAJOR',
                       title: '심화전공',
                       titleElements: ['심화전공'],
-                      courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR'),
+                      courses: enrolledCourses
+                        .filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR')
+                        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
                       fulfilled: false
                     });
                   }
@@ -469,7 +477,9 @@ export default function SimulationPage() {
                     id: `RESEARCH_${simFilters.major}`,
                     title: '연구',
                     titleElements: ['연구'],
-                    courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'RESEARCH'),
+                    courses: enrolledCourses
+                      .filter(c => c.internalRecognizedAs?.type === 'RESEARCH')
+                      .sort((a, b) => a.course.code.localeCompare(b.course.code)),
                     fulfilled: false
                   });
                 }
@@ -479,7 +489,9 @@ export default function SimulationPage() {
                     id: `DOUBLE_MAJOR_${id}`,
                     title: `복수전공`,
                     titleElements: ['복수전공'],
-                    courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id)),
+                    courses: enrolledCourses
+                      .filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id))
+                      .sort((a, b) => a.course.code.localeCompare(b.course.code)),
                     fulfilled: false
                   });
                 });
@@ -489,7 +501,9 @@ export default function SimulationPage() {
                     id: `MINOR_${id}`,
                     title: `부전공`,
                     titleElements: ['부전공'],
-                    courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id)),
+                    courses: enrolledCourses
+                      .filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id))
+                      .sort((a, b) => a.course.code.localeCompare(b.course.code)),
                     fulfilled: false,
                   });
                 });
@@ -499,7 +513,9 @@ export default function SimulationPage() {
                     id: 'INDIVIDUALLY_DESIGNED_MAJOR',
                     title: '자유융합전공',
                     titleElements: ['자유융합전공'],
-                    courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR'),
+                    courses: enrolledCourses
+                      .filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR')
+                      .sort((a, b) => a.course.code.localeCompare(b.course.code)),
                     fulfilled: false
                   });
                 }
@@ -508,14 +524,18 @@ export default function SimulationPage() {
                   id: 'MANDATORY_GENERAL_COURSES',
                   title: '교양필수',
                   titleElements: ['교양필수'],
-                  courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES'),
+                  courses: enrolledCourses
+                    .filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES')
+                    .sort((a, b) => a.course.code.localeCompare(b.course.code)),
                   fulfilled: false
                 });
                 computedSections.push({
                   id: 'HUMANITIES_SOCIETY_ELECTIVE',
                   title: '인문사회선택',
                   titleElements: ['인문사회선택'],
-                  courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE'),
+                  courses: enrolledCourses
+                    .filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE')
+                    .sort((a, b) => a.course.code.localeCompare(b.course.code)),
                   fulfilled: false
                 });
 
@@ -1124,6 +1144,21 @@ export default function SimulationPage() {
     [simulationCourses]
   );
 
+  // 학기 이동
+  const handleMove = useCallback(
+    (simulation: CourseSimulation, newYear: number, newSemester: Semester) => {
+      const newCourses = simulationCourses.map((c) =>
+        c.courseId === simulation.courseId &&
+        c.enrolledYear === simulation.enrolledYear &&
+        c.enrolledSemester === simulation.enrolledSemester
+          ? { ...c, enrolledYear: newYear, enrolledSemester: newSemester }
+          : c
+      );
+      setSimulationCourses(newCourses);
+    },
+    [simulationCourses]
+  );
+
   // 드래그 시작
   const handleDragStart = (e: React.DragEvent, simulation: CourseSimulation, semesterKey: string) => {
     setDraggedEnrollment(simulation);
@@ -1401,14 +1436,18 @@ export default function SimulationPage() {
             id: 'BASIC_REQUIRED',
             title: '기초필수',
             titleElements: ['기초필수'],
-            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED'),
+            courses: enrolledCourses
+              .filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED')
+              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
             fulfilled: false
           });
           computedBaseSections.push({
             id: 'BASIC_ELECTIVE',
             title: '기초선택',
             titleElements: ['기초선택'],
-            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE'),
+            courses: enrolledCourses
+              .filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE')
+              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
             fulfilled: false
           });
 
@@ -1417,7 +1456,9 @@ export default function SimulationPage() {
               id: `MAJOR_${filters.major}`,
               title: `주전공: ${majorName}`,
               titleElements: ['주전공', majorName],
-              courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'MAJOR') || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR')),
+              courses: enrolledCourses
+                .filter(c => (c.internalRecognizedAs?.type === 'MAJOR') || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR'))
+                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
               fulfilled: false
             });
             if (filters.advancedMajor) {
@@ -1425,7 +1466,9 @@ export default function SimulationPage() {
                 id: `ADVANCED_MAJOR`,
                 title: '심화전공',
                 titleElements: ['심화전공'],
-                courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR'),
+                courses: enrolledCourses
+                  .filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR')
+                  .sort((a, b) => a.course.code.localeCompare(b.course.code)),
                 fulfilled: false
               });
             }
@@ -1435,7 +1478,9 @@ export default function SimulationPage() {
               id: `RESEARCH_${filters.major}`,
               title: '연구',
               titleElements: ['연구'],
-              courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'RESEARCH'),
+              courses: enrolledCourses
+                .filter(c => c.internalRecognizedAs?.type === 'RESEARCH')
+                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
               fulfilled: false
             });
           }
@@ -1445,7 +1490,9 @@ export default function SimulationPage() {
               id: `DOUBLE_MAJOR_${id}`,
               title: `복수전공: ${deptName(id)}`,
               titleElements: ['복수전공', deptName(id)],
-              courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id)),
+              courses: enrolledCourses
+                .filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id))
+                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
               fulfilled: false
             });
           });
@@ -1455,7 +1502,9 @@ export default function SimulationPage() {
               id: `MINOR_${id}`,
               title: `부전공: ${deptName(id)}`,
               titleElements: ['부전공', deptName(id)],
-              courses: enrolledCourses.filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id)),
+              courses: enrolledCourses
+                .filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id))
+                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
               fulfilled: false,
             });
           });
@@ -1465,7 +1514,9 @@ export default function SimulationPage() {
               id: 'INDIVIDUALLY_DESIGNED_MAJOR',
               title: '자유융합전공',
               titleElements: ['자유융합전공'],
-              courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR'),
+              courses: enrolledCourses
+                .filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR')
+                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
               fulfilled: false
             });
           }
@@ -1474,14 +1525,18 @@ export default function SimulationPage() {
             id: 'MANDATORY_GENERAL_COURSES',
             title: '교양필수',
             titleElements: ['교양필수'],
-            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES'),
+            courses: enrolledCourses
+              .filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES')
+              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
             fulfilled: false
           });
           computedBaseSections.push({
             id: 'HUMANITIES_SOCIETY_ELECTIVE',
             title: '인문사회선택',
             titleElements: ['인문사회선택'],
-            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE'),
+            courses: enrolledCourses
+              .filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE')
+              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
             fulfilled: false
           });
 
@@ -1489,14 +1544,18 @@ export default function SimulationPage() {
             id: 'OTHER_ELECTIVE',
             title: '자유선택',
             titleElements: ['자유선택'],
-            courses: enrolledCourses.filter(c => c.internalRecognizedAs?.type === 'OTHER_ELECTIVE'),
+            courses: enrolledCourses
+              .filter(c => c.internalRecognizedAs?.type === 'OTHER_ELECTIVE')
+              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
             fulfilled: false
           });
           computedBaseSections.push({
             id: 'UNCLASSIFIED',
             title: '미분류',
             titleElements: ['미분류'],
-            courses: enrolledCourses.filter(c => c.internalRecognizedAs === undefined),
+            courses: enrolledCourses
+              .filter(c => c.internalRecognizedAs === undefined)
+              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
             fulfilled: false
           });
 
@@ -1537,36 +1596,38 @@ export default function SimulationPage() {
 
             return {
               ...section,
-              courses: enrolledCourses.filter(c => {
-                if (section.id === 'BASIC_REQUIRED') {
-                  return c.internalRecognizedAs?.type === 'BASIC_REQUIRED';
-                } else if (section.id === 'BASIC_ELECTIVE') {
-                  return c.internalRecognizedAs?.type === 'BASIC_ELECTIVE';
-                } else if (section.id.startsWith('MAJOR_') && filters.major) {
-                  return c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR';
-                } else if (section.id === 'ADVANCED_MAJOR' && filters.major && filters.advancedMajor) {
-                  return c.internalRecognizedAs?.type === 'ADVANCED_MAJOR';
-                } else if (section.id.startsWith('RESEARCH_') && filters.major) {
-                  return c.internalRecognizedAs?.type === 'RESEARCH';
-                } else if (section.id.startsWith('DOUBLE_MAJOR_')) {
-                  const department = section.id.replace('DOUBLE_MAJOR_', '');
-                  return (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department);
-                } else if (section.id.startsWith('MINOR_')) {
-                  const department = section.id.replace('MINOR_', '');
-                  return c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === department;
-                } else if (section.id === 'INDIVIDUALLY_DESIGNED_MAJOR') {
-                  return c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR';
-                } else if (section.id === 'MANDATORY_GENERAL_COURSES') {
-                  return c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES';
-                } else if (section.id === 'HUMANITIES_SOCIETY_ELECTIVE') {
-                  return c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE';
-                } else if (section.id === 'OTHER_ELECTIVE') {
-                  return c.internalRecognizedAs?.type === 'OTHER_ELECTIVE';
-                } else if (section.id === 'UNCLASSIFIED') {
-                  return c.internalRecognizedAs === undefined;
-                }
-                return false;
-              }),
+              courses: enrolledCourses
+                .filter(c => {
+                  if (section.id === 'BASIC_REQUIRED') {
+                    return c.internalRecognizedAs?.type === 'BASIC_REQUIRED';
+                  } else if (section.id === 'BASIC_ELECTIVE') {
+                    return c.internalRecognizedAs?.type === 'BASIC_ELECTIVE';
+                  } else if (section.id.startsWith('MAJOR_') && filters.major) {
+                    return c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR';
+                  } else if (section.id === 'ADVANCED_MAJOR' && filters.major && filters.advancedMajor) {
+                    return c.internalRecognizedAs?.type === 'ADVANCED_MAJOR';
+                  } else if (section.id.startsWith('RESEARCH_') && filters.major) {
+                    return c.internalRecognizedAs?.type === 'RESEARCH';
+                  } else if (section.id.startsWith('DOUBLE_MAJOR_')) {
+                    const department = section.id.replace('DOUBLE_MAJOR_', '');
+                    return (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department);
+                  } else if (section.id.startsWith('MINOR_')) {
+                    const department = section.id.replace('MINOR_', '');
+                    return c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === department;
+                  } else if (section.id === 'INDIVIDUALLY_DESIGNED_MAJOR') {
+                    return c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR';
+                  } else if (section.id === 'MANDATORY_GENERAL_COURSES') {
+                    return c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES';
+                  } else if (section.id === 'HUMANITIES_SOCIETY_ELECTIVE') {
+                    return c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE';
+                  } else if (section.id === 'OTHER_ELECTIVE') {
+                    return c.internalRecognizedAs?.type === 'OTHER_ELECTIVE';
+                  } else if (section.id === 'UNCLASSIFIED') {
+                    return c.internalRecognizedAs === undefined;
+                  }
+                  return false;
+                })
+                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
               requirements: sectionRequirements,
               fulfilled: fulfilled
             };
@@ -1686,14 +1747,18 @@ export default function SimulationPage() {
       id: 'BASIC_REQUIRED',
       title: '기초필수',
       titleElements: ['기초필수'],
-      courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED'),
+      courses: simulationCourses
+        .filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED')
+        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
       fulfilled: false
     });
     out.push({
       id: 'BASIC_ELECTIVE',
       title: '기초선택',
       titleElements: ['기초선택'],
-      courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE'),
+      courses: simulationCourses
+        .filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE')
+        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
       fulfilled: false
     });
 
@@ -1702,7 +1767,9 @@ export default function SimulationPage() {
         id: `MAJOR_${filters.major}`,
         title: `주전공: ${majorName}`,
         titleElements: ['주전공', majorName],
-        courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR'),
+        courses: simulationCourses
+          .filter(c => c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR')
+          .sort((a, b) => a.course.code.localeCompare(b.course.code)),
         fulfilled: false
       });
       if (filters.advancedMajor) {
@@ -1710,7 +1777,9 @@ export default function SimulationPage() {
           id: `ADVANCED_MAJOR`,
           title: '심화전공',
           titleElements: ['심화전공'],
-          courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR'),
+          courses: simulationCourses
+            .filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR')
+            .sort((a, b) => a.course.code.localeCompare(b.course.code)),
           fulfilled: false
         });
       }
@@ -1720,7 +1789,9 @@ export default function SimulationPage() {
         id: `RESEARCH_${filters.major}`,
         title: '연구',
         titleElements: ['연구'],
-        courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'RESEARCH'),
+        courses: simulationCourses
+          .filter(c => c.internalRecognizedAs?.type === 'RESEARCH')
+          .sort((a, b) => a.course.code.localeCompare(b.course.code)),
         fulfilled: false
       });
     }
@@ -1730,7 +1801,9 @@ export default function SimulationPage() {
         id: `DOUBLE_MAJOR_${id}`,
         title: `복수전공: ${deptName(id)}`,
         titleElements: ['복수전공', deptName(id)],
-        courses: simulationCourses.filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id)),
+        courses: simulationCourses
+          .filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id))
+          .sort((a, b) => a.course.code.localeCompare(b.course.code)),
         fulfilled: false
       });
     });
@@ -1740,7 +1813,9 @@ export default function SimulationPage() {
         id: `MINOR_${id}`,
         title: `부전공: ${deptName(id)}`,
         titleElements: ['부전공', deptName(id)],
-        courses: simulationCourses.filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id)),
+        courses: simulationCourses
+          .filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id))
+          .sort((a, b) => a.course.code.localeCompare(b.course.code)),
         fulfilled: false,
       });
     });
@@ -1750,7 +1825,9 @@ export default function SimulationPage() {
         id: 'INDIVIDUALLY_DESIGNED_MAJOR',
         title: '자유융합전공',
         titleElements: ['자유융합전공'],
-        courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR'),
+        courses: simulationCourses
+          .filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR')
+          .sort((a, b) => a.course.code.localeCompare(b.course.code)),
         fulfilled: false
       });
     }
@@ -1759,14 +1836,18 @@ export default function SimulationPage() {
       id: 'MANDATORY_GENERAL_COURSES',
       title: '교양필수',
       titleElements: ['교양필수'],
-      courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES'),
+      courses: simulationCourses
+        .filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES')
+        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
       fulfilled: false
     });
     out.push({
       id: 'HUMANITIES_SOCIETY_ELECTIVE',
       title: '인문사회선택',
       titleElements: ['인문사회선택'],
-      courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE'),
+      courses: simulationCourses
+        .filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE')
+        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
       fulfilled: false
     });
 
@@ -1774,14 +1855,18 @@ export default function SimulationPage() {
       id: 'OTHER_ELECTIVE',
       title: '자유선택',
       titleElements: ['자유선택'],
-      courses: simulationCourses.filter(c => c.internalRecognizedAs?.type === 'OTHER_ELECTIVE'),
+      courses: simulationCourses
+        .filter(c => c.internalRecognizedAs?.type === 'OTHER_ELECTIVE')
+        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
       fulfilled: false
     });
     out.push({
       id: 'UNCLASSIFIED',
       title: '미분류',
       titleElements: ['미분류'],
-      courses: simulationCourses.filter(c => c.internalRecognizedAs === undefined),
+      courses: simulationCourses
+        .filter(c => c.internalRecognizedAs === undefined)
+        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
       fulfilled: false
     });
 
@@ -2298,6 +2383,17 @@ export default function SimulationPage() {
                               );
                               if (cs) {
                                 handleGradeChange(cs, grade);
+                              }
+                            }}
+                            onMove={(enrollment, newYear, newSemester) => {
+                              const cs = simulationCourses.find(
+                                (c) =>
+                                  c.courseId === enrollment.courseId &&
+                                  c.enrolledYear === enrollment.enrolledYear &&
+                                  c.enrolledSemester === enrollment.enrolledSemester
+                              );
+                              if (cs) {
+                                handleMove(cs, newYear, newSemester);
                               }
                             }}
                             onRemove={(enrollment) => {
@@ -2958,6 +3054,17 @@ export default function SimulationPage() {
                         );
                         if (cs) {
                           handleGradeChange(cs, grade);
+                        }
+                      }}
+                      onMove={(enrollment, newYear, newSemester) => {
+                        const cs = simulationCourses.find(
+                          (c) =>
+                            c.courseId === enrollment.courseId &&
+                            c.enrolledYear === enrollment.enrolledYear &&
+                            c.enrolledSemester === enrollment.enrolledSemester
+                        );
+                        if (cs) {
+                          handleMove(cs, newYear, newSemester);
                         }
                       }}
                       onRemove={(enrollment) => {
