@@ -480,6 +480,19 @@ export default function SimulationPage() {
 
   const deptName = (id: string) => depts.find((d) => d.id === id)?.name ?? id;
 
+  // 과목 분류 변경 핸들러
+  const handleClassificationChange = useCallback((course: CourseSimulation, classification: CreditType) => {
+    setSimulationCourses((prev) =>
+      prev.map((c) =>
+        c.courseId === course.courseId &&
+        c.enrolledYear === course.enrolledYear &&
+        c.enrolledSemester === course.enrolledSemester
+          ? { ...c, specifiedClassification: classification }
+          : c
+      )
+    );
+  }, []);
+
   // 과목의 category와 프로필 정보를 기반으로 recognizedAs 결정
   function determineRecognizedAs(
     course: Course,
@@ -1937,7 +1950,13 @@ export default function SimulationPage() {
                                         <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                       ) : (
                                         s.courses.map((c) => (
-                                          <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                          <CourseBar 
+                                            key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} 
+                                            course={c} 
+                                            gradeBlindMode={gradeBlindMode}
+                                            onClassificationChange={handleClassificationChange}
+                                            getDeptName={deptName}
+                                          />
                                         ))
                                       )}
                                     </div>
@@ -1978,7 +1997,13 @@ export default function SimulationPage() {
                                           <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                         ) : (
                                           s.courses.map((c) => (
-                                            <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                            <CourseBar 
+                                              key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} 
+                                              course={c} 
+                                              gradeBlindMode={gradeBlindMode}
+                                              onClassificationChange={handleClassificationChange}
+                                              getDeptName={deptName}
+                                            />
                                           ))
                                         )}
                                       </div>
