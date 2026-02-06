@@ -5,28 +5,26 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DepartmentDropdown, MultipleDepartmentDropdown } from '../components/DepartmentDropdown';
 import { NumberInput, Select, Input } from '../components/formFields';
-import { CourseCategoryDropdown } from '../components/CourseCategoryDropdown';
 import { API } from '../lib/api';
 import type { Profile, Enrollment, RawEnrollment, Semester, Grade, Course } from '../profile/settings/types';
 import type { CourseSimulation, RawCourseSimulation, CreditType, Requirement } from './types';
 import AddCoursePanel from '../profile/settings/AddCoursePanel';
 import EnrollmentsList from '../profile/settings/EnrollmentsList';
-import { group } from 'console';
 import { classifyCourses, RequirementsProps } from './conditionTester';
+import {
+  type Section,
+  type SimulationSectionFilters,
+  type GroupedSections,
+  buildSectionsWithRequirements,
+  buildSectionsFromClassifiedCourses,
+  groupSections,
+} from './sectionBuilder';
 import Logo from '../components/Logo';
 import Accordion, { ACBody, ACTitle } from '../components/Accordion';
 import { CourseBar, RequirementBar } from '../components/CourseElements';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 
 type Dept = { id: string; name: string };
-type Section = {
-  id: string;
-  title: string;
-  titleElements: string[];
-  courses: CourseSimulation[];
-  fulfilled: boolean;
-  requirements?: Array<{ title: string; description: string; value?: number; currentValue?: number; }>;
-};
 
 export default function SimulationPage() {
   const router = useRouter();
@@ -111,7 +109,7 @@ export default function SimulationPage() {
         enrolledYear: cs.enrolledYear,
         enrolledSemester: cs.enrolledSemester,
         grade: cs.grade,
-        recognizedAs: cs.recognizedAs,
+        recognizedAs: cs.specifiedClassification,
       }));
 
       // 시나리오 저장 API 호출
@@ -195,6 +193,88 @@ export default function SimulationPage() {
     return cat ? cat.name : catId;
   };
 
+  // RawEnrollment[]를 Enrollment[]로 변환 (초기 로드용, useEffect보다 위에 선언)
+  function convertToEnrollments(rawEnrollments: RawEnrollment[]): Promise<Enrollment[]> {
+    return Promise.all(
+      rawEnrollments.map((raw) =>
+        fetch(`${API}/courses?id=${encodeURIComponent(raw.courseId)}`)
+          .then((r) => r.json())
+          .then((courses: unknown) => {
+            const course = Array.isArray(courses) && courses.length > 0 ? courses[0] : null;
+            if (!course) return null;
+            return {
+              courseId: raw.courseId,
+              course: {
+                id: course.id || raw.courseId,
+                code: course.code || '',
+                title: course.title || '',
+                department: course.department || '',
+                category: course.category || '',
+                credit: course.credit || 0,
+                au: course.au || 0,
+                tags: course.tags || [],
+              },
+              enrolledYear: raw.enrolledYear,
+              enrolledSemester: raw.enrolledSemester,
+              grade: raw.grade,
+            } as Enrollment;
+          })
+          .catch((error) => {
+            console.error(`Failed to fetch course ${raw.courseId}:`, error);
+            return null;
+          })
+      )
+    ).then((results) => results.filter((e): e is Enrollment => e != null));
+  }
+
+  // Enrollment[]를 CourseSimulation[]로 변환 (recognizedAs 추가)
+  function convertEnrollmentsToCourseSimulations(
+    enrollments: Enrollment[],
+    profileData: Profile
+  ): CourseSimulation[] {
+    return enrollments.map((e) => ({
+      ...e,
+      possibleClassifications: [],
+      recognizedAs: null,
+      internalRecognizedAs: null
+    }));
+  }
+
+  // 초기 시나리오 데이터 생성
+  const initializeSimulationData = useCallback((profileData: Profile): Promise<void> => {
+    if (!profileData) return Promise.resolve();
+
+    return fetch(`${API}/profile/enrollments`, { credentials: 'include' })
+      .then((r) => r.json())
+      .then((enrollmentsData: { success?: boolean; enrollments?: unknown }) => {
+        let rawEnrollments: RawEnrollment[] = [];
+        if (enrollmentsData.success && enrollmentsData.enrollments) {
+          const raw = enrollmentsData.enrollments;
+          if (Array.isArray(raw)) {
+            rawEnrollments = raw as RawEnrollment[];
+          } else if (typeof raw === 'string') {
+            try {
+              const parsed = JSON.parse(raw);
+              rawEnrollments = Array.isArray(parsed) ? (parsed as RawEnrollment[]) : [];
+            } catch {
+              rawEnrollments = [];
+            }
+          }
+        }
+        return convertToEnrollments(rawEnrollments);
+      })
+      .then((enrollments) => {
+        const courseSimulations = convertEnrollmentsToCourseSimulations(enrollments, profileData);
+        prevSimulationCoursesRef.current = [];
+        setSimulationCourses(courseSimulations);
+      })
+      .catch((error) => {
+        console.error('초기 데이터 생성 오류:', error);
+        prevSimulationCoursesRef.current = [];
+        setSimulationCourses([]);
+      });
+  }, []);
+
   // 프로필 정보 로드 및 필터 초기화
   useEffect(() => {
     if (profileLoaded) return;
@@ -211,32 +291,24 @@ export default function SimulationPage() {
       fetch(`${API}/simulation`, { credentials: 'include' })
         .then((r) => r.json());
 
-    (async () => {
-      try {
-        const [profileRes, meRes, simulationsRes] = await Promise.all([loadProfile(), loadMe(), loadSimulations()]);
-        
-        // 인증 실패 시 로그인 페이지로 리다이렉트
+    Promise.all([loadProfile(), loadMe(), loadSimulations()])
+      .then(([profileRes, meRes, simulationsRes]) => {
         if (!meRes.success) {
           router.push('/login');
           setProfileLoaded(true);
-          return;
+          return Promise.reject();
         }
-
-        // 프로필이 없거나 필수 정보가 없으면 setup 페이지로 리다이렉트
         if (!profileRes.success || !profileRes.profile) {
           router.push('/profile/setup');
           setProfileLoaded(true);
-          return;
+          return Promise.reject();
         }
-
         const p = profileRes.profile as Profile;
-        // 필수 정보 확인: studentId, name, admissionYear, major
         if (!p.studentId || !p.name || !p.admissionYear || !p.major) {
           router.push('/profile/setup');
           setProfileLoaded(true);
-          return;
+          return Promise.reject();
         }
-
         setProfile(p);
         setFilters({
           requirementYear: p.admissionYear || new Date().getFullYear(),
@@ -248,40 +320,56 @@ export default function SimulationPage() {
           earlyGraduation: false,
         });
         setUserName(p.name || '');
-
-        // 초기 데이터 생성
-        initializeSimulationData(p);
         if (meRes.success && meRes.user) {
           setUserName((prev) => prev || meRes.user.email || '');
         }
-        if (simulationsRes.success && profileRes.success && profileRes.profile) {
-          const p = profileRes.profile as Profile;
-          // 각 시뮬레이션의 canGraduate 계산
-          const simsWithCanGraduate = await Promise.all(
-            (simulationsRes.simulations || []).map(async (sim: any) => {
-              try {
-                // RawCourseSimulation[] 파싱
-                let rawCourses: RawCourseSimulation[] = [];
-                if (sim.courses) {
-                  if (Array.isArray(sim.courses)) {
-                    rawCourses = sim.courses as RawCourseSimulation[];
-                  } else if (typeof sim.courses === 'string') {
-                    try {
-                      const parsed = JSON.parse(sim.courses);
-                      rawCourses = Array.isArray(parsed) ? (parsed as RawCourseSimulation[]) : [];
-                    } catch {
-                      rawCourses = [];
-                    }
-                  }
+        return initializeSimulationData(p).then(() => ({ profileRes, simulationsRes, p }));
+      })
+      .then((payload) => {
+        if (!payload) return;
+        const { profileRes, simulationsRes, p } = payload;
+        if (!simulationsRes.success || !profileRes.success || !profileRes.profile) {
+          if (simulationsRes.success) {
+            const sims = (simulationsRes.simulations || []).map((sim: any) => ({
+              id: sim.id,
+              name: sim.title,
+              date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
+              canGraduate: false,
+            }));
+            setPreviousSimulations(sims);
+          }
+          setProfileLoaded(true);
+          return;
+        }
+        const simsList = simulationsRes.simulations || [];
+        return Promise.all(
+          simsList.map((sim: any) => {
+            let rawCourses: RawCourseSimulation[] = [];
+            if (sim.courses) {
+              if (Array.isArray(sim.courses)) {
+                rawCourses = sim.courses as RawCourseSimulation[];
+              } else if (typeof sim.courses === 'string') {
+                try {
+                  const parsed = JSON.parse(sim.courses);
+                  rawCourses = Array.isArray(parsed) ? (parsed as RawCourseSimulation[]) : [];
+                } catch {
+                  rawCourses = [];
                 }
-
-                // CourseSimulation[]로 변환
-                const courseSimulations = await convertRawSimulationsToCourseSimulations(rawCourses, p);
-
-                // 총 이수학점, AU, 평점 계산
+              }
+            }
+            const simFilters = {
+              requirementYear: sim.referenceYear || new Date().getFullYear(),
+              major: sim.major || '',
+              doubleMajors: Array.isArray(sim.doubleMajors) ? sim.doubleMajors : [],
+              minors: Array.isArray(sim.minors) ? sim.minors : [],
+              advancedMajor: sim.advancedMajor || false,
+              individuallyDesignedMajor: sim.individuallyDesignedMajor || false,
+              earlyGraduation: sim.earlyGraduation ?? false,
+            };
+            return convertRawSimulationsToCourseSimulations(rawCourses, p)
+              .then((courseSimulations) => {
                 const totalCredit = courseSimulations.filter(c => c.grade !== 'F' && c.grade !== 'U' && c.grade !== 'NR' && c.grade !== 'W').reduce((sum, c) => sum + (c.course.credit || 0), 0);
                 const totalAu = courseSimulations.filter(c => c.grade !== 'F' && c.grade !== 'U' && c.grade !== 'NR' && c.grade !== 'W').reduce((sum, c) => sum + (c.course.au || 0), 0);
-                
                 let totalGradePoints = 0;
                 let totalCreditsForGPA = 0;
                 courseSimulations.forEach((c) => {
@@ -302,6 +390,7 @@ export default function SimulationPage() {
                       case 'D0': gradeNum = 1.0; break;
                       case 'D-': gradeNum = 0.7; break;
                       case 'F': gradeNum = 0.0; break;
+                      default: break;
                     }
                     if (gradeNum !== null) {
                       totalGradePoints += credit * gradeNum;
@@ -310,396 +399,86 @@ export default function SimulationPage() {
                   }
                 });
                 const gpa = totalCreditsForGPA > 0 ? totalGradePoints / totalCreditsForGPA : 0;
-
-                // requirements 불러오기
-                const simFilters = {
-                  requirementYear: sim.referenceYear || new Date().getFullYear(),
-                  major: sim.major || '',
-                  doubleMajors: Array.isArray(sim.doubleMajors) ? sim.doubleMajors : [],
-                  minors: Array.isArray(sim.minors) ? sim.minors : [],
-                  advancedMajor: sim.advancedMajor || false,
-                  individuallyDesignedMajor: sim.individuallyDesignedMajor || false,
-                  earlyGraduation: sim.earlyGraduation ?? false,
-                };
-
-                let requirements: RequirementsProps = { basicRequired: [], basicElective: [], mandatoryGeneralCourses: [], humanitiesSocietyElective: [], major: [], doubleMajors: {}, minors: {} };
-                
-                const promises: Promise<{ type: string; department?: string; data: Requirement[] }>[] = [];
-                promises.push((async () => {
-                  const res = await fetch(`${API}/rules/general?year=${p.admissionYear}&type=BR`);
-                  const data = await res.json();
-                  return { type: 'basicRequired', data: (data.requirements || []) as Requirement[] };
-                })());
-                promises.push((async () => {
-                  const res = await fetch(`${API}/rules/major?year=${p.admissionYear}&department=${p.major}&type=${simFilters.doubleMajors.length > 0 ? 'BE_D' : 'BE'}`);
-                  const data = await res.json();
-                  return { type: 'basicElective', data: (data.requirements || []) as Requirement[] };
-                })());
+                const rulePromises: Promise<{ type: string; department?: string; data: Requirement[] }>[] = [
+                  fetch(`${API}/rules/general?year=${p.admissionYear}&type=BR`).then((r) => r.json()).then((data: any) => ({ type: 'basicRequired', data: (data.requirements || []) as Requirement[] })),
+                  fetch(`${API}/rules/major?year=${p.admissionYear}&department=${p.major}&type=${simFilters.doubleMajors.length > 0 ? 'BE_D' : 'BE'}`).then((r) => r.json()).then((data: any) => ({ type: 'basicElective', data: (data.requirements || []) as Requirement[] })),
+                ];
                 if (simFilters.major) {
-                  promises.push((async () => {
-                    const res = await fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${simFilters.major}&type=Major`);
-                    const data = await res.json();
-                    return { type: 'major', data: (data.requirements || []) as Requirement[] };
-                  })());
+                  rulePromises.push(fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${simFilters.major}&type=Major`).then((r) => r.json()).then((data: any) => ({ type: 'major', data: (data.requirements || []) as Requirement[] })));
                 }
                 (simFilters.doubleMajors || []).forEach((d: string) => {
-                  promises.push((async () => {
-                    const res = await fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${d}&type=DoubleMajor`);
-                    const data = await res.json();
-                    return { type: 'doubleMajor', department: d, data: (data.requirements || []) as Requirement[] };
-                  })());
+                  rulePromises.push(fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${d}&type=DoubleMajor`).then((r) => r.json()).then((data: any) => ({ type: 'doubleMajor', department: d, data: (data.requirements || []) as Requirement[] })));
                 });
                 (simFilters.minors || []).forEach((d: string) => {
-                  promises.push((async () => {
-                    const res = await fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${d}&type=Minor`);
-                    const data = await res.json();
-                    return { type: 'minor', department: d, data: (data.requirements || []) as Requirement[] };
-                  })());
+                  rulePromises.push(fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${d}&type=Minor`).then((r) => r.json()).then((data: any) => ({ type: 'minor', department: d, data: (data.requirements || []) as Requirement[] })));
                 });
                 if (simFilters.advancedMajor) {
-                  promises.push((async () => {
-                    const res = await fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${simFilters.major}&type=AdvancedMajor`);
-                    const data = await res.json();
-                    return { type: 'advancedMajor', data: (data.requirements || []) as Requirement[] };
-                  })());
+                  rulePromises.push(fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${simFilters.major}&type=AdvancedMajor`).then((r) => r.json()).then((data: any) => ({ type: 'advancedMajor', data: (data.requirements || []) as Requirement[] })));
                 }
-                promises.push((async () => {
-                  const res = await fetch(`${API}/rules/major?year=${p.admissionYear}&department=${simFilters.major}&type=${simFilters.doubleMajors.length > 0 ? 'RS_D' : 'RS'}`);
-                  const data = await res.json();
-                  return { type: 'research', data: (data.requirements || []) as Requirement[] };
-                })());
+                rulePromises.push(fetch(`${API}/rules/major?year=${p.admissionYear}&department=${simFilters.major}&type=${simFilters.doubleMajors.length > 0 ? 'RS_D' : 'RS'}`).then((r) => r.json()).then((data: any) => ({ type: 'research', data: (data.requirements || []) as Requirement[] })));
                 if (simFilters.individuallyDesignedMajor) {
-                  promises.push((async () => {
-                    const res = await fetch(`${API}/rules/general?year=${p.admissionYear}&type=IDM`);
-                    const data = await res.json();
-                    return { type: 'individuallyDesignedMajor', data: (data.requirements || []) as Requirement[] };
-                  })());
+                  rulePromises.push(fetch(`${API}/rules/general?year=${p.admissionYear}&type=IDM`).then((r) => r.json()).then((data: any) => ({ type: 'individuallyDesignedMajor', data: (data.requirements || []) as Requirement[] })));
                 }
-                promises.push((async () => {
-                  const res = await fetch(`${API}/rules/general?year=${p.admissionYear}&type=MGC`);
-                  const data = await res.json();
-                  return { type: 'mandatoryGeneralCourses', data: (data.requirements || []) as Requirement[] };
-                })());
-                promises.push((async () => {
-                  const res = await fetch(`${API}/rules/general?year=${p.admissionYear}&type=${simFilters.doubleMajors.length > 0 ? 'HSE_D' : 'HSE'}`);
-                  const data = await res.json();
-                  return { type: 'humanitiesSocietyElective', data: (data.requirements || []) as Requirement[] };
-                })());
-
-                const results = await Promise.allSettled(promises);
-                results.forEach((result) => {
-                  if (result.status !== 'fulfilled') return;
-                  switch (result.value.type) {
-                    case 'basicRequired':
-                      requirements.basicRequired = result.value.data;
-                      break;
-                    case 'basicElective':
-                      requirements.basicElective = result.value.data;
-                      break;
-                    case 'mandatoryGeneralCourses':
-                      requirements.mandatoryGeneralCourses = result.value.data;
-                      break;
-                    case 'humanitiesSocietyElective':
-                      requirements.humanitiesSocietyElective = result.value.data;
-                      break;
-                    case 'major':
-                      requirements.major = result.value.data;
-                      break;
-                    case 'doubleMajor':
-                      if (!requirements.doubleMajors) requirements.doubleMajors = {};
-                      requirements.doubleMajors[result.value.department!] = result.value.data;
-                      break;
-                    case 'minor':
-                      if (!requirements.minors) requirements.minors = {};
-                      requirements.minors[result.value.department!] = result.value.data;
-                      break;
-                    case 'advancedMajor':
-                      requirements.advanced = result.value.data;
-                      break;
-                    case 'individuallyDesignedMajor':
-                      requirements.individuallyDesignedMajor = result.value.data;
-                      break;
-                    case 'research':
-                      requirements.research = result.value.data;
-                      break;
-                  }
-                });
-
-                // classifyCourses 실행
-                const { enrolledCourses } = classifyCourses(courseSimulations, requirements, simFilters.major);
-
-                // sections 생성 및 fulfilled 계산
-                const computedSections: Section[] = [];
-                
-                computedSections.push({
-                  id: 'BASIC_REQUIRED',
-                  title: '기초필수',
-                  titleElements: ['기초필수'],
-                  courses: enrolledCourses
-                    .filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED')
-                    .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-                  fulfilled: false
-                });
-                computedSections.push({
-                  id: 'BASIC_ELECTIVE',
-                  title: '기초선택',
-                  titleElements: ['기초선택'],
-                  courses: enrolledCourses
-                    .filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE')
-                    .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-                  fulfilled: false
-                });
-
-                if (simFilters.major) {
-                  computedSections.push({
-                    id: `MAJOR_${simFilters.major}`,
-                    title: `주전공`,
-                    titleElements: ['주전공'],
-                    courses: enrolledCourses
-                      .filter(c => c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR')
-                      .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-                    fulfilled: false
+                rulePromises.push(fetch(`${API}/rules/general?year=${p.admissionYear}&type=MGC`).then((r) => r.json()).then((data: any) => ({ type: 'mandatoryGeneralCourses', data: (data.requirements || []) as Requirement[] })));
+                rulePromises.push(fetch(`${API}/rules/general?year=${p.admissionYear}&type=${simFilters.doubleMajors.length > 0 ? 'HSE_D' : 'HSE'}`).then((r) => r.json()).then((data: any) => ({ type: 'humanitiesSocietyElective', data: (data.requirements || []) as Requirement[] })));
+                return Promise.allSettled(rulePromises).then((results) => {
+                  let requirements: RequirementsProps = { basicRequired: [], basicElective: [], mandatoryGeneralCourses: [], humanitiesSocietyElective: [], major: [], doubleMajors: {}, minors: {} };
+                  results.forEach((result) => {
+                    if (result.status !== 'fulfilled') return;
+                    switch (result.value.type) {
+                      case 'basicRequired': requirements.basicRequired = result.value.data; break;
+                      case 'basicElective': requirements.basicElective = result.value.data; break;
+                      case 'mandatoryGeneralCourses': requirements.mandatoryGeneralCourses = result.value.data; break;
+                      case 'humanitiesSocietyElective': requirements.humanitiesSocietyElective = result.value.data; break;
+                      case 'major': requirements.major = result.value.data; break;
+                      case 'doubleMajor': if (!requirements.doubleMajors) requirements.doubleMajors = {}; requirements.doubleMajors[result.value.department!] = result.value.data; break;
+                      case 'minor': if (!requirements.minors) requirements.minors = {}; requirements.minors[result.value.department!] = result.value.data; break;
+                      case 'advancedMajor': requirements.advanced = result.value.data; break;
+                      case 'individuallyDesignedMajor': requirements.individuallyDesignedMajor = result.value.data; break;
+                      case 'research': requirements.research = result.value.data; break;
+                      default: break;
+                    }
                   });
-                  if (simFilters.advancedMajor) {
-                    computedSections.push({
-                      id: 'ADVANCED_MAJOR',
-                      title: '심화전공',
-                      titleElements: ['심화전공'],
-                      courses: enrolledCourses
-                        .filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR')
-                        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-                      fulfilled: false
-                    });
-                  }
-                }
-                if (simFilters.major) {
-                  computedSections.push({
-                    id: `RESEARCH_${simFilters.major}`,
-                    title: '연구',
-                    titleElements: ['연구'],
-                    courses: enrolledCourses
-                      .filter(c => c.internalRecognizedAs?.type === 'RESEARCH')
-                      .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-                    fulfilled: false
-                  });
-                }
-
-                (simFilters.doubleMajors || []).forEach((id: string) => {
-                  computedSections.push({
-                    id: `DOUBLE_MAJOR_${id}`,
-                    title: `복수전공`,
-                    titleElements: ['복수전공'],
-                    courses: enrolledCourses
-                      .filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id))
-                      .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-                    fulfilled: false
-                  });
+                  const { enrolledCourses } = classifyCourses(courseSimulations, requirements, simFilters.major);
+                  const sectionFilters: SimulationSectionFilters = {
+                    major: simFilters.major,
+                    doubleMajors: simFilters.doubleMajors || [],
+                    minors: simFilters.minors || [],
+                    advancedMajor: simFilters.advancedMajor,
+                    individuallyDesignedMajor: simFilters.individuallyDesignedMajor,
+                  };
+                  const updatedSections = buildSectionsWithRequirements(enrolledCourses, requirements, sectionFilters, { includeOtherAndUnclassified: false });
+                  const requiredSections = updatedSections.filter(s => s.id !== 'OTHER_ELECTIVE' && s.id !== 'UNCLASSIFIED');
+                  const allSectionsFulfilled = requiredSections.length > 0 && requiredSections.every(s => s.fulfilled);
+                  const creditRequirementMet = totalCredit >= 138;
+                  const auRequirementMet = totalAu >= 4;
+                  const gpaRequirementMet = gpa >= (simFilters.earlyGraduation ? 3.0 : 2.0);
+                  const hasAdvancedMajor = simFilters.advancedMajor;
+                  const hasIndividuallyDesignedMajor = simFilters.individuallyDesignedMajor;
+                  const hasDoubleMajor = simFilters.doubleMajors && simFilters.doubleMajors.length > 0;
+                  const hasMinor = simFilters.minors && simFilters.minors.length > 0;
+                  const specializationRequirementMet = hasAdvancedMajor || hasIndividuallyDesignedMajor || hasDoubleMajor || hasMinor;
+                  const canGraduate = allSectionsFulfilled && creditRequirementMet && auRequirementMet && gpaRequirementMet && specializationRequirementMet;
+                  return { id: sim.id, name: sim.title, date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'), canGraduate };
                 });
-
-                (simFilters.minors || []).forEach((id: string) => {
-                  computedSections.push({
-                    id: `MINOR_${id}`,
-                    title: `부전공`,
-                    titleElements: ['부전공'],
-                    courses: enrolledCourses
-                      .filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id))
-                      .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-                    fulfilled: false,
-                  });
-                });
-
-                if (simFilters.individuallyDesignedMajor) {
-                  computedSections.push({
-                    id: 'INDIVIDUALLY_DESIGNED_MAJOR',
-                    title: '자유융합전공',
-                    titleElements: ['자유융합전공'],
-                    courses: enrolledCourses
-                      .filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR')
-                      .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-                    fulfilled: false
-                  });
-                }
-
-                computedSections.push({
-                  id: 'MANDATORY_GENERAL_COURSES',
-                  title: '교양필수',
-                  titleElements: ['교양필수'],
-                  courses: enrolledCourses
-                    .filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES')
-                    .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-                  fulfilled: false
-                });
-                computedSections.push({
-                  id: 'HUMANITIES_SOCIETY_ELECTIVE',
-                  title: '인문사회선택',
-                  titleElements: ['인문사회선택'],
-                  courses: enrolledCourses
-                    .filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE')
-                    .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-                  fulfilled: false
-                });
-
-                // 각 섹션의 requirements 설정 및 fulfilled 계산
-                const updatedSections = computedSections.map((section) => {
-                  let sectionRequirements: Requirement[] = [];
-                  
-                  if (section.id === 'BASIC_REQUIRED') {
-                    sectionRequirements = requirements.basicRequired || [];
-                  } else if (section.id === 'BASIC_ELECTIVE') {
-                    sectionRequirements = requirements.basicElective || [];
-                  } else if (section.id.startsWith('MAJOR_') && simFilters.major) {
-                    sectionRequirements = requirements.major || [];
-                  } else if (section.id === 'ADVANCED_MAJOR' && simFilters.major && simFilters.advancedMajor) {
-                    sectionRequirements = requirements.advanced || [];
-                  } else if (section.id.startsWith('RESEARCH_') && simFilters.major) {
-                    sectionRequirements = requirements.research || [];
-                  } else if (section.id.startsWith('DOUBLE_MAJOR_')) {
-                    const department = section.id.replace('DOUBLE_MAJOR_', '');
-                    sectionRequirements = requirements.doubleMajors?.[department] || [];
-                  } else if (section.id.startsWith('MINOR_')) {
-                    const department = section.id.replace('MINOR_', '');
-                    sectionRequirements = requirements.minors?.[department] || [];
-                  } else if (section.id === 'INDIVIDUALLY_DESIGNED_MAJOR') {
-                    sectionRequirements = requirements.individuallyDesignedMajor || [];
-                  } else if (section.id === 'MANDATORY_GENERAL_COURSES') {
-                    sectionRequirements = requirements.mandatoryGeneralCourses || [];
-                  } else if (section.id === 'HUMANITIES_SOCIETY_ELECTIVE') {
-                    sectionRequirements = requirements.humanitiesSocietyElective || [];
-                  }
-
-                  sectionRequirements.forEach(r => {
-                    r.fulfilled = r.value === undefined ? true : (r.currentValue || 0) >= (r.value || 0);
-                  });
-
-                  const fulfilled = sectionRequirements.length === 0 || sectionRequirements.every(r => r.fulfilled);
-
-                  return { ...section, requirements: sectionRequirements, fulfilled };
-                });
-
-                // canGraduate 계산
-                const requiredSections = updatedSections.filter(s => s.id !== 'OTHER_ELECTIVE' && s.id !== 'UNCLASSIFIED');
-                const allSectionsFulfilled = requiredSections.length > 0 && requiredSections.every(s => s.fulfilled);
-                const creditRequirementMet = totalCredit >= 138;
-                const auRequirementMet = totalAu >= 4;
-                const gpaRequirementMet = gpa >= (filters.earlyGraduation ? 3.0 : 2.0);
-                const hasAdvancedMajor = simFilters.advancedMajor;
-                const hasIndividuallyDesignedMajor = simFilters.individuallyDesignedMajor;
-                const hasDoubleMajor = simFilters.doubleMajors && simFilters.doubleMajors.length > 0;
-                const hasMinor = simFilters.minors && simFilters.minors.length > 0;
-                const specializationRequirementMet = hasAdvancedMajor || hasIndividuallyDesignedMajor || hasDoubleMajor || hasMinor;
-                
-                const canGraduate = allSectionsFulfilled && creditRequirementMet && auRequirementMet && gpaRequirementMet && specializationRequirementMet;
-
-                return {
-                  id: sim.id,
-                  name: sim.title,
-                  date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
-                  canGraduate,
-                };
-              } catch (error) {
+              })
+              .catch((error) => {
                 console.error(`Failed to calculate canGraduate for simulation ${sim.id}:`, error);
-                return {
-                  id: sim.id,
-                  name: sim.title,
-                  date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
-                  canGraduate: false,
-                };
-              }
-            })
-          );
-          setPreviousSimulations(simsWithCanGraduate);
-        } else if (simulationsRes.success) {
-          const sims = (simulationsRes.simulations || []).map((sim: any) => ({
-            id: sim.id,
-            name: sim.title,
-            date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
-            canGraduate: false,
-          }));
-          setPreviousSimulations(sims);
-        }
-        setProfileLoaded(true);
-      } catch (error) {
-        // 인증 오류 시 로그인 페이지로 리다이렉트
+                return { id: sim.id, name: sim.title, date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'), canGraduate: false };
+              });
+          })
+        ).then((simsWithCanGraduate) => {
+          if (simsWithCanGraduate != null) setPreviousSimulations(simsWithCanGraduate);
+          setProfileLoaded(true);
+        });
+      })
+      .catch(() => {
         router.push('/login');
         setProfileLoaded(true);
-      }
-    })();
-  }, [profileLoaded, router]);
-
-  // 초기 시나리오 데이터 생성
-  const initializeSimulationData = useCallback(async (profileData: Profile) => {
-    if (!profileData) return;
-
-    // 프로필의 수강 내역 가져오기
-    try {
-      const enrollmentsRes = await fetch(`${API}/profile/enrollments`, {
-        credentials: 'include',
       });
-      const enrollmentsData = await enrollmentsRes.json();
-
-      let rawEnrollments: RawEnrollment[] = [];
-      if (enrollmentsData.success && enrollmentsData.enrollments) {
-        const raw = enrollmentsData.enrollments;
-        if (Array.isArray(raw)) {
-          rawEnrollments = raw as RawEnrollment[];
-        } else if (typeof raw === 'string') {
-          try {
-            const parsed = JSON.parse(raw);
-            rawEnrollments = Array.isArray(parsed) ? (parsed as RawEnrollment[]) : [];
-          } catch {
-            rawEnrollments = [];
-          }
-        }
-      }
-
-      // Enrollment[]로 변환
-      const enrollments = await convertToEnrollments(rawEnrollments);
-
-      // CourseSimulation[]로 변환 (recognizedAs 추가)
-      const courseSimulations = convertEnrollmentsToCourseSimulations(enrollments, profileData);
-
-      setSimulationCourses(courseSimulations);
-    } catch (error) {
-      console.error('초기 데이터 생성 오류:', error);
-      setSimulationCourses([]);
-    }
-  }, []);
+  }, [profileLoaded, router, initializeSimulationData]);
 
   const deptName = (id: string) => depts.find((d) => d.id === id)?.name ?? id;
-
-  // RawEnrollment[]를 Enrollment[]로 변환
-  async function convertToEnrollments(rawEnrollments: RawEnrollment[]): Promise<Enrollment[]> {
-    const enrollments: Enrollment[] = [];
-    for (const raw of rawEnrollments) {
-      try {
-        // courseId는 이제 UUID (고유 ID)
-        const courseRes = await fetch(`${API}/courses?id=${encodeURIComponent(raw.courseId)}`);
-        const courses = await courseRes.json();
-        const course = Array.isArray(courses) && courses.length > 0 ? courses[0] : null;
-        if (course) {
-          enrollments.push({
-            courseId: raw.courseId, // UUID 저장
-            course: {
-              id: course.id || raw.courseId,
-              code: course.code || '',
-              title: course.title || '',
-              department: course.department || '',
-              category: course.category || '',
-              credit: course.credit || 0,
-              au: course.au || 0,
-              tags: course.tags || [],
-            },
-            enrolledYear: raw.enrolledYear,
-            enrolledSemester: raw.enrolledSemester,
-            grade: raw.grade,
-          });
-        }
-      } catch (error) {
-        console.error(`Failed to fetch course ${raw.courseId}:`, error);
-      }
-    }
-    return enrollments;
-  }
 
   // 과목의 category와 프로필 정보를 기반으로 recognizedAs 결정
   function determineRecognizedAs(
@@ -760,56 +539,44 @@ export default function SimulationPage() {
     return { type: 'OTHER_ELECTIVE' };
   }
 
-  // Enrollment[]를 CourseSimulation[]로 변환 (recognizedAs 추가)
-  function convertEnrollmentsToCourseSimulations(
-    enrollments: Enrollment[],
-    profileData: Profile
-  ): CourseSimulation[] {
-    return enrollments.map((e) => ({
-      ...e,
-      // recognizedAs: determineRecognizedAs(e.course, profileData),
-      recognizedAs: null,
-      internalRecognizedAs: null
-    }));
-  }
-
   // RawCourseSimulation[]를 CourseSimulation[]로 변환
-  async function convertRawSimulationsToCourseSimulations(
+  function convertRawSimulationsToCourseSimulations(
     rawSimulations: RawCourseSimulation[],
-    profileData: Profile
+    _profileData: Profile
   ): Promise<CourseSimulation[]> {
-    const courseSimulations: CourseSimulation[] = [];
-    for (const raw of rawSimulations) {
-      try {
-        // courseId는 이제 UUID (고유 ID)
-        const courseRes = await fetch(`${API}/courses?id=${encodeURIComponent(raw.courseId)}`);
-        const courses = await courseRes.json();
-        const course = Array.isArray(courses) && courses.length > 0 ? courses[0] : null;
-        if (course) {
-          courseSimulations.push({
-            courseId: raw.courseId, // UUID 저장
-            course: {
-              id: course.id || raw.courseId,
-              code: course.code || '',
-              title: course.title || '',
-              department: course.department || '',
-              category: course.category || '',
-              credit: course.credit || 0,
-              au: course.au || 0,
-              tags: course.tags || 0,
-            },
-            enrolledYear: raw.enrolledYear,
-            enrolledSemester: raw.enrolledSemester,
-            grade: raw.grade,
-            recognizedAs: raw.recognizedAs,
-            internalRecognizedAs: raw.recognizedAs
-          });
-        }
-      } catch (error) {
-        console.error(`Failed to fetch course ${raw.courseId}:`, error);
-      }
-    }
-    return courseSimulations;
+    return Promise.all(
+      rawSimulations.map((raw) =>
+        fetch(`${API}/courses?id=${encodeURIComponent(raw.courseId)}`)
+          .then((r) => r.json())
+          .then((courses: unknown) => {
+            const course = Array.isArray(courses) && courses.length > 0 ? courses[0] : null;
+            if (!course) return null;
+            return {
+              courseId: raw.courseId,
+              course: {
+                id: course.id || raw.courseId,
+                code: course.code || '',
+                title: course.title || '',
+                department: course.department || '',
+                category: course.category || '',
+                credit: course.credit || 0,
+                au: course.au || 0,
+                tags: course.tags || 0,
+              },
+              enrolledYear: raw.enrolledYear,
+              enrolledSemester: raw.enrolledSemester,
+              grade: raw.grade,
+              possibleClassifications: [],
+              specifiedClassification: raw.recognizedAs,
+              classification: raw.recognizedAs
+            } as CourseSimulation;
+          })
+          .catch((error) => {
+            console.error(`Failed to fetch course ${raw.courseId}:`, error);
+            return null;
+          })
+      )
+    ).then((results) => results.filter((c): c is CourseSimulation => c != null));
   }
 
   // 저장된 시나리오 로드
@@ -857,6 +624,7 @@ export default function SimulationPage() {
 
       // CourseSimulation[]로 변환
       const courseSimulations = await convertRawSimulationsToCourseSimulations(rawCourses, profile);
+      prevSimulationCoursesRef.current = [];
       setSimulationCourses(courseSimulations);
       setCurrentSimulationId(simulationId);
     } catch (error) {
@@ -875,7 +643,7 @@ export default function SimulationPage() {
       enrolledYear: cs.enrolledYear,
       enrolledSemester: cs.enrolledSemester,
       grade: cs.grade,
-      recognizedAs: cs.recognizedAs,
+      recognizedAs: cs.specifiedClassification,
     }));
 
     try {
@@ -1097,9 +865,10 @@ export default function SimulationPage() {
         enrolledYear: targetSemester.year,
         enrolledSemester: targetSemester.semester,
         grade: addGrade,
-        recognizedAs: null,
+        possibleClassifications: [],
+        specifiedClassification: null,
         // recognizedAs: determineRecognizedAs(courseObj, profile),
-        internalRecognizedAs: null,
+        classification: null,
       });
       addedCount++;
     });
@@ -1235,8 +1004,9 @@ export default function SimulationPage() {
           enrolledYear: targetSemesterObj.year,
           enrolledSemester: targetSemesterObj.semester,
           grade: defaultGrade,
-          recognizedAs: profile ? determineRecognizedAs(courseObj, profile) : { type: 'OTHER_ELECTIVE' },
-          internalRecognizedAs: null
+          possibleClassifications: [],
+          specifiedClassification: profile ? determineRecognizedAs(courseObj, profile) : { type: 'OTHER_ELECTIVE' },
+          classification: null
         };
 
         const newCourses = [...simulationCourses, newCourse];
@@ -1289,15 +1059,15 @@ export default function SimulationPage() {
       if (!current) return true; // 항목이 삭제된 경우
       
       // recognizedAs 비교 (깊은 비교 필요)
-      const prevRecognizedAs = JSON.stringify(p.recognizedAs);
-      const currentRecognizedAs = JSON.stringify(current.recognizedAs);
+      const prevRecognizedAs = JSON.stringify(p.specifiedClassification);
+      const currentRecognizedAs = JSON.stringify(current.specifiedClassification);
       return prevRecognizedAs !== currentRecognizedAs;
     }) || simulationCourses.some((current, i) => {
       const prevItem = prev[i];
       if (!prevItem) return true; // 항목이 추가된 경우
       
-      const prevRecognizedAs = JSON.stringify(prevItem.recognizedAs);
-      const currentRecognizedAs = JSON.stringify(current.recognizedAs);
+      const prevRecognizedAs = JSON.stringify(prevItem.specifiedClassification);
+      const currentRecognizedAs = JSON.stringify(current.specifiedClassification);
       return prevRecognizedAs !== currentRecognizedAs;
     });
     
@@ -1424,213 +1194,17 @@ export default function SimulationPage() {
           setSimulationCourses(enrolledCourses);
           prevSimulationCoursesRef.current = enrolledCourses;
 
-          // baseSections를 직접 계산 (useEffect 내부에서)
-          const deptName = (id: string) => {
-            const dept = depts.find((d) => d.id === id);
-            return dept ? dept.name : id;
+          const sectionFilters: SimulationSectionFilters = {
+            major: filters.major,
+            doubleMajors: filters.doubleMajors || [],
+            minors: filters.minors || [],
+            advancedMajor: filters.advancedMajor,
+            individuallyDesignedMajor: filters.individuallyDesignedMajor,
           };
-          const computedBaseSections: Section[] = [];
-          const majorName = filters.major ? deptName(filters.major) : '';
-
-          computedBaseSections.push({
-            id: 'BASIC_REQUIRED',
-            title: '기초필수',
-            titleElements: ['기초필수'],
-            courses: enrolledCourses
-              .filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED')
-              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-            fulfilled: false
-          });
-          computedBaseSections.push({
-            id: 'BASIC_ELECTIVE',
-            title: '기초선택',
-            titleElements: ['기초선택'],
-            courses: enrolledCourses
-              .filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE')
-              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-            fulfilled: false
-          });
-
-          if (filters.major) {
-            computedBaseSections.push({
-              id: `MAJOR_${filters.major}`,
-              title: `주전공: ${majorName}`,
-              titleElements: ['주전공', majorName],
-              courses: enrolledCourses
-                .filter(c => (c.internalRecognizedAs?.type === 'MAJOR') || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR'))
-                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-              fulfilled: false
-            });
-            if (filters.advancedMajor) {
-              computedBaseSections.push({
-                id: `ADVANCED_MAJOR`,
-                title: '심화전공',
-                titleElements: ['심화전공'],
-                courses: enrolledCourses
-                  .filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR')
-                  .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-                fulfilled: false
-              });
-            }
-          }
-          if (filters.major) {
-            computedBaseSections.push({
-              id: `RESEARCH_${filters.major}`,
-              title: '연구',
-              titleElements: ['연구'],
-              courses: enrolledCourses
-                .filter(c => c.internalRecognizedAs?.type === 'RESEARCH')
-                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-              fulfilled: false
-            });
-          }
-
-          (filters.doubleMajors || []).forEach(id => {
-            computedBaseSections.push({
-              id: `DOUBLE_MAJOR_${id}`,
-              title: `복수전공: ${deptName(id)}`,
-              titleElements: ['복수전공', deptName(id)],
-              courses: enrolledCourses
-                .filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id))
-                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-              fulfilled: false
-            });
-          });
-
-          (filters.minors || []).forEach(id => {
-            computedBaseSections.push({
-              id: `MINOR_${id}`,
-              title: `부전공: ${deptName(id)}`,
-              titleElements: ['부전공', deptName(id)],
-              courses: enrolledCourses
-                .filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id))
-                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-              fulfilled: false,
-            });
-          });
-
-          if (filters.individuallyDesignedMajor) {
-            computedBaseSections.push({
-              id: 'INDIVIDUALLY_DESIGNED_MAJOR',
-              title: '자유융합전공',
-              titleElements: ['자유융합전공'],
-              courses: enrolledCourses
-                .filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR')
-                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-              fulfilled: false
-            });
-          }
-
-          computedBaseSections.push({
-            id: 'MANDATORY_GENERAL_COURSES',
-            title: '교양필수',
-            titleElements: ['교양필수'],
-            courses: enrolledCourses
-              .filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES')
-              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-            fulfilled: false
-          });
-          computedBaseSections.push({
-            id: 'HUMANITIES_SOCIETY_ELECTIVE',
-            title: '인문사회선택',
-            titleElements: ['인문사회선택'],
-            courses: enrolledCourses
-              .filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE')
-              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-            fulfilled: false
-          });
-
-          computedBaseSections.push({
-            id: 'OTHER_ELECTIVE',
-            title: '자유선택',
-            titleElements: ['자유선택'],
-            courses: enrolledCourses
-              .filter(c => c.internalRecognizedAs?.type === 'OTHER_ELECTIVE')
-              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-            fulfilled: false
-          });
-          computedBaseSections.push({
-            id: 'UNCLASSIFIED',
-            title: '미분류',
-            titleElements: ['미분류'],
-            courses: enrolledCourses
-              .filter(c => c.internalRecognizedAs === undefined)
-              .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-            fulfilled: false
-          });
-
-          // baseSections를 기반으로 모든 섹션의 requirements 설정
-          const updatedSections = computedBaseSections.map((section) => {
-            let sectionRequirements: Requirement[] = [];
-            
-            if (section.id === 'BASIC_REQUIRED') {
-              sectionRequirements = requirements.basicRequired || [];
-            } else if (section.id === 'BASIC_ELECTIVE') {
-              sectionRequirements = requirements.basicElective || [];
-            } else if (section.id.startsWith('MAJOR_') && filters.major) {
-              sectionRequirements = requirements.major || [];
-            } else if (section.id === 'ADVANCED_MAJOR' && filters.major && filters.advancedMajor) {
-              sectionRequirements = requirements.advanced || [];
-            } else if (section.id.startsWith('RESEARCH_') && filters.major) {
-              sectionRequirements = requirements.research || [];
-            } else if (section.id.startsWith('DOUBLE_MAJOR_')) {
-              const department = section.id.replace('DOUBLE_MAJOR_', '');
-              sectionRequirements = requirements.doubleMajors?.[department] || [];
-            } else if (section.id.startsWith('MINOR_')) {
-              const department = section.id.replace('MINOR_', '');
-              sectionRequirements = requirements.minors?.[department] || [];
-            } else if (section.id === 'INDIVIDUALLY_DESIGNED_MAJOR') {
-              sectionRequirements = requirements.individuallyDesignedMajor || [];
-            } else if (section.id === 'MANDATORY_GENERAL_COURSES') {
-              sectionRequirements = requirements.mandatoryGeneralCourses || [];
-            } else if (section.id === 'HUMANITIES_SOCIETY_ELECTIVE') {
-              sectionRequirements = requirements.humanitiesSocietyElective || [];
-            }
-
-            // requirements fulfilled 계산 (currentValue는 classifyCourses에서 이미 계산됨)
-            sectionRequirements.forEach(r => {
-              r.fulfilled = r.value === undefined ? true : (r.currentValue || 0) >= (r.value || 0);
-            });
-
-            const fulfilled = sectionRequirements.length === 0 || sectionRequirements.every(r => r.fulfilled);
-
-            return {
-              ...section,
-              courses: enrolledCourses
-                .filter(c => {
-                  if (section.id === 'BASIC_REQUIRED') {
-                    return c.internalRecognizedAs?.type === 'BASIC_REQUIRED';
-                  } else if (section.id === 'BASIC_ELECTIVE') {
-                    return c.internalRecognizedAs?.type === 'BASIC_ELECTIVE';
-                  } else if (section.id.startsWith('MAJOR_') && filters.major) {
-                    return c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR';
-                  } else if (section.id === 'ADVANCED_MAJOR' && filters.major && filters.advancedMajor) {
-                    return c.internalRecognizedAs?.type === 'ADVANCED_MAJOR';
-                  } else if (section.id.startsWith('RESEARCH_') && filters.major) {
-                    return c.internalRecognizedAs?.type === 'RESEARCH';
-                  } else if (section.id.startsWith('DOUBLE_MAJOR_')) {
-                    const department = section.id.replace('DOUBLE_MAJOR_', '');
-                    return (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department);
-                  } else if (section.id.startsWith('MINOR_')) {
-                    const department = section.id.replace('MINOR_', '');
-                    return c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === department;
-                  } else if (section.id === 'INDIVIDUALLY_DESIGNED_MAJOR') {
-                    return c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR';
-                  } else if (section.id === 'MANDATORY_GENERAL_COURSES') {
-                    return c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES';
-                  } else if (section.id === 'HUMANITIES_SOCIETY_ELECTIVE') {
-                    return c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE';
-                  } else if (section.id === 'OTHER_ELECTIVE') {
-                    return c.internalRecognizedAs?.type === 'OTHER_ELECTIVE';
-                  } else if (section.id === 'UNCLASSIFIED') {
-                    return c.internalRecognizedAs === undefined;
-                  }
-                  return false;
-                })
-                .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-              requirements: sectionRequirements,
-              fulfilled: fulfilled
-            };
+          const getDeptName = (id: string) => depts.find((d) => d.id === id)?.name ?? id;
+          const updatedSections = buildSectionsWithRequirements(enrolledCourses, requirements, sectionFilters, {
+            getDeptName,
+            includeOtherAndUnclassified: true,
           });
 
           setSections(updatedSections);
@@ -1737,141 +1311,25 @@ export default function SimulationPage() {
     };
   }, [simulationCourses, gradeToNumber]);
 
-  const baseSections = useMemo((): Section[] => {
-    const out: Section[] = [];
-    const majorName = filters.major ? deptName(filters.major) : '';
+  const sectionFilters: SimulationSectionFilters = useMemo(
+    () => ({
+      major: filters.major,
+      doubleMajors: filters.doubleMajors || [],
+      minors: filters.minors || [],
+      advancedMajor: filters.advancedMajor,
+      individuallyDesignedMajor: filters.individuallyDesignedMajor,
+    }),
+    [filters.major, filters.doubleMajors, filters.minors, filters.advancedMajor, filters.individuallyDesignedMajor]
+  );
 
-    const unWithdrawnCourses = simulationCourses.filter(c => c.grade !== 'W' && c.grade !== 'F' && c.grade !== 'U' && c.grade !== 'NR');
-
-    out.push({
-      id: 'BASIC_REQUIRED',
-      title: '기초필수',
-      titleElements: ['기초필수'],
-      courses: simulationCourses
-        .filter(c => c.internalRecognizedAs?.type === 'BASIC_REQUIRED')
-        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-      fulfilled: false
-    });
-    out.push({
-      id: 'BASIC_ELECTIVE',
-      title: '기초선택',
-      titleElements: ['기초선택'],
-      courses: simulationCourses
-        .filter(c => c.internalRecognizedAs?.type === 'BASIC_ELECTIVE')
-        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-      fulfilled: false
-    });
-
-    if (filters.major) {
-      out.push({
-        id: `MAJOR_${filters.major}`,
-        title: `주전공: ${majorName}`,
-        titleElements: ['주전공', majorName],
-        courses: simulationCourses
-          .filter(c => c.internalRecognizedAs?.type === 'MAJOR' || c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR')
-          .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-        fulfilled: false
-      });
-      if (filters.advancedMajor) {
-        out.push({
-          id: `ADVANCED_MAJOR`,
-          title: '심화전공',
-          titleElements: ['심화전공'],
-          courses: simulationCourses
-            .filter(c => c.internalRecognizedAs?.type === 'ADVANCED_MAJOR')
-            .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-          fulfilled: false
-        });
-      }
-    }
-    if (filters.major) {
-      out.push({
-        id: `RESEARCH_${filters.major}`,
-        title: '연구',
-        titleElements: ['연구'],
-        courses: simulationCourses
-          .filter(c => c.internalRecognizedAs?.type === 'RESEARCH')
-          .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-        fulfilled: false
-      });
-    }
-
-    (filters.doubleMajors || []).forEach(id => {
-      out.push({
-        id: `DOUBLE_MAJOR_${id}`,
-        title: `복수전공: ${deptName(id)}`,
-        titleElements: ['복수전공', deptName(id)],
-        courses: simulationCourses
-          .filter(c => (c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id) || (c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === id))
-          .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-        fulfilled: false
-      });
-    });
-
-    (filters.minors || []).forEach(id => {
-      out.push({
-        id: `MINOR_${id}`,
-        title: `부전공: ${deptName(id)}`,
-        titleElements: ['부전공', deptName(id)],
-        courses: simulationCourses
-          .filter(c => (c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === id))
-          .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-        fulfilled: false,
-      });
-    });
-
-    if (filters.individuallyDesignedMajor) {
-      out.push({
-        id: 'INDIVIDUALLY_DESIGNED_MAJOR',
-        title: '자유융합전공',
-        titleElements: ['자유융합전공'],
-        courses: simulationCourses
-          .filter(c => c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR')
-          .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-        fulfilled: false
-      });
-    }
-
-    out.push({
-      id: 'MANDATORY_GENERAL_COURSES',
-      title: '교양필수',
-      titleElements: ['교양필수'],
-      courses: simulationCourses
-        .filter(c => c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES')
-        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-      fulfilled: false
-    });
-    out.push({
-      id: 'HUMANITIES_SOCIETY_ELECTIVE',
-      title: '인문사회선택',
-      titleElements: ['인문사회선택'],
-      courses: simulationCourses
-        .filter(c => c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE')
-        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-      fulfilled: false
-    });
-
-    out.push({
-      id: 'OTHER_ELECTIVE',
-      title: '자유선택',
-      titleElements: ['자유선택'],
-      courses: simulationCourses
-        .filter(c => c.internalRecognizedAs?.type === 'OTHER_ELECTIVE')
-        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-      fulfilled: false
-    });
-    out.push({
-      id: 'UNCLASSIFIED',
-      title: '미분류',
-      titleElements: ['미분류'],
-      courses: simulationCourses
-        .filter(c => c.internalRecognizedAs === undefined)
-        .sort((a, b) => a.course.code.localeCompare(b.course.code)),
-      fulfilled: false
-    });
-
-    return out;
-  }, [filters, simulationCourses, depts]);
+  const baseSections = useMemo(
+    () =>
+      buildSectionsFromClassifiedCourses(simulationCourses, sectionFilters, {
+        getDeptName: deptName,
+        includeOtherAndUnclassified: true,
+      }),
+    [simulationCourses, sectionFilters, depts]
+  );
 
   const [sections, setSections] = useState<Section[]>(baseSections.map(s => ({ ...s, requirements: [] })));
 
@@ -1916,26 +1374,7 @@ export default function SimulationPage() {
   }, [baseSections]);
 
   // 섹션을 그룹화: 주전공/심화전공/연구를 하나의 그룹으로
-  const groupedSections = useMemo(() => {
-    const basicGroup: Section[] = [];
-    const majorGroup: Section[] = [];
-    const otherSections: Section[] = [];
-    const miscSections: Section[] = [];
-    
-    sections.forEach((s) => {
-      if (s.id.match(/^BASIC_/)) {
-        basicGroup.push(s);
-      } else if (s.id.match(/^MAJOR_/) || s.id.match(/^ADVANCED_MAJOR/) || s.id.match(/^RESEARCH_/)) {
-        majorGroup.push(s);
-      } else if (s.id === 'OTHER_ELECTIVE' || s.id === 'UNCLASSIFIED') {
-        miscSections.push(s);
-      } else {
-        otherSections.push(s);
-      }
-    });
-    
-    return { basicGroup, majorGroup, otherSections, miscSections };
-  }, [sections]);
+  const groupedSections = useMemo(() => groupSections(sections), [sections]);
 
 
   return (
@@ -2364,6 +1803,7 @@ export default function SimulationPage() {
                           onFilterDepartmentChange={setFilterDepartment}
                           filterCategory={filterCategory}
                           onFilterCategoryChange={setFilterCategory}
+                          enrolledCourseIds={simulationCourses.map((cs) => cs.courseId)}
                         />
                       ) : (
                         <>
@@ -2497,14 +1937,14 @@ export default function SimulationPage() {
                                         <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                       ) : (
                                         s.courses.map((c) => (
-                                          <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
+                                          <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
                                         ))
                                       )}
                                     </div>
                                   </ACBody>
                                 </Accordion>
                                 {i < groupedSections.basicGroup.length - 1 && (
-                                  <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
+                                  <div className="border-t border-gray-200 dark:border-zinc-700"></div>
                                 )}
                               </div>
                             );
@@ -2538,14 +1978,14 @@ export default function SimulationPage() {
                                           <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                         ) : (
                                           s.courses.map((c) => (
-                                            <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
+                                            <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
                                           ))
                                         )}
                                       </div>
                                     </ACBody>
                                   </Accordion>
                                   {idx < groupedSections.majorGroup.length - 1 && (
-                                    <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
+                                    <div className="border-t border-gray-200 dark:border-zinc-700"></div>
                                   )}
                                 </div>
                               );
@@ -2577,7 +2017,7 @@ export default function SimulationPage() {
                                     <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
+                                      <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
                                     ))
                                   )}
                                 </div>
@@ -2600,7 +2040,7 @@ export default function SimulationPage() {
                               <ACBody>
                                 <div className="space-y-2">
                                   {s.courses.map((c) => (
-                                    <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
+                                    <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
                                   ))}
                                 </div>
                               </ACBody>
@@ -2675,7 +2115,7 @@ export default function SimulationPage() {
                                 </ACBody>
                               </Accordion>
                               {idx < groupedSections.basicGroup.length - 1 && (
-                                <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
+                                <div className="border-t border-gray-200 dark:border-zinc-700"></div>
                               )}
                             </div>
                           );
@@ -2734,7 +2174,7 @@ export default function SimulationPage() {
                                 </ACBody>
                               </Accordion>
                               {idx < groupedSections.majorGroup.length - 1 && (
-                                <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
+                                <div className="border-t border-gray-200 dark:border-zinc-700"></div>
                               )}
                             </div>
                           );
@@ -3035,6 +2475,7 @@ export default function SimulationPage() {
                     onFilterDepartmentChange={setFilterDepartment}
                     filterCategory={filterCategory}
                     onFilterCategoryChange={setFilterCategory}
+                    enrolledCourseIds={simulationCourses.map((cs) => cs.courseId)}
                   />
                 ) : (
                   <div className="space-y-4">
@@ -3139,14 +2580,14 @@ export default function SimulationPage() {
                                     <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
+                                      <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
                                     ))
                                   )}
                                 </div>
                               </ACBody>
                             </Accordion>
                             {i < groupedSections.basicGroup.length - 1 && (
-                              <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
+                              <div className="border-t border-gray-200 dark:border-zinc-700"></div>
                             )}
                           </div>
                         );
@@ -3172,14 +2613,14 @@ export default function SimulationPage() {
                                     <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
+                                      <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
                                     ))
                                   )}
                                 </div>
                               </ACBody>
                             </Accordion>
                             {i < groupedSections.majorGroup.length - 1 && (
-                              <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
+                              <div className="border-t border-gray-200 dark:border-zinc-700"></div>
                             )}
                           </div>
                         );
@@ -3203,7 +2644,7 @@ export default function SimulationPage() {
                                 <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                               ) : (
                                 s.courses.map((c) => (
-                                  <CourseBar key={c.courseId} course={c} gradeBlindMode={gradeBlindMode} />
+                                  <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
                                 ))
                               )}
                             </div>
@@ -3301,7 +2742,7 @@ export default function SimulationPage() {
                                 </ACBody>
                               </Accordion>
                               {i < groupedSections.basicGroup.length - 1 && (
-                                <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
+                                <div className="border-t border-gray-200 dark:border-zinc-700"></div>
                               )}
                             </div>
                           );
@@ -3362,7 +2803,7 @@ export default function SimulationPage() {
                                 </ACBody>
                               </Accordion>
                               {i < groupedSections.majorGroup.length - 1 && (
-                                <div className="border-t border-dashed border-gray-300 dark:border-zinc-600"></div>
+                                <div className="border-t border-gray-200 dark:border-zinc-700"></div>
                               )}
                             </div>
                           );

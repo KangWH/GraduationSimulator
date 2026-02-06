@@ -585,6 +585,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                   filterCategory={filterCategory}
                   onFilterCategoryChange={setFilterCategory}
                   stickyTopOffset="3.25rem"
+                  enrolledCourseIds={enrollments.map((e) => e.courseId)}
                 />
               ) : (
                 <EnrollmentsList
@@ -634,6 +635,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                 filterCategory={filterCategory}
                 onFilterCategoryChange={setFilterCategory}
                 stickyTopOffset="2.5rem"
+                enrolledCourseIds={enrollments.map((e) => e.courseId)}
               />
             </div>
           </div>

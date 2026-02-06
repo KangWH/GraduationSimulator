@@ -24,7 +24,7 @@ export function CourseBar({ course, gradeBlindMode }: { course: CourseSimulation
             {course.grade}
           </span>
         )}
-        {course.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
+        {course.classification?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
           <span className="text-xs text-gray-500 dark:text-zinc-400 leading-tight whitespace-nowrap">중복인정</span>
         )}
         <p className="text-xs text-gray-700 dark:text-zinc-300 leading-tight whitespace-nowrap">
