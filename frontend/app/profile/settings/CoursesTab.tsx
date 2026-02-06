@@ -394,6 +394,22 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
     [enrollments, saveEnrollments]
   );
 
+  // 학기 이동
+  const handleMove = useCallback(
+    (enrollment: Enrollment, newYear: number, newSemester: Semester) => {
+      const newEnrollments = enrollments.map((e) =>
+        e.courseId === enrollment.courseId &&
+        e.enrolledYear === enrollment.enrolledYear &&
+        e.enrolledSemester === enrollment.enrolledSemester
+          ? { ...e, enrolledYear: newYear, enrolledSemester: newSemester }
+          : e
+      );
+      setEnrollments(newEnrollments);
+      saveEnrollments(newEnrollments);
+    },
+    [enrollments, saveEnrollments]
+  );
+
   // 드래그 시작
   const handleDragStart = (e: React.DragEvent, enrollment: Enrollment, semesterKey: string) => {
     setDraggedEnrollment(enrollment);
@@ -569,6 +585,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                   filterCategory={filterCategory}
                   onFilterCategoryChange={setFilterCategory}
                   stickyTopOffset="3.25rem"
+                  enrolledCourseIds={enrollments.map((e) => e.courseId)}
                 />
               ) : (
                 <EnrollmentsList
@@ -576,6 +593,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                   semesterGroups={semesterGroups}
                   sortedSemesterKeys={sortedSemesterKeys}
                   onGradeChange={handleGradeChange}
+                  onMove={handleMove}
                   onRemove={handleRemove}
                   onDragStart={handleDragStart}
                   onDrop={handleDrop}
@@ -617,6 +635,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                 filterCategory={filterCategory}
                 onFilterCategoryChange={setFilterCategory}
                 stickyTopOffset="2.5rem"
+                enrolledCourseIds={enrollments.map((e) => e.courseId)}
               />
             </div>
           </div>
@@ -642,6 +661,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
               semesterGroups={semesterGroups}
               sortedSemesterKeys={sortedSemesterKeys}
               onGradeChange={handleGradeChange}
+              onMove={handleMove}
               onRemove={handleRemove}
               onDragStart={handleDragStart}
               onDrop={handleDrop}

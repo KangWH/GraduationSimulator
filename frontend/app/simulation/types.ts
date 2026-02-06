@@ -23,8 +23,9 @@ export interface CourseSimulation {
   enrolledYear: number;
   enrolledSemester: Semester;
   grade: Grade;
-  recognizedAs: CreditType;
-  internalRecognizedAs: CreditType;
+  possibleClassifications: CreditType[];
+  specifiedClassification?: CreditType;
+  classification?: CreditType;
 }
 
 export interface RawCourseSimulation {
@@ -32,7 +33,7 @@ export interface RawCourseSimulation {
   enrolledYear: number;
   enrolledSemester: Semester;
   grade: Grade;
-  recognizedAs: CreditType;
+  recognizedAs?: CreditType;
 }
 
 export interface Requirement {

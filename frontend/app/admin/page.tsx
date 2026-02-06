@@ -306,34 +306,36 @@ function GeneralEdRequirementsTab() {
           {editingId ? '졸업요건(공통) 수정' : '졸업요건(공통) 생성'}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              연도
-            </label>
-            <NumberInput
-              value={formData.year}
-              onChange={(val) => setFormData({ ...formData, year: val })}
-              required
-              min="2000"
-              max="2100"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              구분
-            </label>
-            <Select
-              value={formData.type}
-              onChange={(val) => setFormData({ ...formData, type: val })}
-              required
-            >
-              <option value="">선택하세요</option>
-              {generalEdTypes.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </Select>
+          <div className="flex flex-row gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                연도
+              </label>
+              <NumberInput
+                value={formData.year}
+                onChange={(val) => setFormData({ ...formData, year: val })}
+                required
+                min="2000"
+                max="2100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                구분
+              </label>
+              <Select
+                value={formData.type}
+                onChange={(val) => setFormData({ ...formData, type: val })}
+                required
+              >
+                <option value="">선택하세요</option>
+                {generalEdTypes.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -415,7 +417,18 @@ function GeneralEdRequirementsTab() {
   );
 }
 
-// 졸업요건(학과별) 탭
+// 졸업요건(학과별) 탭: 행=학과, 열=구분(type), 셀=해당 연도별 요건
+const MAJOR_TYPE_COLUMNS = [
+  { value: 'BE', label: '기초선택' },
+  { value: 'BE_D', label: '기초선택 (복수전공)' },
+  { value: 'Major', label: '주전공' },
+  { value: 'DoubleMajor', label: '복수전공' },
+  { value: 'Minor', label: '부전공' },
+  { value: 'AdvancedMajor', label: '심화전공' },
+  { value: 'RS', label: '연구' },
+  { value: 'RS_D', label: '연구 (복수전공)' },
+] as const;
+
 function MajorRequirementsTab() {
   const [requirements, setRequirements] = useState<MajorRequirement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -426,17 +439,6 @@ function MajorRequirementsTab() {
     type: '',
     requirements: '',
   });
-
-  const majorTypes = [
-    { value: 'BE', label: '기초선택' },
-    { value: 'BE_D', label: '기초선택 (복수전공 이수자)' },
-    { value: 'Major', label: '주전공' },
-    { value: 'DoubleMajor', label: '복수전공' },
-    { value: 'Minor', label: '부전공' },
-    { value: 'AdvancedMajor', label: '심화전공' },
-    { value: 'RS', label: '연구학점' },
-    { value: 'RS_D', label: '연구학점 (복수전공 이수자)' },
-  ];
 
   useEffect(() => {
     loadRequirements();
@@ -456,6 +458,25 @@ function MajorRequirementsTab() {
     }
   };
 
+  // (department, type)별로 요건을 연도 순 정리
+  const byDeptAndType = (() => {
+    const map = new Map<string, MajorRequirement[]>();
+    for (const req of requirements) {
+      const key = `${req.department}\t${req.type}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(req);
+    }
+    for (const arr of map.values()) {
+      arr.sort((a, b) => a.year - b.year);
+    }
+    return map;
+  })();
+
+  // 테이블에 표시할 학과 목록 (데이터에 등장하는 학과만, 정렬)
+  const departments = Array.from(
+    new Set(requirements.map((r) => r.department))
+  ).sort((a, b) => a.localeCompare(b));
+
   const handleCreate = () => {
     setEditingId(null);
     setFormData({ year: '', department: '', type: '', requirements: '' });
@@ -468,6 +489,16 @@ function MajorRequirementsTab() {
       department: req.department,
       type: req.type,
       requirements: typeof req.requirements === 'string' ? req.requirements : JSON.stringify(req.requirements, null, 2),
+    });
+  };
+
+  const handleAddForCell = (department: string, type: string) => {
+    setEditingId(null);
+    setFormData({
+      year: '',
+      department,
+      type,
+      requirements: '',
     });
   };
 
@@ -538,45 +569,47 @@ function MajorRequirementsTab() {
           {editingId ? '졸업요건(학과별) 수정' : '졸업요건(학과별) 생성'}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              연도
-            </label>
-            <NumberInput
-              value={formData.year}
-              onChange={(val) => setFormData({ ...formData, year: val })}
-              required
-              min="2000"
-              max="2100"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              학과
-            </label>
-            <DepartmentDropdown
-              value={formData.department}
-              onChange={(val) => setFormData({ ...formData, department: val })}
-              mode="course"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              구분
-            </label>
-            <Select
-              value={formData.type}
-              onChange={(val) => setFormData({ ...formData, type: val })}
-              required
-            >
-              <option value="">선택하세요</option>
-              {majorTypes.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </Select>
+          <div className="flex flex-row gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                연도
+              </label>
+              <NumberInput
+                value={formData.year}
+                onChange={(val) => setFormData({ ...formData, year: val })}
+                required
+                min="2000"
+                max="2100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                학과
+              </label>
+              <DepartmentDropdown
+                value={formData.department}
+                onChange={(val) => setFormData({ ...formData, department: val })}
+                mode="course"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                구분
+              </label>
+              <Select
+                value={formData.type}
+                onChange={(val) => setFormData({ ...formData, type: val })}
+                required
+              >
+                <option value="">선택하세요</option>
+                {MAJOR_TYPE_COLUMNS.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -613,47 +646,93 @@ function MajorRequirementsTab() {
 
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">졸업요건(학과별) 목록</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          행: 학과, 열: 구분. 각 셀은 해당 학과·구분의 요건을 연도 순으로 표시합니다.
+        </p>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700 border border-gray-200 dark:border-zinc-700">
             <thead className="bg-gray-50 dark:bg-zinc-800">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">연도</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">학과</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">구분</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">작업</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase border-b border-r border-gray-200 dark:border-zinc-700 sticky left-0 bg-gray-50 dark:bg-zinc-800 z-10">
+                  학과
+                </th>
+                {MAJOR_TYPE_COLUMNS.map((col) => (
+                  <th
+                    key={col.value}
+                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap border-b border-r border-gray-200 dark:border-zinc-700 last:border-r-0"
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-zinc-900 divide-y divide-gray-200 dark:divide-zinc-700">
-              {requirements.map((req) => (
-                <tr key={req.id}>
-                  <td className="px-4 py-3 text-sm">{req.year}</td>
-                  <td className="px-4 py-3 text-sm">{req.department}</td>
-                  <td className="px-4 py-3 text-sm">
-                    {majorTypes.find(t => t.value === req.type)?.label || req.type}
-                  </td>
-                  <td className="px-4 py-3 text-sm space-x-2">
-                    <button
-                      onClick={() => handleEdit(req)}
-                      className="text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
-                    >
-                      수정
-                    </button>
-                    <button
-                      onClick={() => handleDelete(req.id)}
-                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                    >
-                      삭제
-                    </button>
+              {departments.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={MAJOR_TYPE_COLUMNS.length + 1}
+                    className="px-4 py-8 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    등록된 요건이 없습니다. 위 폼에서 생성하세요.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                departments.map((dept) => (
+                  <tr key={dept} className="divide-x divide-gray-200 dark:divide-zinc-700">
+                    <td className="px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap border-r border-gray-200 dark:border-zinc-700 sticky left-0 bg-white dark:bg-zinc-900 z-10">
+                      {dept}
+                    </td>
+                    {MAJOR_TYPE_COLUMNS.map((col) => {
+                      const key = `${dept}\t${col.value}`;
+                      const list = byDeptAndType.get(key) ?? [];
+                      return (
+                        <td
+                          key={col.value}
+                          className="px-2 py-2 text-sm align-top border-r border-gray-200 dark:border-zinc-700 last:border-r-0 min-w-[140px]"
+                        >
+                          <div className="space-y-1">
+                            {list.map((req) => (
+                              <div
+                                key={req.id}
+                                className="flex items-center justify-between gap-1 rounded bg-gray-50 dark:bg-zinc-800 px-2 py-1"
+                              >
+                                <span className="text-gray-700 dark:text-gray-300">
+                                  {req.year}년
+                                </span>
+                                <span className="flex gap-1 flex-shrink-0">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEdit(req)}
+                                    className="text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 text-xs"
+                                  >
+                                    수정
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDelete(req.id)}
+                                    className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs"
+                                  >
+                                    삭제
+                                  </button>
+                                </span>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => handleAddForCell(dept, col.value)}
+                              className="w-full text-xs text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 border border-dashed border-gray-300 dark:border-zinc-600 rounded px-2 py-1"
+                            >
+                              + 추가
+                            </button>
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-          {requirements.length === 0 && (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              등록된 요건이 없습니다.
-            </div>
-          )}
         </div>
       </div>
     </div>

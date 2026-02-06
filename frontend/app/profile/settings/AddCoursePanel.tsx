@@ -38,6 +38,8 @@ interface AddCoursePanelProps {
   filterCategory: string;
   onFilterCategoryChange: (cat: string) => void;
   stickyTopOffset?: string;
+  /** 이미 수강한 과목 ID 목록 (검색 결과에서 수강함 표시용). profile/settings는 프로필 수강 목록, simulation은 시뮬레이션 과목 목록 */
+  enrolledCourseIds?: string[];
 }
 
 export default function AddCoursePanel({
@@ -62,7 +64,9 @@ export default function AddCoursePanel({
   filterCategory,
   onFilterCategoryChange,
   stickyTopOffset = '0',
+  enrolledCourseIds = [],
 }: AddCoursePanelProps) {
+  const enrolledSet = new Set(enrolledCourseIds);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
@@ -242,6 +246,7 @@ export default function AddCoursePanel({
               // 선택 시에는 고유 ID 사용 (검색은 code로 하지만 저장은 id로)
               const courseId = course.id || course.code || String(course.id || course.code || Math.random());
               const isSelected = selectedCourseIds.has(courseId);
+              const isEnrolled = enrolledSet.has(course.id || '') || enrolledSet.has(course.code || '');
               const validTags = ['사회', '인문', '문학예술', '일반', '핵심', '융합'];
               const tagList = (course.tags || []).filter((tag: string) => validTags.includes(tag));
               return (
@@ -256,7 +261,9 @@ export default function AddCoursePanel({
                   className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer active:scale-96 transition-all animate-slide-up shadow ${
                     isSelected
                       ? 'border-violet-500 bg-violet-50 dark:border-violet-400 dark:bg-violet-900/20'
-                      : 'border-transparent bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-800'
+                      : isEnrolled
+                        ? 'border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900/50'
+                        : 'border-transparent bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-800'
                   }`}
                   style={{
                     animationDelay: `${index * 0.05}s`,
@@ -276,10 +283,25 @@ export default function AddCoursePanel({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="min-w-0 flex-1 flex items-center gap-2">
-                        <p className="truncate font-medium text-gray-900 dark:text-white min-w-0">
+                        <p className={`truncate font-medium min-w-0 ${
+                          isEnrolled 
+                            ? 'text-gray-500 dark:text-zinc-500' 
+                            : 'text-gray-900 dark:text-white'
+                        }`}>
                           {course.title || course.name}
                         </p>
-                        {course.code && <span className="text-sm text-gray-500 dark:text-gray-400 font-normal shrink-0">{course.code}</span>}
+                        {course.code && (
+                          <span className={`text-sm font-normal shrink-0 ${
+                            isEnrolled 
+                              ? 'text-gray-400 dark:text-zinc-600' 
+                              : 'text-gray-500 dark:text-zinc-400'
+                          }`}>
+                            {course.code}
+                          </span>
+                        )}
+                        {isEnrolled && (
+                          <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-gray-200 text-gray-700 dark:bg-zinc-700 dark:text-zinc-300 shrink-0">수강함</span>
+                        )}
                       </div>
                       {tagList.length > 0 && (
                         <div className="flex items-center gap-1 flex-wrap shrink-0">
@@ -294,7 +316,11 @@ export default function AddCoursePanel({
                         </div>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                    <p className={`text-sm mt-0.5 ${
+                      isEnrolled 
+                        ? 'text-gray-400 dark:text-zinc-600' 
+                        : 'text-gray-500 dark:text-zinc-400'
+                    }`}>
                       {course.department && getDepartmentName(course.department)}
                       {course.category && ` · ${getCategoryName(course.category)}`}
                       {course.au !== undefined && course.au > 0 ? ` · ${course.au}AU` : course.credit ? ` · ${course.credit}학점` : ''}
@@ -308,11 +334,11 @@ export default function AddCoursePanel({
       )}
 
       {!isSearching && searchResults.length === 0 && searchQuery && (
-        <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">검색 결과가 없습니다.</p>
+        <p className="py-4 text-center text-sm text-gray-500 dark:text-zinc-400">검색 결과가 없습니다.</p>
       )}
 
       {!isSearching && searchResults.length === 0 && !searchQuery && (
-        <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-400">검색어를 입력하세요.</p>
+        <p className="py-4 text-center text-sm text-gray-500 dark:text-zinc-400">검색어를 입력하세요.</p>
       )}
 
       {/* 추가 옵션 및 버튼 */}
@@ -327,12 +353,12 @@ export default function AddCoursePanel({
                   onChange={(e) => onAddAsPriorCreditChange(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 dark:border-zinc-600 dark:bg-zinc-800"
                 />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">기이수</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">기이수</span>
               </label>
             )}
             <div className="flex items-end gap-3">
               <div className="flex flex-col gap-2 flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">수강 연도</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">수강 연도</label>
                 <NumberInput
                   min="2000"
                   max="2050"
@@ -343,7 +369,7 @@ export default function AddCoursePanel({
                 />
               </div>
               <div className="flex flex-col gap-2 flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">수강 학기</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">수강 학기</label>
                 <Select
                   value={addSemester}
                   onChange={(v) => onAddSemesterChange(v as Semester)}
@@ -358,7 +384,7 @@ export default function AddCoursePanel({
                 </Select>
               </div>
               <div className="flex flex-col gap-2 flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">성적</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">성적</label>
                 <Select
                   value={addGrade}
                   onChange={(v) => onAddGradeChange(v as Grade)}

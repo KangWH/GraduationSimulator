@@ -19,25 +19,25 @@ function testCourses(enrolledCourses: CourseSimulation[], requirement: Requireme
       return;
 
     const isSameType = [];
-    isSameType.push(type === 'basicRequired' && c.internalRecognizedAs?.type === 'BASIC_REQUIRED');
-    isSameType.push(type === 'basicElective' && c.internalRecognizedAs?.type === 'BASIC_ELECTIVE');
-    isSameType.push(type === 'mandatoryGeneralCourses' && c.internalRecognizedAs?.type === 'MANDATORY_GENERAL_COURSES');
-    isSameType.push(type === 'humanitiesSocietyElective' && c.internalRecognizedAs?.type === 'HUMANITIES_SOCIETY_ELECTIVE');
-    isSameType.push(type === 'major' && c.internalRecognizedAs?.type === 'MAJOR');
-    isSameType.push(type === 'major' && c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR');
-    isSameType.push(type === 'doubleMajor' && c.internalRecognizedAs?.type === 'DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department);
-    isSameType.push(type === 'doubleMajor' && c.internalRecognizedAs?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.internalRecognizedAs?.department === department);
-    isSameType.push(type === 'minor' && c.internalRecognizedAs?.type === 'MINOR' && c.internalRecognizedAs?.department === department);
-    isSameType.push(type === 'advancedMajor' && c.internalRecognizedAs?.type === 'ADVANCED_MAJOR');
-    isSameType.push(type === 'individuallyDesignedMajor' && c.internalRecognizedAs?.type === 'INDIVIDUALLY_DESIGNED_MAJOR');
-    isSameType.push(type === 'research' && c.internalRecognizedAs?.type === 'RESEARCH');
-    isSameType.push(type === 'otherElective' && c.internalRecognizedAs?.type === 'OTHER_ELECTIVE');
+    isSameType.push(type === 'basicRequired' && c.classification?.type === 'BASIC_REQUIRED');
+    isSameType.push(type === 'basicElective' && c.classification?.type === 'BASIC_ELECTIVE');
+    isSameType.push(type === 'mandatoryGeneralCourses' && c.classification?.type === 'MANDATORY_GENERAL_COURSES');
+    isSameType.push(type === 'humanitiesSocietyElective' && c.classification?.type === 'HUMANITIES_SOCIETY_ELECTIVE');
+    isSameType.push(type === 'major' && c.classification?.type === 'MAJOR');
+    isSameType.push(type === 'major' && c.classification?.type === 'MAJOR_AND_DOUBLE_MAJOR');
+    isSameType.push(type === 'doubleMajor' && c.classification?.type === 'DOUBLE_MAJOR' && c.classification?.department === department);
+    isSameType.push(type === 'doubleMajor' && c.classification?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.classification?.department === department);
+    isSameType.push(type === 'minor' && c.classification?.type === 'MINOR' && c.classification?.department === department);
+    isSameType.push(type === 'advancedMajor' && c.classification?.type === 'ADVANCED_MAJOR');
+    isSameType.push(type === 'individuallyDesignedMajor' && c.classification?.type === 'INDIVIDUALLY_DESIGNED_MAJOR');
+    isSameType.push(type === 'research' && c.classification?.type === 'RESEARCH');
+    isSameType.push(type === 'otherElective' && c.classification?.type === 'OTHER_ELECTIVE');
     // 타학과 개설 과목 고려 시 (중복인정)
     if (allowDifferentDepartments) {
-      isSameType.push(type === 'major' && c.internalRecognizedAs?.type === 'DOUBLE_MAJOR');
-      isSameType.push(type === 'doubleMajor' && c.internalRecognizedAs?.type === 'MAJOR');
+      isSameType.push(type === 'major' && c.classification?.type === 'DOUBLE_MAJOR');
+      isSameType.push(type === 'doubleMajor' && c.classification?.type === 'MAJOR');
     }
-    if (!isSameType.some(c => c) && (type !== 'doubleMajor' && c.internalRecognizedAs !== null))
+    if (!isSameType.some(c => c) && (type !== 'doubleMajor' && c.classification !== null))
       return;
 
     if (requirement.targets) {
@@ -84,49 +84,49 @@ function testCourses(enrolledCourses: CourseSimulation[], requirement: Requireme
       return;
 
     // 과목 분류
-    if (c.internalRecognizedAs === null) {
+    if (c.classification === null) {
       switch (type) {
         case 'basicRequired':
-          c.internalRecognizedAs = { type: 'BASIC_REQUIRED' };
+          c.classification = { type: 'BASIC_REQUIRED' };
           break;
         case 'basicElective':
-          c.internalRecognizedAs = { type: 'BASIC_ELECTIVE' };
+          c.classification = { type: 'BASIC_ELECTIVE' };
           break;
         case 'mandatoryGeneralCourses':
-          c.internalRecognizedAs = { type: 'MANDATORY_GENERAL_COURSES' };
+          c.classification = { type: 'MANDATORY_GENERAL_COURSES' };
           break;
         case 'humanitiesSocietyElective':
-          c.internalRecognizedAs = { type: 'HUMANITIES_SOCIETY_ELECTIVE' };
+          c.classification = { type: 'HUMANITIES_SOCIETY_ELECTIVE' };
           break;
         case 'major':
-          c.internalRecognizedAs = { type: 'MAJOR' };
+          c.classification = { type: 'MAJOR' };
           break;
         case 'doubleMajor':
-          c.internalRecognizedAs = { type: 'DOUBLE_MAJOR', department: department! };
+          c.classification = { type: 'DOUBLE_MAJOR', department: department! };
           break;
         case 'minor':
-          c.internalRecognizedAs = { type: 'MINOR', department: department! };
+          c.classification = { type: 'MINOR', department: department! };
           break;
         case 'advancedMajor':
-          c.internalRecognizedAs = { type: 'ADVANCED_MAJOR' };
+          c.classification = { type: 'ADVANCED_MAJOR' };
           break;
         case 'individuallyDesignedMajor':
-          c.internalRecognizedAs = { type: 'INDIVIDUALLY_DESIGNED_MAJOR' };
+          c.classification = { type: 'INDIVIDUALLY_DESIGNED_MAJOR' };
           break;
         case 'research':
-          c.internalRecognizedAs = { type: 'RESEARCH' };
+          c.classification = { type: 'RESEARCH' };
           break;
       }
-    } else if (type === 'major' && c.internalRecognizedAs?.type === 'DOUBLE_MAJOR') {
+    } else if (type === 'major' && c.classification?.type === 'DOUBLE_MAJOR') {
       if (doubleCountedCredits + c.course.credit > 6)
         return;
       doubleCountedCredits += c.course.credit;
-      c.internalRecognizedAs = { type: 'MAJOR_AND_DOUBLE_MAJOR', department: c.internalRecognizedAs.department };
-    } else if (type === 'doubleMajor' && c.internalRecognizedAs?.type === 'MAJOR') {
+      c.classification = { type: 'MAJOR_AND_DOUBLE_MAJOR', department: c.classification.department };
+    } else if (type === 'doubleMajor' && c.classification?.type === 'MAJOR') {
       if (doubleCountedCredits + c.course.credit > 6)
         return;
       doubleCountedCredits += c.course.credit;
-      c.internalRecognizedAs = { type: 'MAJOR_AND_DOUBLE_MAJOR', department: department! };
+      c.classification = { type: 'MAJOR_AND_DOUBLE_MAJOR', department: department! };
     }
     courses.push(c);
 
@@ -212,9 +212,9 @@ export function classifyCourses(enrolledCourses: CourseSimulation[], requirement
   let resultCourses = [...enrolledCourses];
   resultCourses.forEach(c => {
     if (['F', 'W', 'NR', 'U'].includes(c.grade))
-      c.internalRecognizedAs = { type: 'UNRECOGNIZED' };
+      c.classification = { type: 'UNRECOGNIZED' };
     else
-      c.internalRecognizedAs = null;
+      c.classification = null;
   });
 
   // 연구
@@ -315,7 +315,7 @@ export function classifyCourses(enrolledCourses: CourseSimulation[], requirement
 
   // 자선
 
-  console.log('계산 안 함:', resultCourses.filter(c => c.internalRecognizedAs?.type === 'UNRECOGNIZED'))
+  console.log('계산 안 함:', resultCourses.filter(c => c.classification?.type === 'UNRECOGNIZED'))
 
   return { enrolledCourses: resultCourses, requirements };
 }
