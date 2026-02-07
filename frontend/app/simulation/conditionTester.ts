@@ -330,8 +330,12 @@ export function classifyCourses(enrolledCourses: CourseSimulation[], requirement
 
   // 자선
 
-  console.log('계산 안 함:', resultCourses.filter(c => c.classification?.type === 'UNRECOGNIZED'))
+  console.log('계산 안 함:', resultCourses.filter(c => c.classification?.type === 'UNRECOGNIZED'));
 
+  resultCourses.forEach((c) => {
+    if (c.specifiedClassification)
+      c.classification = c.specifiedClassification;
+  });
 
   return { enrolledCourses: resultCourses, requirements };
 }

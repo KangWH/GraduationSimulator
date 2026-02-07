@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from "react";
+import { API } from "../lib/api";
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -16,7 +17,7 @@ export default function SignupPage() {
       return;
     }
     
-    fetch('http://localhost:4000/auth/signup', {
+    fetch(`${API}/auth/signup`, {
       method: 'POST',
       body: JSON.stringify({ email, password }),
       headers: {

@@ -2042,7 +2042,12 @@ export default function SimulationPage() {
                                     <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                      <CourseBar
+                                        key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                        course={c}
+                                        gradeBlindMode={gradeBlindMode}
+                                        onClassificationChange={handleClassificationChange}
+                                      />
                                     ))
                                   )}
                                 </div>
@@ -2065,7 +2070,12 @@ export default function SimulationPage() {
                               <ACBody>
                                 <div className="space-y-2">
                                   {s.courses.map((c) => (
-                                    <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                    <CourseBar
+                                      key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                      course={c}
+                                      gradeBlindMode={gradeBlindMode}
+                                      onClassificationChange={handleClassificationChange}
+                                    />
                                   ))}
                                 </div>
                               </ACBody>
@@ -2605,7 +2615,12 @@ export default function SimulationPage() {
                                     <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                      <CourseBar
+                                        key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                        course={c}
+                                        gradeBlindMode={gradeBlindMode}
+                                        onClassificationChange={handleClassificationChange}
+                                      />
                                     ))
                                   )}
                                 </div>
@@ -2638,7 +2653,12 @@ export default function SimulationPage() {
                                     <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                      <CourseBar
+                                        key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                        course={c}
+                                        gradeBlindMode={gradeBlindMode}
+                                        onClassificationChange={handleClassificationChange}
+                                      />
                                     ))
                                   )}
                                 </div>
@@ -2669,7 +2689,12 @@ export default function SimulationPage() {
                                 <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                               ) : (
                                 s.courses.map((c) => (
-                                  <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                  <CourseBar
+                                    key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                    course={c}
+                                    gradeBlindMode={gradeBlindMode}
+                                    onClassificationChange={handleClassificationChange}
+                                  />
                                 ))
                               )}
                             </div>
