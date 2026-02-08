@@ -119,7 +119,7 @@ export function CourseBar({
           <p className="text-xs text-gray-700 dark:text-zinc-300 leading-tight whitespace-nowrap">
             {creditString}
           </p>
-          {course.possibleClassifications && course.possibleClassifications.length > 0 && (
+          {course.possibleClassifications && course.possibleClassifications.length > 1 && (
             <div className="relative">
               <button
                 type="button"

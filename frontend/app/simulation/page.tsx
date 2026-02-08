@@ -1221,18 +1221,19 @@ export default function SimulationPage() {
           });
 
           setSections(updatedSections);
-          
-          // 달성된 섹션은 접고, 미달성 섹션은 펴기
-          const newCollapsedSections = new Set<string>();
-          updatedSections.forEach((s) => {
-            const sectionKey = `center-${s.id}`;
-            if (s.fulfilled) {
-              // 달성된 섹션은 접기
-              newCollapsedSections.add(sectionKey);
-            }
-            // 미달성 섹션은 펴기 (newCollapsedSections에 추가하지 않음)
-          });
-          setCollapsedSections(newCollapsedSections);
+
+          // 수강 과목만 추가된 경우(필터/시나리오 변경 없음)에는 접기 상태 유지. 그 외에는 달성된 섹션 접고 미달성 펴기
+          const onlyAddedCourses = lengthChanged && simulationCourses.length > prev.length && !filtersChanged;
+          if (!onlyAddedCourses) {
+            const newCollapsedSections = new Set<string>();
+            updatedSections.forEach((s) => {
+              const sectionKey = `center-${s.id}`;
+              if (s.fulfilled) {
+                newCollapsedSections.add(sectionKey);
+              }
+            });
+            setCollapsedSections(newCollapsedSections);
+          }
         });
     } else {
       // 변경사항이 없어도 ref는 최신 상태로 유지
