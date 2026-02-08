@@ -136,7 +136,7 @@ export function CourseBar({
                     });
                   }
                 }}
-                className="rounded p-1.5 text-gray-500 hover:bg-gray-200 dark:text-zinc-400 dark:hover:bg-zinc-700 active:scale-85 transition-all"
+                className="rounded p-1 text-gray-500 hover:bg-gray-200 dark:text-zinc-400 dark:hover:bg-zinc-700 active:scale-85 transition-all"
                 title="분류 변경"
                 aria-label="분류 변경"
                 aria-expanded={isMenuOpen}
