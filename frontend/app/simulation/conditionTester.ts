@@ -173,8 +173,8 @@ function checkCourseCondition(condition: CourseCondition, course: CourseSimulati
   }
   if (condition.categories !== undefined) {
     if (!condition.categories.includes(course.course.category)) {
-      // 전선의 경우 대학원 선택 과목 상호인정 처리
-      if (course.course.category === 'GE')
+      // 대학원 선택 과목 상호인정 처리
+      if (course.course.level === 'GR' && course.course.category === 'GE' && course.course.crossRecognition) // Honor Student에 대한 처리 필요
         if (!condition.categories.includes('ME'))
           return false;
         else

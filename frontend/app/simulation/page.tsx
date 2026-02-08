@@ -575,6 +575,8 @@ export default function SimulationPage() {
                 credit: course.credit || 0,
                 au: course.au || 0,
                 tags: course.tags || 0,
+                level: course.level,
+                crossRecognition: course.crossRecognition
               },
               enrolledYear: raw.enrolledYear,
               enrolledSemester: raw.enrolledSemester,
@@ -870,6 +872,8 @@ export default function SimulationPage() {
         credit: course.credit || 0,
         au: course.au || 0,
         tags: course.tags || [],
+        level: course.level,
+        crossRecognition: course.crossRecognition,
       };
 
       newCourses.push({
@@ -995,6 +999,8 @@ export default function SimulationPage() {
           credit: draggedCourse.credit || 0,
           au: draggedCourse.au || 0,
           tags: draggedCourse.tags || [],
+          level: draggedCourse.level,
+          crossRecognition: draggedCourse.crossRecognition,
         };
 
         const isDuplicate = simulationCourses.some(
