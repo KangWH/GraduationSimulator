@@ -172,8 +172,16 @@ function checkCourseCondition(condition: CourseCondition, course: CourseSimulati
       return false;
   }
   if (condition.categories !== undefined) {
-    if (!condition.categories.includes(course.course.category))
-      return false;
+    if (!condition.categories.includes(course.course.category)) {
+      // 전선의 경우 대학원 선택 과목 상호인정 처리
+      if (course.course.category === 'GE')
+        if (!condition.categories.includes('ME'))
+          return false;
+        else
+          console.log(course);
+      else
+        return false;
+    }
   }
   if (condition.departments !== undefined) {
     if (condition.departments[0] !== 'NOT_AFFILIATED') {
