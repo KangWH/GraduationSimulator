@@ -188,7 +188,16 @@ function CoursesTab() {
   );
 }
 
-// 졸업요건(공통) 탭
+// 졸업요건(공통) 탭: 행=연도, 열=구분(기필·인선·교필 등), 전공 탭과 같은 테이블 형태
+const GENERAL_ED_TYPE_COLUMNS = [
+  { value: 'GENERAL', label: '일반 요건' },
+  { value: 'BR', label: '기초필수' },
+  { value: 'MGC', label: '교양필수' },
+  { value: 'HSE', label: '인문사회선택' },
+  { value: 'HSE_D', label: '인문사회선택 (복수전공)' },
+  { value: 'IDM', label: '자유융합전공' },
+] as const;
+
 function GeneralEdRequirementsTab() {
   const [requirements, setRequirements] = useState<GeneralEdRequirement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -198,15 +207,6 @@ function GeneralEdRequirementsTab() {
     type: '',
     requirements: '',
   });
-
-  const generalEdTypes = [
-    { value: 'GENERAL', label: '일반 요건' },
-    { value: 'BR', label: '기초필수' },
-    { value: 'MGC', label: '교양필수' },
-    { value: 'HSE', label: '인문사회선택' },
-    { value: 'HSE_D', label: '인문사회선택 (복수전공 이수자)' },
-    { value: 'IDM', label: '자유융합전공' },
-  ];
 
   useEffect(() => {
     loadRequirements();
@@ -226,9 +226,27 @@ function GeneralEdRequirementsTab() {
     }
   };
 
+  // type별 요건 목록 (연도 순)
+  const byType = (() => {
+    const map = new Map<string, GeneralEdRequirement[]>();
+    for (const req of requirements) {
+      if (!map.has(req.type)) map.set(req.type, []);
+      map.get(req.type)!.push(req);
+    }
+    for (const arr of map.values()) {
+      arr.sort((a, b) => a.year - b.year);
+    }
+    return map;
+  })();
+
   const handleCreate = () => {
     setEditingId(null);
     setFormData({ year: '', type: '', requirements: '' });
+  };
+
+  const handleAddForCell = (type: string) => {
+    setEditingId(null);
+    setFormData({ year: '', type, requirements: '' });
   };
 
   const handleEdit = (req: GeneralEdRequirement) => {
@@ -329,7 +347,7 @@ function GeneralEdRequirementsTab() {
                 required
               >
                 <option value="">선택하세요</option>
-                {generalEdTypes.map((type) => (
+                {GENERAL_ED_TYPE_COLUMNS.map((type) => (
                   <option key={type.value} value={type.value}>
                     {type.label}
                   </option>
@@ -372,45 +390,73 @@ function GeneralEdRequirementsTab() {
 
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">졸업요건(공통) 목록</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          열: 구분(기필·인선·교필 등). 각 셀에 해당 구분의 요건을 연도 순으로 표시합니다.
+        </p>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700 border border-gray-200 dark:border-zinc-700">
             <thead className="bg-gray-50 dark:bg-zinc-800">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">연도</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">구분</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">작업</th>
+                {GENERAL_ED_TYPE_COLUMNS.map((col) => (
+                  <th
+                    key={col.value}
+                    className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap border-b border-r border-gray-200 dark:border-zinc-700 last:border-r-0"
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-zinc-900 divide-y divide-gray-200 dark:divide-zinc-700">
-              {requirements.map((req) => (
-                <tr key={req.id}>
-                  <td className="px-4 py-3 text-sm">{req.year}</td>
-                  <td className="px-4 py-3 text-sm">
-                    {generalEdTypes.find(t => t.value === req.type)?.label || req.type}
-                  </td>
-                  <td className="px-4 py-3 text-sm space-x-2">
-                    <button
-                      onClick={() => handleEdit(req)}
-                      className="text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
+            <tbody className="bg-white dark:bg-zinc-900">
+              <tr className="divide-x divide-gray-200 dark:divide-zinc-700">
+                {GENERAL_ED_TYPE_COLUMNS.map((col) => {
+                  const list = byType.get(col.value) ?? [];
+                  return (
+                    <td
+                      key={col.value}
+                      className="px-2 py-2 text-sm align-top border-r border-gray-200 dark:border-zinc-700 last:border-r-0 min-w-[140px]"
                     >
-                      수정
-                    </button>
-                    <button
-                      onClick={() => handleDelete(req.id)}
-                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                    >
-                      삭제
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                      <div className="space-y-1">
+                        {list.map((req) => (
+                          <div
+                            key={req.id}
+                            className="flex items-center justify-between gap-1 rounded bg-gray-50 dark:bg-zinc-800 px-2 py-1"
+                          >
+                            <span className="text-gray-700 dark:text-gray-300 text-xs">
+                              {req.year}년
+                            </span>
+                            <span className="flex gap-1 flex-shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => handleEdit(req)}
+                                className="text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 text-xs"
+                              >
+                                수정
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDelete(req.id)}
+                                className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs"
+                              >
+                                삭제
+                              </button>
+                            </span>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => handleAddForCell(col.value)}
+                          className="w-full text-xs text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 border border-dashed border-gray-300 dark:border-zinc-600 rounded px-2 py-1"
+                        >
+                          + 추가
+                        </button>
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
             </tbody>
           </table>
-          {requirements.length === 0 && (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              등록된 요건이 없습니다.
-            </div>
-          )}
         </div>
       </div>
     </div>
