@@ -1228,9 +1228,10 @@ export default function SimulationPage() {
 
           setSections(updatedSections);
 
-          // 수강 과목만 추가된 경우(필터/시나리오 변경 없음)에는 접기 상태 유지. 초기 로드(prev가 빈 배열)나 삭제/필터 변경 시에는 달성된 섹션 접기
+          // 과목 추가만 / 학점 인정 분야만 변경된 경우에는 접기 상태 유지. 초기 로드, 과목 삭제, 필터·시나리오 변경 시에는 달성된 섹션 접기
           const onlyAddedCourses = prev.length > 0 && lengthChanged && simulationCourses.length > prev.length && !filtersChanged;
-          if (!onlyAddedCourses) {
+          const onlyClassificationChanged = prev.length > 0 && !lengthChanged && recognizedAsChanged && !filtersChanged;
+          if (!onlyAddedCourses && !onlyClassificationChanged) {
             const newCollapsedSections = new Set<string>();
             updatedSections.forEach((s) => {
               const sectionKey = `center-${s.id}`;
