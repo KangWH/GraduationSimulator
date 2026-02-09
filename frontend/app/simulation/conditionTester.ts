@@ -61,12 +61,12 @@ function checkCourseCondition(
         if (!condition.categories.includes('ME'))
           return false;
       } else
-        return false;
+      return false;
     }
   }
   if (condition.departments !== undefined) {
     if (condition.departments[0] !== 'NOT_AFFILIATED') {
-      if (!condition.departments.includes(course.course.department))
+    if (!condition.departments.includes(course.course.department))
         return false;
     } else {
       if (departments?.includes(course.course.department))
@@ -549,8 +549,8 @@ export function classifyCourses(
       }
     });
 
-    // 주전공
-    requirements.major.forEach(requirement => {
+  // 주전공
+  requirements.major.forEach(requirement => {
       const testResult = checkCourseConditions(requirement.targets || [], c, undefined, undefined, substitutionMap);
       if (testResult) {
         if ([...c.possibleClassifications].every(cl => cl?.type !== 'MAJOR'))
@@ -612,7 +612,7 @@ export function classifyCourses(
       });
     });
 
-    // 자유융합전공
+  // 자유융합전공
     requirements.individuallyDesignedMajor?.forEach(requirement => {
       const departments = [majorDepartment, ...Object.keys(requirements.doubleMajors || []), ...Object.keys(requirements.minors || [])];
       const testResult = checkCourseConditions(requirement.targets || [], c, undefined, departments, substitutionMap);

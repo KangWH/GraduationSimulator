@@ -47,6 +47,7 @@ export default function SimulationPage() {
     earlyGraduation: false,
   });
   const [simulationCourses, setSimulationCourses] = useState<CourseSimulation[]>([]);
+  const [substitutionMap, setSubstitutionMap] = useState<SubstitutionMap | undefined>(undefined);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [userName, setUserName] = useState<string>('');
@@ -87,6 +88,7 @@ export default function SimulationPage() {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [gradeBlindMode, setGradeBlindMode] = useState(true);
   const [tooltipState, setTooltipState] = useState<{ text: string; x: number; y: number } | null>(null);
+  const [sidebarTooltipState, setSidebarTooltipState] = useState<{ text: string; x: number; y: number } | null>(null);
   
   // 모바일 탭 상태
   const [mobileTab, setMobileTab] = useState<'major' | 'courses' | 'credits' | 'requirements'>('requirements');
@@ -1203,7 +1205,9 @@ export default function SimulationPage() {
 
             // 마지막 결과는 대체과목 데이터
             if (index === results.length - 1) {
-              substitutionMap = result.value as SubstitutionMap;
+              const map = result.value as SubstitutionMap;
+              setSubstitutionMap(map);
+              substitutionMap = map;
               return;
             }
 
@@ -1291,6 +1295,15 @@ export default function SimulationPage() {
       prevFiltersRef.current = filters;
     }
   }, [simulationCourses, filters, profile, depts]);
+
+  // substitutionMap이 변경될 때 sections를 강제로 업데이트하여 CourseBar가 다시 렌더링되도록 함
+  useEffect(() => {
+    if (!substitutionMap || sections.length === 0) return;
+    
+    // substitutionMap이 로드된 후 sections를 강제로 업데이트하여 CourseBar가 다시 렌더링되도록 함
+    // sections의 참조를 변경하여 React가 변경을 감지하도록 함
+    setSections(prevSections => [...prevSections]);
+  }, [substitutionMap]);
 
   // CourseSimulation[]를 Enrollment[]로 변환 (EnrollmentsList 컴포넌트 사용을 위해)
   const enrollmentsForList: Enrollment[] = simulationCourses.map((cs) => ({
@@ -1438,7 +1451,7 @@ export default function SimulationPage() {
   }, [baseSections]);
 
   // 섹션을 그룹화: 주전공/심화전공/연구를 하나의 그룹으로
-  const groupedSections = useMemo(() => groupSections(sections), [sections]);
+  const groupedSections = useMemo(() => groupSections(sections), [sections, substitutionMap]);
 
 
   return (
@@ -1516,6 +1529,15 @@ export default function SimulationPage() {
                     <div
                       key={sim.id}
                       onClick={() => currentSimulationId === sim.id ? null : loadSimulation(sim.id)}
+                      onMouseEnter={!sidebarOpen ? (e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setSidebarTooltipState({
+                          text: sim.name,
+                          x: rect.right + 8,
+                          y: rect.top + rect.height / 2,
+                        });
+                      } : undefined}
+                      onMouseLeave={!sidebarOpen ? () => setSidebarTooltipState(null) : undefined}
                       className={`w-full flex items-center gap-3 rounded-lg text-left active:scale-90 transition-all cursor-pointer ${
                         currentSimulationId === sim.id
                           ? ('bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 transition-all' + (sidebarOpen ? '' : ' p-2 justify-center'))
@@ -2007,6 +2029,8 @@ export default function SimulationPage() {
                                             gradeBlindMode={gradeBlindMode}
                                             onClassificationChange={handleClassificationChange}
                                             getDeptName={deptName}
+                                            substitutionMap={substitutionMap}
+                                            majorDepartment={filters.major}
                                           />
                                         ))
                                       )}
@@ -2054,6 +2078,7 @@ export default function SimulationPage() {
                                               gradeBlindMode={gradeBlindMode}
                                               onClassificationChange={handleClassificationChange}
                                               getDeptName={deptName}
+                                              majorDepartment={filters.major}
                                             />
                                           ))
                                         )}
@@ -2098,6 +2123,8 @@ export default function SimulationPage() {
                                         course={c}
                                         gradeBlindMode={gradeBlindMode}
                                         onClassificationChange={handleClassificationChange}
+                                        substitutionMap={substitutionMap}
+                                        majorDepartment={filters.major}
                                       />
                                     ))
                                   )}
@@ -2126,6 +2153,8 @@ export default function SimulationPage() {
                                       course={c}
                                       gradeBlindMode={gradeBlindMode}
                                       onClassificationChange={handleClassificationChange}
+                                      substitutionMap={substitutionMap}
+                                      majorDepartment={filters.major}
                                     />
                                   ))}
                                 </div>
@@ -2671,6 +2700,8 @@ export default function SimulationPage() {
                                         course={c}
                                         gradeBlindMode={gradeBlindMode}
                                         onClassificationChange={handleClassificationChange}
+                                        substitutionMap={substitutionMap}
+                                        majorDepartment={filters.major}
                                       />
                                     ))
                                   )}
@@ -2709,6 +2740,8 @@ export default function SimulationPage() {
                                         course={c}
                                         gradeBlindMode={gradeBlindMode}
                                         onClassificationChange={handleClassificationChange}
+                                        substitutionMap={substitutionMap}
+                                        majorDepartment={filters.major}
                                       />
                                     ))
                                   )}
@@ -2745,6 +2778,7 @@ export default function SimulationPage() {
                                     course={c}
                                     gradeBlindMode={gradeBlindMode}
                                     onClassificationChange={handleClassificationChange}
+                                    majorDepartment={filters.major}
                                   />
                                 ))
                               )}
@@ -3174,7 +3208,7 @@ export default function SimulationPage() {
         )}
       </div>
 
-      {/* Fixed Tooltip */}
+      {/* Fixed Tooltip (기존 툴팁 - 아래쪽 화살표) */}
       {tooltipState && (
         <div
           className="fixed z-[9999] pointer-events-none shadow-md"
@@ -3187,6 +3221,23 @@ export default function SimulationPage() {
           <div className="w-64 p-2 bg-black dark:bg-zinc-800 text-white text-xs rounded shadow-lg">
             {tooltipState.text}
             <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black dark:border-t-zinc-800"></div>
+          </div>
+        </div>
+      )}
+
+      {/* Sidebar Tooltip (사이드바 팝오버 - 왼쪽 화살표) */}
+      {sidebarTooltipState && (
+        <div
+          className="fixed z-[9999] pointer-events-none shadow-md"
+          style={{
+            left: `${sidebarTooltipState.x}px`,
+            top: `${sidebarTooltipState.y}px`,
+            transform: 'translateY(-50%)',
+          }}
+        >
+          <div className="p-2 bg-black dark:bg-zinc-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
+            {sidebarTooltipState.text}
+            <div className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-black dark:border-r-zinc-800"></div>
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
 import { MouseEventHandler, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { CourseSimulation, CreditType } from "../simulation/types";
+import { SubstitutionMap } from "../simulation/conditionTester";
 
 function getCreditTypeLabel(creditType: CreditType, getDeptName?: (id: string) => string): string {
   if (!creditType) return '미분류';
@@ -59,11 +60,15 @@ export function CourseBar({
   gradeBlindMode,
   onClassificationChange,
   getDeptName,
+  substitutionMap,
+  majorDepartment,
 }: { 
   course: CourseSimulation;
   gradeBlindMode: boolean;
   onClassificationChange?: (course: CourseSimulation, classification: CreditType) => void;
   getDeptName?: (id: string) => string;
+  substitutionMap?: SubstitutionMap;
+  majorDepartment?: string;
 }) {
   const creditString = course.course.au > 0 ? `${course.course.au}AU` : `${course.course.credit}학점`;
   const targetTags = course.course.tags
@@ -94,6 +99,62 @@ export function CourseBar({
 
   const isMenuOpen = openMenu?.course.courseId === course.courseId;
 
+  // 대체인정 확인 (대체과목인지 확인: reverse 맵에 현재 과목 코드가 있으면 대체과목)
+  // 대체인정 태그는 대체과목이 원본 과목의 학과 전공학점으로 인정될 때만 표시
+  const originalCodes = substitutionMap?.reverse?.[course.course.code] || [];
+  const isSubstitute = originalCodes.length > 0;
+  
+  // 현재 인정된 학점의 학과 확인
+  const currentClassification = course.specifiedClassification || course.classification;
+  let currentDepartment: string | undefined;
+  if (currentClassification) {
+    const classificationType = currentClassification.type;
+    if (classificationType === 'MAJOR' || classificationType === 'ADVANCED_MAJOR' || classificationType === 'RESEARCH') {
+      currentDepartment = majorDepartment;
+    } else if ((classificationType === 'DOUBLE_MAJOR' || classificationType === 'MINOR') && 'department' in currentClassification && currentClassification.department) {
+      currentDepartment = currentClassification.department;
+    } else if (classificationType === 'MAJOR_AND_DOUBLE_MAJOR' && 'department' in currentClassification && currentClassification.department) {
+      currentDepartment = currentClassification.department;
+    }
+  }
+  
+  // 원본 과목의 학과 확인 (원본 과목 코드에서 학과 코드 추출)
+  let shouldShowSubstituteTag = false;
+  if (isSubstitute && currentDepartment) {
+    // 원본 과목 코드들에서 학과 코드 추출 (예: "MAS.20041" -> "MAS")
+    const originalDepartments = originalCodes.map(code => code.split('.')[0]);
+    // 현재 인정된 학과가 원본 과목의 학과 중 하나와 일치하면 대체인정 태그 표시
+    shouldShowSubstituteTag = originalDepartments.includes(currentDepartment);
+  }
+  
+  // 대학원 상호인정 확인 (대학원 과목이고 crossRecognition이 true인 경우)
+  const isCrossRecognition = course.course.level === 'GR' && course.course.crossRecognition;
+  
+  // 타학과 개설과목 확인 (전공/연구과목에만 표시, 전공학과 기준으로 판단)
+  let isOtherDepartment = false;
+  if (currentClassification) {
+    const classificationType = currentClassification.type;
+    // 전공/연구과목인 경우에만 타학과 태그 표시
+    if (classificationType === 'MAJOR' || classificationType === 'ADVANCED_MAJOR' || classificationType === 'RESEARCH' || 
+      classificationType === 'DOUBLE_MAJOR' || classificationType === 'MAJOR_AND_DOUBLE_MAJOR' || classificationType === 'MINOR') {
+      let targetDepartment: string | undefined;
+      if (classificationType === 'MAJOR' || classificationType === 'ADVANCED_MAJOR' || classificationType === 'RESEARCH') {
+        // 주전공·심화전공·연구는 주전공 학과 기준
+        targetDepartment = majorDepartment;
+      } else if ((classificationType === 'DOUBLE_MAJOR' || classificationType === 'MINOR') && 'department' in currentClassification && currentClassification.department) {
+        // 복수전공·부전공은 해당 학과 기준
+        targetDepartment = currentClassification.department;
+      } else if (classificationType === 'MAJOR_AND_DOUBLE_MAJOR' && 'department' in currentClassification && currentClassification.department) {
+        // 중복인정은 복수전공 학과 기준
+        targetDepartment = currentClassification.department;
+      }
+      // 타학과인지 확인
+      if (targetDepartment && course.course.department !== targetDepartment) {
+        isOtherDepartment = true;
+      }
+    }
+  }
+
   return (
     <>
       <div className="flex items-baseline justify-between p-2 rounded bg-gray-50 dark:bg-zinc-900 leading-tight">
@@ -115,6 +176,15 @@ export function CourseBar({
           )}
           {(course.specifiedClassification?.type === 'MAJOR_AND_DOUBLE_MAJOR' || course.classification?.type === 'MAJOR_AND_DOUBLE_MAJOR') && (
             <span className="text-xs text-gray-500 dark:text-zinc-400 leading-tight whitespace-nowrap">중복인정</span>
+          )}
+          {shouldShowSubstituteTag && (
+            <span className="text-xs text-gray-500 dark:text-zinc-400 leading-tight whitespace-nowrap">대체인정</span>
+          )}
+          {isCrossRecognition && (
+            <span className="text-xs text-gray-500 dark:text-zinc-400 leading-tight whitespace-nowrap">상호인정</span>
+          )}
+          {isOtherDepartment && (
+            <span className="text-xs text-gray-500 dark:text-zinc-400 leading-tight whitespace-nowrap">타학과</span>
           )}
           <p className="text-xs text-gray-700 dark:text-zinc-300 leading-tight whitespace-nowrap">
             {creditString}
@@ -184,7 +254,7 @@ export function CourseBar({
                 setOpenMenu(null);
               }}
             >
-              자동
+              자동{(course.specifiedClassification === null || course.specifiedClassification === undefined) && course.classification ? ` (${getCreditTypeLabel(course.classification, getDeptName)})` : ''}
             </button>
             {course.possibleClassifications && course.possibleClassifications.length > 0 && (
               <div className="my-1 border-t border-gray-200 dark:border-zinc-600" role="separator" />
