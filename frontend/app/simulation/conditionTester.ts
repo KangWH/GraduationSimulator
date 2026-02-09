@@ -553,8 +553,6 @@ export function classifyCourses(
       if (testResult) {
         if ([...c.possibleClassifications].every(cl => cl?.type !== 'BASIC_ELECTIVE'))
           c.possibleClassifications.push({ type: 'BASIC_ELECTIVE' });
-        if ([...c.possibleClassifications].every(cl => cl?.type !== 'OTHER_ELECTIVE'))
-          c.possibleClassifications.push({ type: 'OTHER_ELECTIVE' });
       }
     });
 
@@ -647,8 +645,6 @@ export function classifyCourses(
       if (testResult) {
         if ([...c.possibleClassifications].every(cl => cl?.type !== 'HUMANITIES_SOCIETY_ELECTIVE'))
           c.possibleClassifications.push({ type: 'HUMANITIES_SOCIETY_ELECTIVE' });
-        if ([...c.possibleClassifications].every(cl => cl?.type !== 'OTHER_ELECTIVE'))
-          c.possibleClassifications.push({ type: 'OTHER_ELECTIVE' });
       }
     });
 
