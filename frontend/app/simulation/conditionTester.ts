@@ -121,6 +121,15 @@ function encrementRequirementCurrentValue(
         case 'MIN_COURSES_AMONG':
           requirement.currentValue! += 1;
           break;
+        case 'MIN_TAGS_AMONG':
+          const tagIntersection = course.course.tags.filter(t => requirement.targetTags?.includes(t));
+          if (tagIntersection.length > 0) {
+            const tags = requirement.usedCourses
+              ?.map(c => 
+                new Set(c.course.tags.filter(t => requirement.targetTags?.includes(t))))
+              .reduce((pv, cv) => pv.union(cv), new Set()) || new Set();
+            requirement.currentValue = tags.union(new Set(tagIntersection)).size;
+          }
       }
 
       if (!requirement.usedCourses)
