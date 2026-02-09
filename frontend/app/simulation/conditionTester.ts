@@ -8,9 +8,16 @@ export interface CourseCondition {
   firstDigits?: number[];
 }
 
-function checkCourseCondition(condition: CourseCondition, course: CourseSimulation, department?: string, departments?: string[]) {
+function checkCourseCondition(
+  condition: CourseCondition, 
+  course: CourseSimulation, 
+  department?: string, 
+  departments?: string[],
+) {
   if (condition.codes !== undefined) {
-    if (!condition.codes.includes(course.course.code))
+    const courseCodes = [course.course.code];
+    
+    if (!courseCodes.some(code => condition.codes!.includes(code)))
       return false;
   }
   if (condition.categories !== undefined) {
@@ -49,10 +56,14 @@ function checkCourseCondition(condition: CourseCondition, course: CourseSimulati
   return true;
 }
 
-function checkCourseConditions(conditions: CourseCondition[], course: CourseSimulation, department?: string, departments?: string[]) {
   return conditions.some(c => checkCourseCondition(c, course, department, departments));
+function checkCourseConditions(
+  conditions: CourseCondition[], 
+  course: CourseSimulation, 
+  department?: string, 
+  departments?: string[],
+) {
 }
-
 
 
 /** 지정된 과목을 주어진 졸업요건 달성 여부 계산에 반영합니다. */
@@ -186,6 +197,87 @@ function wouldViolateConstraint(
       return false;
     })
     .some(b => b);
+}
+
+/** 제약 활용도 계산: 제약을 최대한 활용할 수 있는 과목일수록 높은 점수 반환 (0~1) */
+function getConstraintUtilizationScore(
+  requirementArray: Requirement[],
+  course: CourseSimulation,
+  department: string | undefined,
+  departments?: string[],
+): number {
+  let maxScore = 0;
+  
+  for (const requirement of requirementArray) {
+    const used = requirement.usedCourses || [];
+    for (const constraint of requirement.constraints || []) {
+      if (constraint.type !== 'MAX_CREDITS_AMONG') continue;
+      
+      const targets = constraint.targets || [];
+      // targets가 비어있으면 모든 과목에 적용되는 제약으로 간주
+      const courseMatches = targets.length === 0 || checkCourseConditions(targets, course, undefined, departments);
+      
+      if (!courseMatches) continue; // 이 constraint에 해당하지 않으면 스킵
+      
+      const currentlyMatching = used.filter(c => {
+        if (targets.length === 0) return true;
+        return checkCourseConditions(targets, c, undefined, departments);
+      });
+      
+      const currentTotal = currentlyMatching.reduce((s, c) => s + c.course.credit, 0);
+      const maxCredits = constraint.value ?? 0;
+      
+      if (maxCredits <= 0) continue;
+      
+      const newTotal = currentTotal + course.course.credit;
+      
+      // 제약을 넘지 않는 경우에만 점수 계산
+      if (newTotal <= maxCredits) {
+        const remainingSpace = maxCredits - newTotal;
+        const utilization = newTotal / maxCredits; // 제약 대비 사용률
+        
+        // 상한 제약이 있을 때 3학점 과목 우선, 단 4학점이 더 유리한 경우는 예외
+        let bonus = 0;
+        const courseCredit = course.course.credit;
+        
+        // 남은 공간이 정확히 4학점이고 현재 과목이 4학점이면 큰 보너스 (완벽히 채움)
+        if (remainingSpace === 4 && courseCredit === 4) {
+          bonus = 0.6;
+        }
+        // 남은 공간이 4학점인데 3학점 과목을 쓰면 1학점 낭비 -> 4학점 우선
+        else if (remainingSpace === 4 && courseCredit === 3) {
+          bonus = 0.02; // 매우 낮은 보너스
+        }
+        // 남은 공간이 3의 배수이고 3학점 과목이면 큰 보너스 (3+3 조합 가능)
+        else if (remainingSpace >= 3 && remainingSpace % 3 === 0 && courseCredit === 3) {
+          bonus = 0.7;
+        }
+        // 남은 공간이 3의 배수인데 4학점 과목을 쓰면 낭비 -> 매우 낮은 보너스
+        else if (remainingSpace >= 3 && remainingSpace % 3 === 0 && courseCredit === 4) {
+          bonus = 0.005;
+        }
+        // 남은 공간이 3학점 이상이고 3학점 과목이면 보너스
+        else if (remainingSpace >= 3 && courseCredit === 3) {
+          bonus = 0.4;
+        }
+        // 남은 공간이 현재 과목 학점 이상이면 작은 보너스
+        else if (remainingSpace >= courseCredit) {
+          bonus = 0.1;
+        }
+        
+        // 3학점 과목에 기본 보너스 (더 많은 조합 가능성 제공)
+        // 제약이 있을 때는 3학점 우선을 더 강하게 적용
+        const creditBonus = courseCredit === 3 ? 0.5 
+          : courseCredit <= 2 ? 0.15 
+          : courseCredit === 4 ? 0.005 
+          : 0;
+        
+        maxScore = Math.max(maxScore, utilization + bonus + creditBonus);
+      }
+    }
+  }
+  
+  return maxScore;
 }
 
 /** 특정 요건 키에 대해 배정 가능한 미배정 과목 목록(제약·중복인정 한도·심전 상한 반영) */
@@ -830,6 +922,14 @@ export function classifyCourses(
       // 심전만: 지정 학점 이상 채우되 초과 최소화. 그 외는 초과 무관, 중복인정 가능한 한 많이 사용.
       const reqVal = keyInfo.requirement?.value ?? 0;
       const curVal = keyInfo.requirement?.currentValue ?? 0;
+      const dep = keyInfo.type === 'MAJOR' ? majorDepartment : keyInfo.department;
+      const excludeDepartments = keyInfo.type === 'MAJOR' ? [majorDepartment] : undefined;
+      
+      // MAX_CREDITS_AMONG 제약이 있는지 확인
+      const hasMaxCreditsConstraint = keyInfo.requirementArray.some(req => 
+        req.constraints?.some(c => c.type === 'MAX_CREDITS_AMONG')
+      );
+      
       const pick = assignable.slice().sort((a, b) => {
         // 심전이고 학점 조건일 때만: 지정 학점 이상 채우되 초과 최소화
         if (keyInfo.type === 'ADVANCED_MAJOR' && keyInfo.requirement?.type === 'MIN_CREDITS_AMONG' && reqVal > 0) {
@@ -842,9 +942,51 @@ export function classifyCourses(
           if (meetsA && meetsB) return overflowA - overflowB; // 초과 적은 쪽 우선
           return overflowB - overflowA; // 아직 미달이면 진행량 큰 쪽 우선
         }
+        
+        // MAX_CREDITS_AMONG 제약이 있으면 제약 활용도 비교를 우선적으로 사용
+        if (hasMaxCreditsConstraint) {
+          // 제약이 있을 때는 기본적으로 3학점 우선 (제약 활용도 점수 계산 전에 먼저 적용)
+          const priority = (c: number) => (c === 3 ? 0 : c === 1 ? 1 : c === 2 ? 2 : c === 4 ? 3 : 4);
+          const priorityDiff = priority(a.course.credit) - priority(b.course.credit);
+          if (priorityDiff !== 0) {
+            // 3학점과 4학점 비교 시에만 제약 활용도 점수 확인
+            if ((a.course.credit === 3 && b.course.credit === 4) || (a.course.credit === 4 && b.course.credit === 3)) {
+              const constraintScoreA = getConstraintUtilizationScore(keyInfo.requirementArray, a, dep, excludeDepartments);
+              const constraintScoreB = getConstraintUtilizationScore(keyInfo.requirementArray, b, dep, excludeDepartments);
+              
+              // 둘 다 제약에 해당하고 점수 차이가 크면 (0.6 이상) 점수 우선
+              // 이는 4학점이 더 유리한 경우(남은 공간이 정확히 4학점)를 처리하기 위함
+              if (constraintScoreA > 0 && constraintScoreB > 0 && Math.abs(constraintScoreA - constraintScoreB) > 0.6) {
+                return constraintScoreB - constraintScoreA;
+              }
+            }
+            // 그 외에는 3학점 우선
+            return priorityDiff;
+          }
+          
+          // 학점이 같으면 제약 활용도 점수 비교
+          const constraintScoreA = getConstraintUtilizationScore(keyInfo.requirementArray, a, dep, excludeDepartments);
+          const constraintScoreB = getConstraintUtilizationScore(keyInfo.requirementArray, b, dep, excludeDepartments);
+          if (constraintScoreA > 0 || constraintScoreB > 0) {
+            if (constraintScoreA > 0 && constraintScoreB === 0) return -1;
+            if (constraintScoreA === 0 && constraintScoreB > 0) return 1;
+            if (constraintScoreA > 0 && constraintScoreB > 0) {
+              return constraintScoreB - constraintScoreA;
+            }
+          }
+        }
+        
         const na = keyCountPerCourse.get(a.courseId) ?? 0;
         const nb = keyCountPerCourse.get(b.courseId) ?? 0;
         if (na !== nb) return na - nb;
+        
+        // 제약이 있을 때는 3학점 우선을 더 강하게 적용
+        if (hasMaxCreditsConstraint) {
+          const priority = (c: number) => (c === 3 ? 0 : c === 1 ? 1 : c === 2 ? 2 : c === 4 ? 3 : 4);
+          const priorityDiff = priority(a.course.credit) - priority(b.course.credit);
+          if (priorityDiff !== 0) return priorityDiff;
+        }
+        
         // 3학점 우선(중복인정 3+3), 그다음 1·2학점
         const priority = (c: number) => (c === 3 ? 0 : c === 1 ? 1 : c === 2 ? 2 : 3);
         return priority(a.course.credit) - priority(b.course.credit) || a.course.credit - b.course.credit;
