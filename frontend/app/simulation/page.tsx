@@ -57,6 +57,7 @@ export default function SimulationPage() {
   const [addToEnrollments, setAddToEnrollments] = useState(false);
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLoadingSimulation, setIsLoadingSimulation] = useState(false);
   
   // 과목 추가/선택 모드
   const [courseMode, setCourseMode] = useState<'add' | 'view'>('add');
@@ -245,7 +246,15 @@ export default function SimulationPage() {
   // 초기 시나리오 데이터 생성
   const initializeSimulationData = useCallback((profileData: Profile): Promise<void> => {
     if (!profileData) return Promise.resolve();
+    if (isLoadingSimulation) return Promise.resolve();
 
+    // 기존 자동 저장 취소
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+    }
+
+    setIsLoadingSimulation(true);
     return fetch(`${API}/profile/enrollments`, { credentials: 'include' })
       .then((r) => r.json())
       .then((enrollmentsData: { success?: boolean; enrollments?: unknown }) => {
@@ -269,13 +278,15 @@ export default function SimulationPage() {
         const courseSimulations = convertEnrollmentsToCourseSimulations(enrollments, profileData);
         prevSimulationCoursesRef.current = [];
         setSimulationCourses(courseSimulations);
+        setIsLoadingSimulation(false);
       })
       .catch((error) => {
         console.error('초기 데이터 생성 오류:', error);
         prevSimulationCoursesRef.current = [];
         setSimulationCourses([]);
+        setIsLoadingSimulation(false);
       });
-  }, []);
+  }, [isLoadingSimulation]);
 
   // 프로필 정보 로드 및 필터 초기화
   useEffect(() => {
@@ -598,8 +609,15 @@ export default function SimulationPage() {
 
   // 저장된 시나리오 로드
   const loadSimulation = useCallback(async (simulationId: string) => {
-    if (!profile) return;
+    if (!profile || isLoadingSimulation) return;
 
+    // 기존 자동 저장 취소
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+    }
+
+    setIsLoadingSimulation(true);
     try {
       const res = await fetch(`${API}/simulation/${simulationId}`, {
         credentials: 'include',
@@ -608,21 +626,11 @@ export default function SimulationPage() {
 
       if (!data.success || !data.simulation) {
         alert(data.message || '시나리오를 불러오는데 실패했습니다.');
+        setIsLoadingSimulation(false);
         return;
       }
 
       const sim = data.simulation;
-
-      // 필터 업데이트
-      setFilters({
-        requirementYear: sim.referenceYear || new Date().getFullYear(),
-        major: sim.major || '',
-        doubleMajors: Array.isArray(sim.doubleMajors) ? sim.doubleMajors : [],
-        minors: Array.isArray(sim.minors) ? sim.minors : [],
-        advancedMajor: sim.advancedMajor || false,
-        individuallyDesignedMajor: sim.individuallyDesignedMajor || false,
-        earlyGraduation: sim.earlyGraduation ?? false,
-      });
 
       // courses 파싱 및 변환
       let rawCourses: RawCourseSimulation[] = [];
@@ -641,14 +649,27 @@ export default function SimulationPage() {
 
       // CourseSimulation[]로 변환
       const courseSimulations = await convertRawSimulationsToCourseSimulations(rawCourses, profile);
+      
+      // 상태를 원자적으로 업데이트 (자동 저장이 트리거되지 않도록)
       prevSimulationCoursesRef.current = [];
       setSimulationCourses(courseSimulations);
+      setFilters({
+        requirementYear: sim.referenceYear || new Date().getFullYear(),
+        major: sim.major || '',
+        doubleMajors: Array.isArray(sim.doubleMajors) ? sim.doubleMajors : [],
+        minors: Array.isArray(sim.minors) ? sim.minors : [],
+        advancedMajor: sim.advancedMajor || false,
+        individuallyDesignedMajor: sim.individuallyDesignedMajor || false,
+        earlyGraduation: sim.earlyGraduation ?? false,
+      });
       setCurrentSimulationId(simulationId);
+      setIsLoadingSimulation(false);
     } catch (error) {
       console.error('시나리오 로드 오류:', error);
       alert('시나리오를 불러오는 중 오류가 발생했습니다.');
+      setIsLoadingSimulation(false);
     }
-  }, [profile]);
+  }, [profile, isLoadingSimulation]);
 
   // 자동 저장 함수
   const autoSave = useCallback(async () => {
@@ -691,7 +712,7 @@ export default function SimulationPage() {
 
   // simulationCourses나 filters 변경 시 자동 저장 (debounce)
   useEffect(() => {
-    if (!currentSimulationId) return;
+    if (!currentSimulationId || isLoadingSimulation) return;
 
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
@@ -706,7 +727,7 @@ export default function SimulationPage() {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [simulationCourses, filters, currentSimulationId, autoSave]);
+  }, [simulationCourses, filters, currentSimulationId, autoSave, isLoadingSimulation]);
 
   // 학기별로 그룹화
   function groupBySemester(simulations: CourseSimulation[]): Map<string, CourseSimulation[]> {
@@ -1865,7 +1886,15 @@ export default function SimulationPage() {
                   </div>
 
                   {/* 본문 영역 */}
-                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative">
+                    {isLoadingSimulation && (
+                      <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                        </div>
+                      </div>
+                    )}
                     <div className="px-4 pt-2 pb-8">
                       {courseMode === 'add' ? (
                         <AddCoursePanel
@@ -1995,8 +2024,17 @@ export default function SimulationPage() {
               </div>
 
               {/* 본문 영역 */}
-              <div className="flex-1 overflow-y-auto px-4 pb-8">
+              <div className="flex-1 overflow-y-auto px-4 pb-8 relative">
                 <div className="sticky top-0 z-10 h-2 bg-gradient-to-t from-transparent via-gray-50/80 to-gray-50 dark:via-zinc-900/80 dark:to-zinc-900"></div>
+
+                {isLoadingSimulation && (
+                  <div className="absolute inset-0 z-20 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   {sections.length === 0 ? (
@@ -2177,8 +2215,17 @@ export default function SimulationPage() {
               </div>
 
               {/* 본문 영역 */}
-              <div className="flex-1 overflow-y-auto px-4">
+              <div className="flex-1 overflow-y-auto px-4 relative">
                 <div className="sticky top-0 z-10 h-2 bg-gradient-to-t from-transparent via-gray-50/80 to-gray-50 dark:via-zinc-900/80 dark:to-zinc-900"></div>
+
+                {isLoadingSimulation && (
+                  <div className="absolute inset-0 z-20 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                    </div>
+                  </div>
+                )}
 
                 {sections.length === 0 ? (
                   <p className="text-sm text-gray-500 dark:text-zinc-400 py-4">
@@ -2440,7 +2487,15 @@ export default function SimulationPage() {
         <div>
           {/* 전공 지정 탭 */}
           {mobileTab === 'major' && (
-            <div className="p-4 space-y-6">
+            <div className="p-4 space-y-6 relative">
+              {isLoadingSimulation && (
+                <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                  </div>
+                </div>
+              )}
               <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'var(--font-logo)' }}>전공 지정</h2>
               <div className="space-y-6 px-2">
                 <div>
@@ -2567,7 +2622,15 @@ export default function SimulationPage() {
               </div>
 
               {/* 본문 */}
-              <div className="p-4">
+              <div className="p-4 relative">
+                {isLoadingSimulation && (
+                  <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                    </div>
+                  </div>
+                )}
                 {courseMode === 'add' ? (
                   <AddCoursePanel
                     searchQuery={courseSearchQuery}
@@ -2660,7 +2723,15 @@ export default function SimulationPage() {
 
           {/* 학점 분야 탭 */}
           {mobileTab === 'credits' && (
-            <div className="p-4 space-y-4 pb-24">
+            <div className="p-4 space-y-4 pb-24 relative">
+              {isLoadingSimulation && (
+                <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>수업별 학점 인정 분야</h2>
                 <button
@@ -2795,7 +2866,7 @@ export default function SimulationPage() {
 
           {/* 졸업 요건 탭 */}
           {mobileTab === 'requirements' && (
-            <div>
+            <div className="relative">
               {/* <div className="sticky top-[52px] z-10 backdrop-blur-md">
                 <div className="p-4">
                   요약 영역
@@ -2823,6 +2894,15 @@ export default function SimulationPage() {
                   )}
                 </div>
               </div> */}
+
+              {isLoadingSimulation && (
+                <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                  </div>
+                </div>
+              )}
 
               <div className="p-4 space-y-6 pb-24">
               {sections.length === 0 ? (
