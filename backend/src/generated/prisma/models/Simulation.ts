@@ -69,8 +69,8 @@ export type SimulationCountAggregateOutputType = {
   minors: number
   advancedMajor: number
   individuallyDesignedMajor: number
-  earlyGraduation: number
   courses: number
+  earlyGraduation: number
   _all: number
 }
 
@@ -118,8 +118,8 @@ export type SimulationCountAggregateInputType = {
   minors?: true
   advancedMajor?: true
   individuallyDesignedMajor?: true
-  earlyGraduation?: true
   courses?: true
+  earlyGraduation?: true
   _all?: true
 }
 
@@ -220,8 +220,8 @@ export type SimulationGroupByOutputType = {
   minors: string[]
   advancedMajor: boolean
   individuallyDesignedMajor: boolean
-  earlyGraduation: boolean
   courses: runtime.JsonValue
+  earlyGraduation: boolean
   _count: SimulationCountAggregateOutputType | null
   _avg: SimulationAvgAggregateOutputType | null
   _sum: SimulationSumAggregateOutputType | null
@@ -258,8 +258,8 @@ export type SimulationWhereInput = {
   minors?: Prisma.StringNullableListFilter<"Simulation">
   advancedMajor?: Prisma.BoolFilter<"Simulation"> | boolean
   individuallyDesignedMajor?: Prisma.BoolFilter<"Simulation"> | boolean
-  earlyGraduation?: Prisma.BoolFilter<"Simulation"> | boolean
   courses?: Prisma.JsonFilter<"Simulation">
+  earlyGraduation?: Prisma.BoolFilter<"Simulation"> | boolean
   profile?: Prisma.XOR<Prisma.ProfileScalarRelationFilter, Prisma.ProfileWhereInput>
 }
 
@@ -274,8 +274,8 @@ export type SimulationOrderByWithRelationInput = {
   minors?: Prisma.SortOrder
   advancedMajor?: Prisma.SortOrder
   individuallyDesignedMajor?: Prisma.SortOrder
-  earlyGraduation?: Prisma.SortOrder
   courses?: Prisma.SortOrder
+  earlyGraduation?: Prisma.SortOrder
   profile?: Prisma.ProfileOrderByWithRelationInput
 }
 
@@ -293,8 +293,8 @@ export type SimulationWhereUniqueInput = Prisma.AtLeast<{
   minors?: Prisma.StringNullableListFilter<"Simulation">
   advancedMajor?: Prisma.BoolFilter<"Simulation"> | boolean
   individuallyDesignedMajor?: Prisma.BoolFilter<"Simulation"> | boolean
-  earlyGraduation?: Prisma.BoolFilter<"Simulation"> | boolean
   courses?: Prisma.JsonFilter<"Simulation">
+  earlyGraduation?: Prisma.BoolFilter<"Simulation"> | boolean
   profile?: Prisma.XOR<Prisma.ProfileScalarRelationFilter, Prisma.ProfileWhereInput>
 }, "id">
 
@@ -309,8 +309,8 @@ export type SimulationOrderByWithAggregationInput = {
   minors?: Prisma.SortOrder
   advancedMajor?: Prisma.SortOrder
   individuallyDesignedMajor?: Prisma.SortOrder
-  earlyGraduation?: Prisma.SortOrder
   courses?: Prisma.SortOrder
+  earlyGraduation?: Prisma.SortOrder
   _count?: Prisma.SimulationCountOrderByAggregateInput
   _avg?: Prisma.SimulationAvgOrderByAggregateInput
   _max?: Prisma.SimulationMaxOrderByAggregateInput
@@ -332,8 +332,8 @@ export type SimulationScalarWhereWithAggregatesInput = {
   minors?: Prisma.StringNullableListFilter<"Simulation">
   advancedMajor?: Prisma.BoolWithAggregatesFilter<"Simulation"> | boolean
   individuallyDesignedMajor?: Prisma.BoolWithAggregatesFilter<"Simulation"> | boolean
-  earlyGraduation?: Prisma.BoolWithAggregatesFilter<"Simulation"> | boolean
   courses?: Prisma.JsonWithAggregatesFilter<"Simulation">
+  earlyGraduation?: Prisma.BoolWithAggregatesFilter<"Simulation"> | boolean
 }
 
 export type SimulationCreateInput = {
@@ -346,8 +346,8 @@ export type SimulationCreateInput = {
   minors?: Prisma.SimulationCreateminorsInput | string[]
   advancedMajor: boolean
   individuallyDesignedMajor: boolean
-  earlyGraduation?: boolean
   courses: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: boolean
   profile: Prisma.ProfileCreateNestedOneWithoutSimulationsInput
 }
 
@@ -362,8 +362,8 @@ export type SimulationUncheckedCreateInput = {
   minors?: Prisma.SimulationCreateminorsInput | string[]
   advancedMajor: boolean
   individuallyDesignedMajor: boolean
-  earlyGraduation?: boolean
   courses: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: boolean
 }
 
 export type SimulationUpdateInput = {
@@ -376,8 +376,8 @@ export type SimulationUpdateInput = {
   minors?: Prisma.SimulationUpdateminorsInput | string[]
   advancedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
   individuallyDesignedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
   courses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
   profile?: Prisma.ProfileUpdateOneRequiredWithoutSimulationsNestedInput
 }
 
@@ -392,8 +392,8 @@ export type SimulationUncheckedUpdateInput = {
   minors?: Prisma.SimulationUpdateminorsInput | string[]
   advancedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
   individuallyDesignedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
   courses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type SimulationCreateManyInput = {
@@ -407,8 +407,8 @@ export type SimulationCreateManyInput = {
   minors?: Prisma.SimulationCreateminorsInput | string[]
   advancedMajor: boolean
   individuallyDesignedMajor: boolean
-  earlyGraduation?: boolean
   courses: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: boolean
 }
 
 export type SimulationUpdateManyMutationInput = {
@@ -421,8 +421,8 @@ export type SimulationUpdateManyMutationInput = {
   minors?: Prisma.SimulationUpdateminorsInput | string[]
   advancedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
   individuallyDesignedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
   courses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type SimulationUncheckedUpdateManyInput = {
@@ -436,8 +436,8 @@ export type SimulationUncheckedUpdateManyInput = {
   minors?: Prisma.SimulationUpdateminorsInput | string[]
   advancedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
   individuallyDesignedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
   courses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type SimulationListRelationFilter = {
@@ -461,8 +461,8 @@ export type SimulationCountOrderByAggregateInput = {
   minors?: Prisma.SortOrder
   advancedMajor?: Prisma.SortOrder
   individuallyDesignedMajor?: Prisma.SortOrder
-  earlyGraduation?: Prisma.SortOrder
   courses?: Prisma.SortOrder
+  earlyGraduation?: Prisma.SortOrder
 }
 
 export type SimulationAvgOrderByAggregateInput = {
@@ -571,8 +571,8 @@ export type SimulationCreateWithoutProfileInput = {
   minors?: Prisma.SimulationCreateminorsInput | string[]
   advancedMajor: boolean
   individuallyDesignedMajor: boolean
-  earlyGraduation?: boolean
   courses: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: boolean
 }
 
 export type SimulationUncheckedCreateWithoutProfileInput = {
@@ -585,8 +585,8 @@ export type SimulationUncheckedCreateWithoutProfileInput = {
   minors?: Prisma.SimulationCreateminorsInput | string[]
   advancedMajor: boolean
   individuallyDesignedMajor: boolean
-  earlyGraduation?: boolean
   courses: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: boolean
 }
 
 export type SimulationCreateOrConnectWithoutProfileInput = {
@@ -629,8 +629,8 @@ export type SimulationScalarWhereInput = {
   minors?: Prisma.StringNullableListFilter<"Simulation">
   advancedMajor?: Prisma.BoolFilter<"Simulation"> | boolean
   individuallyDesignedMajor?: Prisma.BoolFilter<"Simulation"> | boolean
-  earlyGraduation?: Prisma.BoolFilter<"Simulation"> | boolean
   courses?: Prisma.JsonFilter<"Simulation">
+  earlyGraduation?: Prisma.BoolFilter<"Simulation"> | boolean
 }
 
 export type SimulationCreateManyProfileInput = {
@@ -643,8 +643,8 @@ export type SimulationCreateManyProfileInput = {
   minors?: Prisma.SimulationCreateminorsInput | string[]
   advancedMajor: boolean
   individuallyDesignedMajor: boolean
-  earlyGraduation?: boolean
   courses: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: boolean
 }
 
 export type SimulationUpdateWithoutProfileInput = {
@@ -657,8 +657,8 @@ export type SimulationUpdateWithoutProfileInput = {
   minors?: Prisma.SimulationUpdateminorsInput | string[]
   advancedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
   individuallyDesignedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
   courses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type SimulationUncheckedUpdateWithoutProfileInput = {
@@ -671,8 +671,8 @@ export type SimulationUncheckedUpdateWithoutProfileInput = {
   minors?: Prisma.SimulationUpdateminorsInput | string[]
   advancedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
   individuallyDesignedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
   courses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type SimulationUncheckedUpdateManyWithoutProfileInput = {
@@ -685,8 +685,8 @@ export type SimulationUncheckedUpdateManyWithoutProfileInput = {
   minors?: Prisma.SimulationUpdateminorsInput | string[]
   advancedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
   individuallyDesignedMajor?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
   courses?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  earlyGraduation?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 
@@ -702,8 +702,8 @@ export type SimulationSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   minors?: boolean
   advancedMajor?: boolean
   individuallyDesignedMajor?: boolean
-  earlyGraduation?: boolean
   courses?: boolean
+  earlyGraduation?: boolean
   profile?: boolean | Prisma.ProfileDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["simulation"]>
 
@@ -718,8 +718,8 @@ export type SimulationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   minors?: boolean
   advancedMajor?: boolean
   individuallyDesignedMajor?: boolean
-  earlyGraduation?: boolean
   courses?: boolean
+  earlyGraduation?: boolean
   profile?: boolean | Prisma.ProfileDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["simulation"]>
 
@@ -734,8 +734,8 @@ export type SimulationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   minors?: boolean
   advancedMajor?: boolean
   individuallyDesignedMajor?: boolean
-  earlyGraduation?: boolean
   courses?: boolean
+  earlyGraduation?: boolean
   profile?: boolean | Prisma.ProfileDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["simulation"]>
 
@@ -750,11 +750,11 @@ export type SimulationSelectScalar = {
   minors?: boolean
   advancedMajor?: boolean
   individuallyDesignedMajor?: boolean
-  earlyGraduation?: boolean
   courses?: boolean
+  earlyGraduation?: boolean
 }
 
-export type SimulationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "profileId" | "title" | "updatedAt" | "referenceYear" | "major" | "doubleMajors" | "minors" | "advancedMajor" | "individuallyDesignedMajor" | "earlyGraduation" | "courses", ExtArgs["result"]["simulation"]>
+export type SimulationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "profileId" | "title" | "updatedAt" | "referenceYear" | "major" | "doubleMajors" | "minors" | "advancedMajor" | "individuallyDesignedMajor" | "courses" | "earlyGraduation", ExtArgs["result"]["simulation"]>
 export type SimulationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   profile?: boolean | Prisma.ProfileDefaultArgs<ExtArgs>
 }
@@ -781,8 +781,8 @@ export type $SimulationPayload<ExtArgs extends runtime.Types.Extensions.Internal
     minors: string[]
     advancedMajor: boolean
     individuallyDesignedMajor: boolean
-    earlyGraduation: boolean
     courses: runtime.JsonValue
+    earlyGraduation: boolean
   }, ExtArgs["result"]["simulation"]>
   composites: {}
 }
@@ -1217,8 +1217,8 @@ export interface SimulationFieldRefs {
   readonly minors: Prisma.FieldRef<"Simulation", 'String[]'>
   readonly advancedMajor: Prisma.FieldRef<"Simulation", 'Boolean'>
   readonly individuallyDesignedMajor: Prisma.FieldRef<"Simulation", 'Boolean'>
-  readonly earlyGraduation: Prisma.FieldRef<"Simulation", 'Boolean'>
   readonly courses: Prisma.FieldRef<"Simulation", 'Json'>
+  readonly earlyGraduation: Prisma.FieldRef<"Simulation", 'Boolean'>
 }
     
 

@@ -10,7 +10,7 @@ import type { Profile, Enrollment, RawEnrollment, Semester, Grade, Course } from
 import type { CourseSimulation, RawCourseSimulation, CreditType, Requirement } from './types';
 import AddCoursePanel from '../profile/settings/AddCoursePanel';
 import EnrollmentsList from '../profile/settings/EnrollmentsList';
-import { classifyCourses, RequirementsProps } from './conditionTester';
+import { classifyCourses, RequirementsProps, SubstitutionMap } from './conditionTester';
 import {
   type Section,
   type SimulationSectionFilters,
@@ -47,6 +47,7 @@ export default function SimulationPage() {
     earlyGraduation: false,
   });
   const [simulationCourses, setSimulationCourses] = useState<CourseSimulation[]>([]);
+  const [substitutionMap, setSubstitutionMap] = useState<SubstitutionMap | undefined>(undefined);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [userName, setUserName] = useState<string>('');
@@ -56,6 +57,7 @@ export default function SimulationPage() {
   const [addToEnrollments, setAddToEnrollments] = useState(false);
   const [currentSimulationId, setCurrentSimulationId] = useState<string | null>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isLoadingSimulation, setIsLoadingSimulation] = useState(false);
   
   // 과목 추가/선택 모드
   const [courseMode, setCourseMode] = useState<'add' | 'view'>('add');
@@ -87,6 +89,7 @@ export default function SimulationPage() {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [gradeBlindMode, setGradeBlindMode] = useState(true);
   const [tooltipState, setTooltipState] = useState<{ text: string; x: number; y: number } | null>(null);
+  const [sidebarTooltipState, setSidebarTooltipState] = useState<{ text: string; x: number; y: number } | null>(null);
   
   // 모바일 탭 상태
   const [mobileTab, setMobileTab] = useState<'major' | 'courses' | 'credits' | 'requirements'>('requirements');
@@ -143,7 +146,7 @@ export default function SimulationPage() {
             id: sim.id,
             name: sim.title,
             date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
-            canGraduate: false, // TODO: 졸업가능 여부 계산 로직 추가 필요
+            canGraduate: false,
           }));
           setPreviousSimulations(sims);
         }
@@ -243,7 +246,15 @@ export default function SimulationPage() {
   // 초기 시나리오 데이터 생성
   const initializeSimulationData = useCallback((profileData: Profile): Promise<void> => {
     if (!profileData) return Promise.resolve();
+    if (isLoadingSimulation) return Promise.resolve();
 
+    // 기존 자동 저장 취소
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+    }
+
+    setIsLoadingSimulation(true);
     return fetch(`${API}/profile/enrollments`, { credentials: 'include' })
       .then((r) => r.json())
       .then((enrollmentsData: { success?: boolean; enrollments?: unknown }) => {
@@ -267,13 +278,15 @@ export default function SimulationPage() {
         const courseSimulations = convertEnrollmentsToCourseSimulations(enrollments, profileData);
         prevSimulationCoursesRef.current = [];
         setSimulationCourses(courseSimulations);
+        setIsLoadingSimulation(false);
       })
       .catch((error) => {
         console.error('초기 데이터 생성 오류:', error);
         prevSimulationCoursesRef.current = [];
         setSimulationCourses([]);
+        setIsLoadingSimulation(false);
       });
-  }, []);
+  }, [isLoadingSimulation]);
 
   // 프로필 정보 로드 및 필터 초기화
   useEffect(() => {
@@ -480,6 +493,19 @@ export default function SimulationPage() {
 
   const deptName = (id: string) => depts.find((d) => d.id === id)?.name ?? id;
 
+  // 과목 분류 변경 핸들러
+  const handleClassificationChange = useCallback((course: CourseSimulation, classification: CreditType) => {
+    setSimulationCourses((prev) =>
+      prev.map((c) =>
+        c.courseId === course.courseId &&
+        c.enrolledYear === course.enrolledYear &&
+        c.enrolledSemester === course.enrolledSemester
+          ? { ...c, specifiedClassification: classification }
+          : c
+      )
+    );
+  }, []);
+
   // 과목의 category와 프로필 정보를 기반으로 recognizedAs 결정
   function determineRecognizedAs(
     course: Course,
@@ -562,13 +588,15 @@ export default function SimulationPage() {
                 credit: course.credit || 0,
                 au: course.au || 0,
                 tags: course.tags || 0,
+                level: course.level,
+                crossRecognition: course.crossRecognition
               },
               enrolledYear: raw.enrolledYear,
               enrolledSemester: raw.enrolledSemester,
               grade: raw.grade,
               possibleClassifications: [],
               specifiedClassification: raw.recognizedAs,
-              classification: raw.recognizedAs
+              classification: undefined
             } as CourseSimulation;
           })
           .catch((error) => {
@@ -581,8 +609,15 @@ export default function SimulationPage() {
 
   // 저장된 시나리오 로드
   const loadSimulation = useCallback(async (simulationId: string) => {
-    if (!profile) return;
+    if (!profile || isLoadingSimulation) return;
 
+    // 기존 자동 저장 취소
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+    }
+
+    setIsLoadingSimulation(true);
     try {
       const res = await fetch(`${API}/simulation/${simulationId}`, {
         credentials: 'include',
@@ -591,21 +626,11 @@ export default function SimulationPage() {
 
       if (!data.success || !data.simulation) {
         alert(data.message || '시나리오를 불러오는데 실패했습니다.');
+        setIsLoadingSimulation(false);
         return;
       }
 
       const sim = data.simulation;
-
-      // 필터 업데이트
-      setFilters({
-        requirementYear: sim.referenceYear || new Date().getFullYear(),
-        major: sim.major || '',
-        doubleMajors: Array.isArray(sim.doubleMajors) ? sim.doubleMajors : [],
-        minors: Array.isArray(sim.minors) ? sim.minors : [],
-        advancedMajor: sim.advancedMajor || false,
-        individuallyDesignedMajor: sim.individuallyDesignedMajor || false,
-        earlyGraduation: sim.earlyGraduation ?? false,
-      });
 
       // courses 파싱 및 변환
       let rawCourses: RawCourseSimulation[] = [];
@@ -624,14 +649,27 @@ export default function SimulationPage() {
 
       // CourseSimulation[]로 변환
       const courseSimulations = await convertRawSimulationsToCourseSimulations(rawCourses, profile);
+      
+      // 상태를 원자적으로 업데이트 (자동 저장이 트리거되지 않도록)
       prevSimulationCoursesRef.current = [];
       setSimulationCourses(courseSimulations);
+      setFilters({
+        requirementYear: sim.referenceYear || new Date().getFullYear(),
+        major: sim.major || '',
+        doubleMajors: Array.isArray(sim.doubleMajors) ? sim.doubleMajors : [],
+        minors: Array.isArray(sim.minors) ? sim.minors : [],
+        advancedMajor: sim.advancedMajor || false,
+        individuallyDesignedMajor: sim.individuallyDesignedMajor || false,
+        earlyGraduation: sim.earlyGraduation ?? false,
+      });
       setCurrentSimulationId(simulationId);
+      setIsLoadingSimulation(false);
     } catch (error) {
       console.error('시나리오 로드 오류:', error);
       alert('시나리오를 불러오는 중 오류가 발생했습니다.');
+      setIsLoadingSimulation(false);
     }
-  }, [profile]);
+  }, [profile, isLoadingSimulation]);
 
   // 자동 저장 함수
   const autoSave = useCallback(async () => {
@@ -674,7 +712,7 @@ export default function SimulationPage() {
 
   // simulationCourses나 filters 변경 시 자동 저장 (debounce)
   useEffect(() => {
-    if (!currentSimulationId) return;
+    if (!currentSimulationId || isLoadingSimulation) return;
 
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
@@ -689,7 +727,7 @@ export default function SimulationPage() {
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [simulationCourses, filters, currentSimulationId, autoSave]);
+  }, [simulationCourses, filters, currentSimulationId, autoSave, isLoadingSimulation]);
 
   // 학기별로 그룹화
   function groupBySemester(simulations: CourseSimulation[]): Map<string, CourseSimulation[]> {
@@ -857,6 +895,8 @@ export default function SimulationPage() {
         credit: course.credit || 0,
         au: course.au || 0,
         tags: course.tags || [],
+        level: course.level,
+        crossRecognition: course.crossRecognition,
       };
 
       newCourses.push({
@@ -982,6 +1022,8 @@ export default function SimulationPage() {
           credit: draggedCourse.credit || 0,
           au: draggedCourse.au || 0,
           tags: draggedCourse.tags || [],
+          level: draggedCourse.level,
+          crossRecognition: draggedCourse.crossRecognition,
         };
 
         const isDuplicate = simulationCourses.some(
@@ -1005,7 +1047,7 @@ export default function SimulationPage() {
           enrolledSemester: targetSemesterObj.semester,
           grade: defaultGrade,
           possibleClassifications: [],
-          specifiedClassification: profile ? determineRecognizedAs(courseObj, profile) : { type: 'OTHER_ELECTIVE' },
+          specifiedClassification: null,
           classification: null
         };
 
@@ -1149,48 +1191,93 @@ export default function SimulationPage() {
         return { type: 'humanitiesSocietyElective', data: (data.requirements || []) as Requirement[] };
       })());
 
-      Promise.allSettled(promises)
+      // 대체과목 데이터 로드
+      const substitutionPromise = (async () => {
+        try {
+          const year = filters.requirementYear || profile?.admissionYear || new Date().getFullYear();
+          const department = filters.major || profile?.major;
+          const url = department 
+            ? `${API}/substitutions?year=${year}&department=${department}`
+            : `${API}/substitutions?year=${year}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data.success) {
+            return {
+              map: data.map || {},
+              reverse: data.reverse || {},
+              groups: data.groups || {},
+            } as SubstitutionMap;
+          }
+          return { map: {}, reverse: {}, groups: {} } as SubstitutionMap;
+        } catch (error) {
+          console.error('Error loading substitutions:', error);
+          return { map: {}, reverse: {}, groups: {} } as SubstitutionMap;
+        }
+      })();
+
+      Promise.allSettled([...promises, substitutionPromise])
         .then((results) => {
           let requirements: RequirementsProps = { basicRequired: [], basicElective: [], mandatoryGeneralCourses: [], humanitiesSocietyElective: [], major: [], doubleMajors: {}, minors: {} };
+          let substitutionMap: SubstitutionMap | undefined;
 
-          results.forEach((result) => {
+          results.forEach((result, index) => {
             if (result.status !== 'fulfilled')
               return;
 
-            switch (result.value.type) {
+            // 마지막 결과는 대체과목 데이터
+            if (index === results.length - 1) {
+              const map = result.value as SubstitutionMap;
+              setSubstitutionMap(map);
+              substitutionMap = map;
+              return;
+            }
+
+            const value = result.value as { type: string; department?: string; data?: Requirement[] };
+            const data = value.data || []; // undefined인 경우 빈 배열로 처리
+            switch (value.type) {
               case 'basicRequired':
-                requirements.basicRequired = result.value.data;
+                requirements.basicRequired = data;
                 break;
               case 'basicElective':
-                requirements.basicElective = result.value.data;
+                requirements.basicElective = data;
                 break;
               case 'mandatoryGeneralCourses':
-                requirements.mandatoryGeneralCourses = result.value.data;
+                requirements.mandatoryGeneralCourses = data;
                 break;
               case 'humanitiesSocietyElective':
-                requirements.humanitiesSocietyElective = result.value.data;
+                requirements.humanitiesSocietyElective = data;
                 break;
               case 'major':
-                requirements.major = result.value.data;
+                requirements.major = data;
                 break;
               case 'doubleMajor':
-                requirements.doubleMajors![result.value.department!] = result.value.data
+                if (value.department) {
+                  requirements.doubleMajors![value.department] = data;
+                }
                 break;
               case 'minor':
-                requirements.minors![result.value.department!] = result.value.data;
+                if (value.department) {
+                  requirements.minors![value.department] = data;
+                }
                 break;
               case 'advancedMajor':
-                requirements.advanced = result.value.data;
+                requirements.advanced = data;
                 break;
               case 'individuallyDesignedMajor':
-                requirements.individuallyDesignedMajor = result.value.data;
+                requirements.individuallyDesignedMajor = data;
                 break;
               case 'research':
-                requirements.research = result.value.data;
+                requirements.research = data;
             }
           });
 
-          const { enrolledCourses, requirements: evaluatedRequirements } = classifyCourses(simulationCourses, requirements, filters.major);
+          const { enrolledCourses, requirements: evaluatedRequirements } = classifyCourses(
+            simulationCourses, 
+            requirements, 
+            filters.major,
+            undefined,
+            substitutionMap
+          );
           setSimulationCourses(enrolledCourses);
           prevSimulationCoursesRef.current = enrolledCourses;
 
@@ -1208,18 +1295,20 @@ export default function SimulationPage() {
           });
 
           setSections(updatedSections);
-          
-          // 달성된 섹션은 접고, 미달성 섹션은 펴기
-          const newCollapsedSections = new Set<string>();
-          updatedSections.forEach((s) => {
-            const sectionKey = `center-${s.id}`;
-            if (s.fulfilled) {
-              // 달성된 섹션은 접기
-              newCollapsedSections.add(sectionKey);
-            }
-            // 미달성 섹션은 펴기 (newCollapsedSections에 추가하지 않음)
-          });
-          setCollapsedSections(newCollapsedSections);
+
+          // 과목 추가만 / 학점 인정 분야만 변경된 경우에는 접기 상태 유지. 초기 로드, 과목 삭제, 필터·시나리오 변경 시에는 달성된 섹션 접기
+          const onlyAddedCourses = prev.length > 0 && lengthChanged && simulationCourses.length > prev.length && !filtersChanged;
+          const onlyClassificationChanged = prev.length > 0 && !lengthChanged && recognizedAsChanged && !filtersChanged;
+          if (!onlyAddedCourses && !onlyClassificationChanged) {
+            const newCollapsedSections = new Set<string>();
+            updatedSections.forEach((s) => {
+              const sectionKey = `center-${s.id}`;
+              if (s.fulfilled) {
+                newCollapsedSections.add(sectionKey);
+              }
+            });
+            setCollapsedSections(newCollapsedSections);
+          }
         });
     } else {
       // 변경사항이 없어도 ref는 최신 상태로 유지
@@ -1227,6 +1316,15 @@ export default function SimulationPage() {
       prevFiltersRef.current = filters;
     }
   }, [simulationCourses, filters, profile, depts]);
+
+  // substitutionMap이 변경될 때 sections를 강제로 업데이트하여 CourseBar가 다시 렌더링되도록 함
+  useEffect(() => {
+    if (!substitutionMap || sections.length === 0) return;
+    
+    // substitutionMap이 로드된 후 sections를 강제로 업데이트하여 CourseBar가 다시 렌더링되도록 함
+    // sections의 참조를 변경하여 React가 변경을 감지하도록 함
+    setSections(prevSections => [...prevSections]);
+  }, [substitutionMap]);
 
   // CourseSimulation[]를 Enrollment[]로 변환 (EnrollmentsList 컴포넌트 사용을 위해)
   const enrollmentsForList: Enrollment[] = simulationCourses.map((cs) => ({
@@ -1374,7 +1472,7 @@ export default function SimulationPage() {
   }, [baseSections]);
 
   // 섹션을 그룹화: 주전공/심화전공/연구를 하나의 그룹으로
-  const groupedSections = useMemo(() => groupSections(sections), [sections]);
+  const groupedSections = useMemo(() => groupSections(sections), [sections, substitutionMap]);
 
 
   return (
@@ -1452,6 +1550,15 @@ export default function SimulationPage() {
                     <div
                       key={sim.id}
                       onClick={() => currentSimulationId === sim.id ? null : loadSimulation(sim.id)}
+                      onMouseEnter={!sidebarOpen ? (e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setSidebarTooltipState({
+                          text: sim.name,
+                          x: rect.right + 8,
+                          y: rect.top + rect.height / 2,
+                        });
+                      } : undefined}
+                      onMouseLeave={!sidebarOpen ? () => setSidebarTooltipState(null) : undefined}
                       className={`w-full flex items-center gap-3 rounded-lg text-left active:scale-90 transition-all cursor-pointer ${
                         currentSimulationId === sim.id
                           ? ('bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 transition-all' + (sidebarOpen ? '' : ' p-2 justify-center'))
@@ -1779,7 +1886,15 @@ export default function SimulationPage() {
                   </div>
 
                   {/* 본문 영역 */}
-                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative">
+                    {isLoadingSimulation && (
+                      <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                        </div>
+                      </div>
+                    )}
                     <div className="px-4 pt-2 pb-8">
                       {courseMode === 'add' ? (
                         <AddCoursePanel
@@ -1909,8 +2024,17 @@ export default function SimulationPage() {
               </div>
 
               {/* 본문 영역 */}
-              <div className="flex-1 overflow-y-auto px-4 pb-8">
+              <div className="flex-1 overflow-y-auto px-4 pb-8 relative">
                 <div className="sticky top-0 z-10 h-2 bg-gradient-to-t from-transparent via-gray-50/80 to-gray-50 dark:via-zinc-900/80 dark:to-zinc-900"></div>
+
+                {isLoadingSimulation && (
+                  <div className="absolute inset-0 z-20 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   {sections.length === 0 ? (
@@ -1937,7 +2061,15 @@ export default function SimulationPage() {
                                         <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                       ) : (
                                         s.courses.map((c) => (
-                                          <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                          <CourseBar 
+                                            key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} 
+                                            course={c} 
+                                            gradeBlindMode={gradeBlindMode}
+                                            onClassificationChange={handleClassificationChange}
+                                            getDeptName={deptName}
+                                            substitutionMap={substitutionMap}
+                                            majorDepartment={filters.major}
+                                          />
                                         ))
                                       )}
                                     </div>
@@ -1978,7 +2110,14 @@ export default function SimulationPage() {
                                           <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                         ) : (
                                           s.courses.map((c) => (
-                                            <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                            <CourseBar 
+                                              key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} 
+                                              course={c} 
+                                              gradeBlindMode={gradeBlindMode}
+                                              onClassificationChange={handleClassificationChange}
+                                              getDeptName={deptName}
+                                              majorDepartment={filters.major}
+                                            />
                                           ))
                                         )}
                                       </div>
@@ -2017,7 +2156,14 @@ export default function SimulationPage() {
                                     <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                      <CourseBar
+                                        key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                        course={c}
+                                        gradeBlindMode={gradeBlindMode}
+                                        onClassificationChange={handleClassificationChange}
+                                        substitutionMap={substitutionMap}
+                                        majorDepartment={filters.major}
+                                      />
                                     ))
                                   )}
                                 </div>
@@ -2040,7 +2186,14 @@ export default function SimulationPage() {
                               <ACBody>
                                 <div className="space-y-2">
                                   {s.courses.map((c) => (
-                                    <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                    <CourseBar
+                                      key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                      course={c}
+                                      gradeBlindMode={gradeBlindMode}
+                                      onClassificationChange={handleClassificationChange}
+                                      substitutionMap={substitutionMap}
+                                      majorDepartment={filters.major}
+                                    />
                                   ))}
                                 </div>
                               </ACBody>
@@ -2062,8 +2215,17 @@ export default function SimulationPage() {
               </div>
 
               {/* 본문 영역 */}
-              <div className="flex-1 overflow-y-auto px-4">
+              <div className="flex-1 overflow-y-auto px-4 relative">
                 <div className="sticky top-0 z-10 h-2 bg-gradient-to-t from-transparent via-gray-50/80 to-gray-50 dark:via-zinc-900/80 dark:to-zinc-900"></div>
+
+                {isLoadingSimulation && (
+                  <div className="absolute inset-0 z-20 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                    </div>
+                  </div>
+                )}
 
                 {sections.length === 0 ? (
                   <p className="text-sm text-gray-500 dark:text-zinc-400 py-4">
@@ -2325,7 +2487,15 @@ export default function SimulationPage() {
         <div>
           {/* 전공 지정 탭 */}
           {mobileTab === 'major' && (
-            <div className="p-4 space-y-6">
+            <div className="p-4 space-y-6 relative">
+              {isLoadingSimulation && (
+                <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                  </div>
+                </div>
+              )}
               <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'var(--font-logo)' }}>전공 지정</h2>
               <div className="space-y-6 px-2">
                 <div>
@@ -2452,7 +2622,15 @@ export default function SimulationPage() {
               </div>
 
               {/* 본문 */}
-              <div className="p-4">
+              <div className="p-4 relative">
+                {isLoadingSimulation && (
+                  <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                    </div>
+                  </div>
+                )}
                 {courseMode === 'add' ? (
                   <AddCoursePanel
                     searchQuery={courseSearchQuery}
@@ -2545,7 +2723,15 @@ export default function SimulationPage() {
 
           {/* 학점 분야 탭 */}
           {mobileTab === 'credits' && (
-            <div className="p-4 space-y-4 pb-24">
+            <div className="p-4 space-y-4 pb-24 relative">
+              {isLoadingSimulation && (
+                <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>수업별 학점 인정 분야</h2>
                 <button
@@ -2580,7 +2766,14 @@ export default function SimulationPage() {
                                     <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                      <CourseBar
+                                        key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                        course={c}
+                                        gradeBlindMode={gradeBlindMode}
+                                        onClassificationChange={handleClassificationChange}
+                                        substitutionMap={substitutionMap}
+                                        majorDepartment={filters.major}
+                                      />
                                     ))
                                   )}
                                 </div>
@@ -2613,7 +2806,14 @@ export default function SimulationPage() {
                                     <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                                   ) : (
                                     s.courses.map((c) => (
-                                      <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                      <CourseBar
+                                        key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                        course={c}
+                                        gradeBlindMode={gradeBlindMode}
+                                        onClassificationChange={handleClassificationChange}
+                                        substitutionMap={substitutionMap}
+                                        majorDepartment={filters.major}
+                                      />
                                     ))
                                   )}
                                 </div>
@@ -2644,7 +2844,13 @@ export default function SimulationPage() {
                                 <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
                               ) : (
                                 s.courses.map((c) => (
-                                  <CourseBar key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} course={c} gradeBlindMode={gradeBlindMode} />
+                                  <CourseBar
+                                    key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                    course={c}
+                                    gradeBlindMode={gradeBlindMode}
+                                    onClassificationChange={handleClassificationChange}
+                                    majorDepartment={filters.major}
+                                  />
                                 ))
                               )}
                             </div>
@@ -2660,7 +2866,7 @@ export default function SimulationPage() {
 
           {/* 졸업 요건 탭 */}
           {mobileTab === 'requirements' && (
-            <div>
+            <div className="relative">
               {/* <div className="sticky top-[52px] z-10 backdrop-blur-md">
                 <div className="p-4">
                   요약 영역
@@ -2688,6 +2894,15 @@ export default function SimulationPage() {
                   )}
                 </div>
               </div> */}
+
+              {isLoadingSimulation && (
+                <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로딩 중...</p>
+                  </div>
+                </div>
+              )}
 
               <div className="p-4 space-y-6 pb-24">
               {sections.length === 0 ? (
@@ -3073,7 +3288,7 @@ export default function SimulationPage() {
         )}
       </div>
 
-      {/* Fixed Tooltip */}
+      {/* Fixed Tooltip (기존 툴팁 - 아래쪽 화살표) */}
       {tooltipState && (
         <div
           className="fixed z-[9999] pointer-events-none shadow-md"
@@ -3086,6 +3301,23 @@ export default function SimulationPage() {
           <div className="w-64 p-2 bg-black dark:bg-zinc-800 text-white text-xs rounded shadow-lg">
             {tooltipState.text}
             <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black dark:border-t-zinc-800"></div>
+          </div>
+        </div>
+      )}
+
+      {/* Sidebar Tooltip (사이드바 팝오버 - 왼쪽 화살표) */}
+      {sidebarTooltipState && (
+        <div
+          className="fixed z-[9999] pointer-events-none shadow-md"
+          style={{
+            left: `${sidebarTooltipState.x}px`,
+            top: `${sidebarTooltipState.y}px`,
+            transform: 'translateY(-50%)',
+          }}
+        >
+          <div className="p-2 bg-black dark:bg-zinc-800 text-white text-xs rounded shadow-lg whitespace-nowrap">
+            {sidebarTooltipState.text}
+            <div className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-black dark:border-r-zinc-800"></div>
           </div>
         </div>
       )}

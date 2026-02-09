@@ -13,6 +13,8 @@ export interface Course {
   category: string;
   credit: number;
   au: number;
+  level: string;
+  crossRecognition: boolean;
   tags: string[];
 }
 

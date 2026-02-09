@@ -1,0 +1,1 @@
+-- This migration represents the current state of the database

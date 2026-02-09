@@ -40,7 +40,9 @@ async function convertToEnrollments(rawEnrollments: RawEnrollment[]): Promise<En
             category: course.category || '',
             credit: course.credit || 0,
             au: course.au || 0,
-            tags: course.tags || []
+            tags: course.tags || [],
+            level: course.level || 'UG',
+            crossRecognition: course.crossRecognition || false
           },
           enrolledYear: raw.enrolledYear,
           enrolledSemester: raw.enrolledSemester,
@@ -342,7 +344,9 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
           category: course.category || '',
           credit: course.credit || 0,
           au: course.au || 0,
-          tags: course.tags || []
+          tags: course.tags || [],
+          level: course.level || 'UG',
+          crossRecognition: course.crossRecognition || false
         },
         enrolledYear: targetSemester.year,
         enrolledSemester: targetSemester.semester,
@@ -470,7 +474,9 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             category: draggedCourse.category || '',
             credit: draggedCourse.credit || 0,
             au,
-            tags: draggedCourse.tags || []
+            tags: draggedCourse.tags || [],
+            level: draggedCourse.level || 'UG',
+            crossRecognition: draggedCourse.crossRecognition || false
           },
           enrolledYear: targetSemesterObj.year,
           enrolledSemester: targetSemesterObj.semester,

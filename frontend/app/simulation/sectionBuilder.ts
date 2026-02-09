@@ -46,14 +46,14 @@ export function buildSectionsFromClassifiedCourses(
     id: 'BASIC_REQUIRED',
     title: '기초필수',
     titleElements: ['기초필수'],
-    courses: enrolledCourses.filter((c) => c.classification?.type === 'BASIC_REQUIRED').sort(sortByCode),
+    courses: enrolledCourses.filter((c) => c.specifiedClassification?.type === 'BASIC_REQUIRED' || c.classification?.type === 'BASIC_REQUIRED').sort(sortByCode),
     fulfilled: false,
   });
   out.push({
     id: 'BASIC_ELECTIVE',
     title: '기초선택',
     titleElements: ['기초선택'],
-    courses: enrolledCourses.filter((c) => c.classification?.type === 'BASIC_ELECTIVE').sort(sortByCode),
+    courses: enrolledCourses.filter((c) => c.specifiedClassification?.type === 'BASIC_ELECTIVE' || c.classification?.type === 'BASIC_ELECTIVE').sort(sortByCode),
     fulfilled: false,
   });
 
@@ -63,7 +63,7 @@ export function buildSectionsFromClassifiedCourses(
       title: majorName ? `주전공: ${majorName}` : '주전공',
       titleElements: majorName ? ['주전공', majorName] : ['주전공'],
       courses: enrolledCourses
-        .filter((c) => c.classification?.type === 'MAJOR' || c.classification?.type === 'MAJOR_AND_DOUBLE_MAJOR')
+        .filter((c) => c.specifiedClassification?.type === 'MAJOR' || c.specifiedClassification?.type === 'MAJOR_AND_DOUBLE_MAJOR' || c.classification?.type === 'MAJOR' || c.classification?.type === 'MAJOR_AND_DOUBLE_MAJOR')
         .sort(sortByCode),
       fulfilled: false,
     });
@@ -72,7 +72,7 @@ export function buildSectionsFromClassifiedCourses(
         id: 'ADVANCED_MAJOR',
         title: '심화전공',
         titleElements: ['심화전공'],
-        courses: enrolledCourses.filter((c) => c.classification?.type === 'ADVANCED_MAJOR').sort(sortByCode),
+        courses: enrolledCourses.filter((c) => c.specifiedClassification?.type === 'ADVANCED_MAJOR' || c.classification?.type === 'ADVANCED_MAJOR').sort(sortByCode),
         fulfilled: false,
       });
     }
@@ -80,7 +80,7 @@ export function buildSectionsFromClassifiedCourses(
       id: `RESEARCH_${filters.major}`,
       title: '연구',
       titleElements: ['연구'],
-      courses: enrolledCourses.filter((c) => c.classification?.type === 'RESEARCH').sort(sortByCode),
+      courses: enrolledCourses.filter((c) => c.specifiedClassification?.type === 'RESEARCH' || c.classification?.type === 'RESEARCH').sort(sortByCode),
       fulfilled: false,
     });
   }
@@ -93,8 +93,10 @@ export function buildSectionsFromClassifiedCourses(
       courses: enrolledCourses
         .filter(
           (c) =>
-            (c.classification?.type === 'DOUBLE_MAJOR' && c.classification?.department === id) ||
-            (c.classification?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.classification?.department === id)
+            (c.specifiedClassification?.type === 'DOUBLE_MAJOR' && c.specifiedClassification.department === id) ||
+            (c.specifiedClassification?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.specifiedClassification.department === id) ||
+            (c.classification?.type === 'DOUBLE_MAJOR' && c.classification.department === id) ||
+            (c.classification?.type === 'MAJOR_AND_DOUBLE_MAJOR' && c.classification.department === id)
         )
         .sort(sortByCode),
       fulfilled: false,
@@ -107,7 +109,11 @@ export function buildSectionsFromClassifiedCourses(
       title: `부전공: ${getDeptName(id)}`,
       titleElements: ['부전공', getDeptName(id)],
       courses: enrolledCourses
-        .filter((c) => c.classification?.type === 'MINOR' && c.classification?.department === id)
+        .filter(
+          (c) =>
+            (c.specifiedClassification?.type === 'MINOR' && c.specifiedClassification.department === id) ||
+            (c.classification?.type === 'MINOR' && c.classification.department === id)
+        )
         .sort(sortByCode),
       fulfilled: false,
     });
@@ -119,7 +125,7 @@ export function buildSectionsFromClassifiedCourses(
       title: '자유융합전공',
       titleElements: ['자유융합전공'],
       courses: enrolledCourses
-        .filter((c) => c.classification?.type === 'INDIVIDUALLY_DESIGNED_MAJOR')
+        .filter((c) => c.specifiedClassification?.type === 'INDIVIDUALLY_DESIGNED_MAJOR' || c.classification?.type === 'INDIVIDUALLY_DESIGNED_MAJOR')
         .sort(sortByCode),
       fulfilled: false,
     });
@@ -130,7 +136,7 @@ export function buildSectionsFromClassifiedCourses(
     title: '교양필수',
     titleElements: ['교양필수'],
     courses: enrolledCourses
-      .filter((c) => c.classification?.type === 'MANDATORY_GENERAL_COURSES')
+      .filter((c) => c.specifiedClassification?.type === 'MANDATORY_GENERAL_COURSES' || c.classification?.type === 'MANDATORY_GENERAL_COURSES')
       .sort(sortByCode),
     fulfilled: false,
   });
@@ -139,7 +145,7 @@ export function buildSectionsFromClassifiedCourses(
     title: '인문사회선택',
     titleElements: ['인문사회선택'],
     courses: enrolledCourses
-      .filter((c) => c.classification?.type === 'HUMANITIES_SOCIETY_ELECTIVE')
+      .filter((c) => c.specifiedClassification?.type === 'HUMANITIES_SOCIETY_ELECTIVE' || c.classification?.type === 'HUMANITIES_SOCIETY_ELECTIVE')
       .sort(sortByCode),
     fulfilled: false,
   });
@@ -149,7 +155,7 @@ export function buildSectionsFromClassifiedCourses(
       id: 'OTHER_ELECTIVE',
       title: '자유선택',
       titleElements: ['자유선택'],
-      courses: enrolledCourses.filter((c) => c.classification?.type === 'OTHER_ELECTIVE').sort(sortByCode),
+      courses: enrolledCourses.filter((c) => c.specifiedClassification?.type === 'OTHER_ELECTIVE' || c.classification?.type === 'OTHER_ELECTIVE').sort(sortByCode),
       fulfilled: false,
     });
     out.push({

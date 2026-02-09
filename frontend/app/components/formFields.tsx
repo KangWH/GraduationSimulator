@@ -15,7 +15,7 @@ interface InputProps {
   name?: string;
   value: any;
   onChange: (newValue: any) => void;
-  type: 'text' | 'email' | 'url' | 'password';
+  type?: 'text' | 'email' | 'url' | 'password';
   inputMode?: "text" | "email" | "url" | "search" | "tel" | "none" | "numeric" | "decimal" | undefined;
   required?: boolean;
   placeholder?: string;

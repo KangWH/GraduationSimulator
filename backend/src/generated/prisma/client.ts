@@ -69,3 +69,8 @@ export type GeneralEdRequirement = Prisma.GeneralEdRequirementModel
  * 
  */
 export type MajorRequirement = Prisma.MajorRequirementModel
+/**
+ * Model CourseSubstitution
+ * 
+ */
+export type CourseSubstitution = Prisma.CourseSubstitutionModel

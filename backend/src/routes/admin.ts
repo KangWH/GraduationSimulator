@@ -557,4 +557,156 @@ router.delete('/major-requirements/:id', async (req: Request, res: Response) => 
   }
 });
 
+// ========== 대체과목 관리 ==========
+
+// 목록 조회
+router.get('/substitutions', async (req: Request, res: Response) => {
+  try {
+    const substitutions = await prisma.courseSubstitution.findMany({
+      orderBy: [
+        { department: 'asc' },
+        { originalCourseCode: 'asc' },
+        { startYear: 'desc' },
+      ],
+    });
+    res.json({
+      success: true,
+      data: substitutions
+    });
+  } catch (error: any) {
+    console.error('Error fetching substitutions:', error);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 생성
+router.post('/substitutions', async (req: Request, res: Response) => {
+  try {
+    const { originalCourseCode, substituteCourseCode, department, startYear, endYear, description } = req.body;
+    
+    if (!originalCourseCode || !substituteCourseCode || !startYear) {
+      return res.status(400).json({
+        success: false,
+        message: 'originalCourseCode, substituteCourseCode, startYear를 모두 입력해주세요.'
+      });
+    }
+
+    const substitution = await prisma.courseSubstitution.create({
+      data: {
+        originalCourseCode,
+        substituteCourseCode,
+        department: department || null,
+        startYear: parseInt(startYear),
+        endYear: endYear ? parseInt(endYear) : null,
+        description: description || null,
+      }
+    });
+
+    res.json({
+      success: true,
+      message: '대체과목이 생성되었습니다.',
+      data: substitution
+    });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({
+        success: false,
+        message: '이미 존재하는 대체과목 조합입니다.'
+      });
+    }
+    console.error('Error creating substitution:', error);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 수정
+router.put('/substitutions/:id', async (req: Request, res: Response) => {
+  try {
+    const id = validateUUID(req.params.id);
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 ID 형식입니다.'
+      });
+    }
+    const { originalCourseCode, substituteCourseCode, department, startYear, endYear, description } = req.body;
+    
+    const updateData: any = {};
+    if (originalCourseCode !== undefined) updateData.originalCourseCode = originalCourseCode;
+    if (substituteCourseCode !== undefined) updateData.substituteCourseCode = substituteCourseCode;
+    if (department !== undefined) updateData.department = department || null;
+    if (startYear !== undefined) updateData.startYear = parseInt(String(startYear));
+    if (endYear !== undefined) updateData.endYear = endYear ? parseInt(String(endYear)) : null;
+    if (description !== undefined) updateData.description = description || null;
+
+    const substitution = await prisma.courseSubstitution.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json({
+      success: true,
+      message: '대체과목이 수정되었습니다.',
+      data: substitution
+    });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({
+        success: false,
+        message: '대체과목을 찾을 수 없습니다.'
+      });
+    }
+    if (error.code === 'P2002') {
+      return res.status(409).json({
+        success: false,
+        message: '이미 존재하는 대체과목 조합입니다.'
+      });
+    }
+    console.error('Error updating substitution:', error);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 삭제
+router.delete('/substitutions/:id', async (req: Request, res: Response) => {
+  try {
+    const id = validateUUID(req.params.id);
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 ID 형식입니다.'
+      });
+    }
+    
+    await prisma.courseSubstitution.delete({
+      where: { id }
+    });
+    res.json({
+      success: true,
+      message: '대체과목이 삭제되었습니다.'
+    });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({
+        success: false,
+        message: '대체과목을 찾을 수 없습니다.'
+      });
+    }
+    console.error('Error deleting substitution:', error);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
 export default router;
