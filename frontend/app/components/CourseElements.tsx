@@ -113,7 +113,7 @@ export function CourseBar({
               {course.grade}
             </span>
           )}
-          {course.classification?.type === 'MAJOR_AND_DOUBLE_MAJOR' && (
+          {(course.specifiedClassification?.type === 'MAJOR_AND_DOUBLE_MAJOR' || course.classification?.type === 'MAJOR_AND_DOUBLE_MAJOR') && (
             <span className="text-xs text-gray-500 dark:text-zinc-400 leading-tight whitespace-nowrap">중복인정</span>
           )}
           <p className="text-xs text-gray-700 dark:text-zinc-300 leading-tight whitespace-nowrap">

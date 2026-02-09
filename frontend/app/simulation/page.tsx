@@ -143,7 +143,7 @@ export default function SimulationPage() {
             id: sim.id,
             name: sim.title,
             date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
-            canGraduate: false, // TODO: 졸업가능 여부 계산 로직 추가 필요
+            canGraduate: false,
           }));
           setPreviousSimulations(sims);
         }
@@ -583,7 +583,7 @@ export default function SimulationPage() {
               grade: raw.grade,
               possibleClassifications: [],
               specifiedClassification: raw.recognizedAs,
-              classification: raw.recognizedAs
+              classification: undefined
             } as CourseSimulation;
           })
           .catch((error) => {
@@ -1024,7 +1024,7 @@ export default function SimulationPage() {
           enrolledSemester: targetSemesterObj.semester,
           grade: defaultGrade,
           possibleClassifications: [],
-          specifiedClassification: profile ? determineRecognizedAs(courseObj, profile) : { type: 'OTHER_ELECTIVE' },
+          specifiedClassification: null,
           classification: null
         };
 

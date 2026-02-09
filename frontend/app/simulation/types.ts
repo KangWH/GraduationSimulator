@@ -45,5 +45,6 @@ export interface Requirement {
   targets?: CourseCondition[];
   targetTags?: string[];
   constraints?: any[];
+  usedCourses?: CourseSimulation[];
   fulfilled: boolean;
 }
