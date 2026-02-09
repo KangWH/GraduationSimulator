@@ -6,7 +6,7 @@ import { Input, Select, NumberInput } from '../components/formFields';
 import { DepartmentDropdown } from '../components/DepartmentDropdown';
 import { API } from '../lib/api';
 
-type Tab = 'courses' | 'general' | 'major';
+type Tab = 'courses' | 'general' | 'major' | 'substitutions';
 
 interface GeneralEdRequirement {
   id: string;
@@ -21,6 +21,16 @@ interface MajorRequirement {
   department: string;
   type: string;
   requirements: any;
+}
+
+interface CourseSubstitution {
+  id: string;
+  originalCourseCode: string;
+  substituteCourseCode: string;
+  department: string | null;
+  startYear: number;
+  endYear: number | null;
+  description: string | null;
 }
 
 export default function AdminPage() {
@@ -84,6 +94,16 @@ export default function AdminPage() {
               >
                 졸업요건(학과별)
               </button>
+              <button
+                onClick={() => setActiveTab('substitutions')}
+                className={`px-4 py-2 text-sm font-medium ${
+                  activeTab === 'substitutions'
+                    ? 'border-b-2 border-violet-500 text-violet-600 dark:text-violet-400'
+                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                }`}
+              >
+                대체과목
+              </button>
             </div>
             <button
               onClick={handleLogout}
@@ -99,6 +119,7 @@ export default function AdminPage() {
         {activeTab === 'courses' && <CoursesTab />}
         {activeTab === 'general' && <GeneralEdRequirementsTab />}
         {activeTab === 'major' && <MajorRequirementsTab />}
+        {activeTab === 'substitutions' && <SubstitutionsTab />}
       </div>
     </div>
   );
@@ -774,6 +795,319 @@ function MajorRequirementsTab() {
                         </td>
                       );
                     })}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 대체과목 관리 탭
+function SubstitutionsTab() {
+  const [substitutions, setSubstitutions] = useState<CourseSubstitution[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState({
+    originalCourseCode: '',
+    substituteCourseCode: '',
+    department: '',
+    startYear: '',
+    endYear: '',
+    description: '',
+  });
+
+  useEffect(() => {
+    loadSubstitutions();
+  }, []);
+
+  const loadSubstitutions = async () => {
+    try {
+      const res = await fetch(`${API}/admin/substitutions`);
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error('Expected JSON but got:', contentType, text);
+        throw new Error('Response is not JSON');
+      }
+      const data = await res.json();
+      if (data.success) {
+        setSubstitutions(data.data);
+      }
+    } catch (error) {
+      console.error('Error loading substitutions:', error);
+      // 빈 배열로 설정하여 UI가 깨지지 않도록 함
+      setSubstitutions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = () => {
+    setEditingId(null);
+    setShowForm(true);
+    setFormData({
+      originalCourseCode: '',
+      substituteCourseCode: '',
+      department: '',
+      startYear: '',
+      endYear: '',
+      description: '',
+    });
+  };
+
+  const handleEdit = (sub: CourseSubstitution) => {
+    setEditingId(sub.id);
+    setShowForm(true);
+    setFormData({
+      originalCourseCode: sub.originalCourseCode,
+      substituteCourseCode: sub.substituteCourseCode,
+      department: sub.department || '',
+      startYear: sub.startYear.toString(),
+      endYear: sub.endYear?.toString() || '',
+      description: sub.description || '',
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const body = {
+        originalCourseCode: formData.originalCourseCode,
+        substituteCourseCode: formData.substituteCourseCode,
+        department: formData.department || null,
+        startYear: parseInt(formData.startYear),
+        endYear: formData.endYear ? parseInt(formData.endYear) : null,
+        description: formData.description || null,
+      };
+
+      if (editingId) {
+        const res = await fetch(`${API}/admin/substitutions/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (data.success) {
+          await loadSubstitutions();
+          setShowForm(false);
+          handleCreate();
+        } else {
+          alert(data.message || '수정에 실패했습니다.');
+        }
+      } else {
+        const res = await fetch(`${API}/admin/substitutions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (data.success) {
+          await loadSubstitutions();
+          setShowForm(false);
+          handleCreate();
+        } else {
+          alert(data.message || '생성에 실패했습니다.');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving substitution:', error);
+      alert('저장 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+    try {
+      const res = await fetch(`${API}/admin/substitutions/${id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        await loadSubstitutions();
+      } else {
+        alert(data.message || '삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('Error deleting substitution:', error);
+      alert('삭제 중 오류가 발생했습니다.');
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-8">로딩 중...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold">대체과목 관리</h2>
+        <button
+          onClick={handleCreate}
+          className="px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600"
+        >
+          새 대체과목 추가
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-zinc-900 p-6 rounded-lg shadow-md space-y-4">
+          <h3 className="text-lg font-semibold mb-4">
+            {editingId ? '대체과목 수정' : '새 대체과목 추가'}
+          </h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">원본 과목 코드</label>
+              <Input
+                type="text"
+                value={formData.originalCourseCode}
+                onChange={(val) => setFormData({ ...formData, originalCourseCode: val })}
+                placeholder="예: EE.20100"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">대체 과목 코드</label>
+              <Input
+                type="text"
+                value={formData.substituteCourseCode}
+                onChange={(val) => setFormData({ ...formData, substituteCourseCode: val })}
+                placeholder="예: CS.10100"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">학과 코드 (선택, 비우면 전역 규칙)</label>
+              <Input
+                type="text"
+                value={formData.department}
+                onChange={(val) => setFormData({ ...formData, department: val })}
+                placeholder="예: EE 또는 비워두기"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">적용 시작 연도</label>
+              <NumberInput
+                value={formData.startYear}
+                onChange={(val) => setFormData({ ...formData, startYear: val })}
+                placeholder="예: 2020"
+                required
+                min="2000"
+                max="2100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">적용 중지 연도 (선택, 비우면 현재도 적용)</label>
+              <NumberInput
+                value={formData.endYear}
+                onChange={(val) => setFormData({ ...formData, endYear: val })}
+                placeholder="예: 2025 또는 비워두기"
+                min="2000"
+                max="2100"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium mb-1">설명 (선택)</label>
+              <Input
+                type="text"
+                value={formData.description}
+                onChange={(val) => setFormData({ ...formData, description: val })}
+                placeholder="설명을 입력하세요"
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 dark:bg-violet-500 dark:hover:bg-violet-600"
+            >
+              {editingId ? '수정' : '생성'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                handleCreate();
+              }}
+              className="px-4 py-2 bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-zinc-600"
+            >
+              취소
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
+            <thead className="bg-gray-50 dark:bg-zinc-800">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  원본 과목
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  대체 과목
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  학과
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  적용 기간
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  설명
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  작업
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-zinc-900 divide-y divide-gray-200 dark:divide-zinc-700">
+              {substitutions.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                    대체과목이 없습니다.
+                  </td>
+                </tr>
+              ) : (
+                substitutions.map((sub) => (
+                  <tr key={sub.id} className="hover:bg-gray-50 dark:hover:bg-zinc-800">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {sub.originalCourseCode}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {sub.substituteCourseCode}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {sub.department || '(전역)'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {sub.startYear} ~ {sub.endYear || '현재'}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                      {sub.description || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => handleEdit(sub)}
+                        className="text-violet-600 hover:text-violet-900 dark:text-violet-400 dark:hover:text-violet-300 mr-4"
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={() => handleDelete(sub.id)}
+                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        삭제
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}

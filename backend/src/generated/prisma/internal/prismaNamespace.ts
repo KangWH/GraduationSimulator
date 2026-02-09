@@ -389,7 +389,8 @@ export const ModelName = {
   Simulation: 'Simulation',
   CourseOffering: 'CourseOffering',
   GeneralEdRequirement: 'GeneralEdRequirement',
-  MajorRequirement: 'MajorRequirement'
+  MajorRequirement: 'MajorRequirement',
+  CourseSubstitution: 'CourseSubstitution'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -405,7 +406,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "profile" | "simulation" | "courseOffering" | "generalEdRequirement" | "majorRequirement"
+    modelProps: "user" | "profile" | "simulation" | "courseOffering" | "generalEdRequirement" | "majorRequirement" | "courseSubstitution"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -853,6 +854,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    CourseSubstitution: {
+      payload: Prisma.$CourseSubstitutionPayload<ExtArgs>
+      fields: Prisma.CourseSubstitutionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CourseSubstitutionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseSubstitutionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CourseSubstitutionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseSubstitutionPayload>
+        }
+        findFirst: {
+          args: Prisma.CourseSubstitutionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseSubstitutionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CourseSubstitutionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseSubstitutionPayload>
+        }
+        findMany: {
+          args: Prisma.CourseSubstitutionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseSubstitutionPayload>[]
+        }
+        create: {
+          args: Prisma.CourseSubstitutionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseSubstitutionPayload>
+        }
+        createMany: {
+          args: Prisma.CourseSubstitutionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CourseSubstitutionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseSubstitutionPayload>[]
+        }
+        delete: {
+          args: Prisma.CourseSubstitutionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseSubstitutionPayload>
+        }
+        update: {
+          args: Prisma.CourseSubstitutionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseSubstitutionPayload>
+        }
+        deleteMany: {
+          args: Prisma.CourseSubstitutionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CourseSubstitutionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CourseSubstitutionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseSubstitutionPayload>[]
+        }
+        upsert: {
+          args: Prisma.CourseSubstitutionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CourseSubstitutionPayload>
+        }
+        aggregate: {
+          args: Prisma.CourseSubstitutionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateCourseSubstitution>
+        }
+        groupBy: {
+          args: Prisma.CourseSubstitutionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CourseSubstitutionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CourseSubstitutionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CourseSubstitutionCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -930,8 +1005,8 @@ export const SimulationScalarFieldEnum = {
   minors: 'minors',
   advancedMajor: 'advancedMajor',
   individuallyDesignedMajor: 'individuallyDesignedMajor',
-  earlyGraduation: 'earlyGraduation',
-  courses: 'courses'
+  courses: 'courses',
+  earlyGraduation: 'earlyGraduation'
 } as const
 
 export type SimulationScalarFieldEnum = (typeof SimulationScalarFieldEnum)[keyof typeof SimulationScalarFieldEnum]
@@ -941,14 +1016,14 @@ export const CourseOfferingScalarFieldEnum = {
   id: 'id',
   code: 'code',
   title: 'title',
-  searchTitle: 'searchTitle',
   department: 'department',
   category: 'category',
   tags: 'tags',
   credit: 'credit',
   au: 'au',
+  crossRecognition: 'crossRecognition',
   level: 'level',
-  crossRecognition: 'crossRecognition'
+  searchTitle: 'searchTitle'
 } as const
 
 export type CourseOfferingScalarFieldEnum = (typeof CourseOfferingScalarFieldEnum)[keyof typeof CourseOfferingScalarFieldEnum]
@@ -973,6 +1048,19 @@ export const MajorRequirementScalarFieldEnum = {
 } as const
 
 export type MajorRequirementScalarFieldEnum = (typeof MajorRequirementScalarFieldEnum)[keyof typeof MajorRequirementScalarFieldEnum]
+
+
+export const CourseSubstitutionScalarFieldEnum = {
+  id: 'id',
+  originalCourseCode: 'originalCourseCode',
+  substituteCourseCode: 'substituteCourseCode',
+  department: 'department',
+  startYear: 'startYear',
+  endYear: 'endYear',
+  description: 'description'
+} as const
+
+export type CourseSubstitutionScalarFieldEnum = (typeof CourseSubstitutionScalarFieldEnum)[keyof typeof CourseSubstitutionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1005,6 +1093,14 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 
 
 
@@ -1190,6 +1286,7 @@ export type GlobalOmitConfig = {
   courseOffering?: Prisma.CourseOfferingOmit
   generalEdRequirement?: Prisma.GeneralEdRequirementOmit
   majorRequirement?: Prisma.MajorRequirementOmit
+  courseSubstitution?: Prisma.CourseSubstitutionOmit
 }
 
 /* Types for Logging */

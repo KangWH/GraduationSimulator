@@ -56,7 +56,8 @@ export const ModelName = {
   Simulation: 'Simulation',
   CourseOffering: 'CourseOffering',
   GeneralEdRequirement: 'GeneralEdRequirement',
-  MajorRequirement: 'MajorRequirement'
+  MajorRequirement: 'MajorRequirement',
+  CourseSubstitution: 'CourseSubstitution'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -113,8 +114,8 @@ export const SimulationScalarFieldEnum = {
   minors: 'minors',
   advancedMajor: 'advancedMajor',
   individuallyDesignedMajor: 'individuallyDesignedMajor',
-  earlyGraduation: 'earlyGraduation',
-  courses: 'courses'
+  courses: 'courses',
+  earlyGraduation: 'earlyGraduation'
 } as const
 
 export type SimulationScalarFieldEnum = (typeof SimulationScalarFieldEnum)[keyof typeof SimulationScalarFieldEnum]
@@ -124,14 +125,14 @@ export const CourseOfferingScalarFieldEnum = {
   id: 'id',
   code: 'code',
   title: 'title',
-  searchTitle: 'searchTitle',
   department: 'department',
   category: 'category',
   tags: 'tags',
   credit: 'credit',
   au: 'au',
+  crossRecognition: 'crossRecognition',
   level: 'level',
-  crossRecognition: 'crossRecognition'
+  searchTitle: 'searchTitle'
 } as const
 
 export type CourseOfferingScalarFieldEnum = (typeof CourseOfferingScalarFieldEnum)[keyof typeof CourseOfferingScalarFieldEnum]
@@ -156,6 +157,19 @@ export const MajorRequirementScalarFieldEnum = {
 } as const
 
 export type MajorRequirementScalarFieldEnum = (typeof MajorRequirementScalarFieldEnum)[keyof typeof MajorRequirementScalarFieldEnum]
+
+
+export const CourseSubstitutionScalarFieldEnum = {
+  id: 'id',
+  originalCourseCode: 'originalCourseCode',
+  substituteCourseCode: 'substituteCourseCode',
+  department: 'department',
+  startYear: 'startYear',
+  endYear: 'endYear',
+  description: 'description'
+} as const
+
+export type CourseSubstitutionScalarFieldEnum = (typeof CourseSubstitutionScalarFieldEnum)[keyof typeof CourseSubstitutionScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -188,4 +202,12 @@ export const JsonNullValueFilter = {
 } as const
 
 export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
+
+
+export const NullsOrder = {
+  first: 'first',
+  last: 'last'
+} as const
+
+export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
 

@@ -10,7 +10,7 @@ import type { Profile, Enrollment, RawEnrollment, Semester, Grade, Course } from
 import type { CourseSimulation, RawCourseSimulation, CreditType, Requirement } from './types';
 import AddCoursePanel from '../profile/settings/AddCoursePanel';
 import EnrollmentsList from '../profile/settings/EnrollmentsList';
-import { classifyCourses, RequirementsProps } from './conditionTester';
+import { classifyCourses, RequirementsProps, SubstitutionMap } from './conditionTester';
 import {
   type Section,
   type SimulationSectionFilters,
@@ -1168,48 +1168,91 @@ export default function SimulationPage() {
         return { type: 'humanitiesSocietyElective', data: (data.requirements || []) as Requirement[] };
       })());
 
-      Promise.allSettled(promises)
+      // 대체과목 데이터 로드
+      const substitutionPromise = (async () => {
+        try {
+          const year = filters.requirementYear || profile?.admissionYear || new Date().getFullYear();
+          const department = filters.major || profile?.major;
+          const url = department 
+            ? `${API}/substitutions?year=${year}&department=${department}`
+            : `${API}/substitutions?year=${year}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data.success) {
+            return {
+              map: data.map || {},
+              reverse: data.reverse || {},
+              groups: data.groups || {},
+            } as SubstitutionMap;
+          }
+          return { map: {}, reverse: {}, groups: {} } as SubstitutionMap;
+        } catch (error) {
+          console.error('Error loading substitutions:', error);
+          return { map: {}, reverse: {}, groups: {} } as SubstitutionMap;
+        }
+      })();
+
+      Promise.allSettled([...promises, substitutionPromise])
         .then((results) => {
           let requirements: RequirementsProps = { basicRequired: [], basicElective: [], mandatoryGeneralCourses: [], humanitiesSocietyElective: [], major: [], doubleMajors: {}, minors: {} };
+          let substitutionMap: SubstitutionMap | undefined;
 
-          results.forEach((result) => {
+          results.forEach((result, index) => {
             if (result.status !== 'fulfilled')
               return;
 
-            switch (result.value.type) {
+            // 마지막 결과는 대체과목 데이터
+            if (index === results.length - 1) {
+              substitutionMap = result.value as SubstitutionMap;
+              return;
+            }
+
+            const value = result.value as { type: string; department?: string; data?: Requirement[] };
+            const data = value.data || []; // undefined인 경우 빈 배열로 처리
+            switch (value.type) {
               case 'basicRequired':
-                requirements.basicRequired = result.value.data;
+                requirements.basicRequired = data;
                 break;
               case 'basicElective':
-                requirements.basicElective = result.value.data;
+                requirements.basicElective = data;
                 break;
               case 'mandatoryGeneralCourses':
-                requirements.mandatoryGeneralCourses = result.value.data;
+                requirements.mandatoryGeneralCourses = data;
                 break;
               case 'humanitiesSocietyElective':
-                requirements.humanitiesSocietyElective = result.value.data;
+                requirements.humanitiesSocietyElective = data;
                 break;
               case 'major':
-                requirements.major = result.value.data;
+                requirements.major = data;
                 break;
               case 'doubleMajor':
-                requirements.doubleMajors![result.value.department!] = result.value.data
+                if (value.department) {
+                  requirements.doubleMajors![value.department] = data;
+                }
                 break;
               case 'minor':
-                requirements.minors![result.value.department!] = result.value.data;
+                if (value.department) {
+                  requirements.minors![value.department] = data;
+                }
                 break;
               case 'advancedMajor':
-                requirements.advanced = result.value.data;
+                requirements.advanced = data;
                 break;
               case 'individuallyDesignedMajor':
-                requirements.individuallyDesignedMajor = result.value.data;
+                requirements.individuallyDesignedMajor = data;
                 break;
               case 'research':
-                requirements.research = result.value.data;
+                requirements.research = data;
             }
           });
 
-          const { enrolledCourses, requirements: evaluatedRequirements } = classifyCourses(simulationCourses, requirements, filters.major);
+          const { enrolledCourses, requirements: evaluatedRequirements } = classifyCourses(
+            simulationCourses, 
+            requirements, 
+            filters.major,
+            undefined,
+            substitutionMap
+          );
           setSimulationCourses(enrolledCourses);
           prevSimulationCoursesRef.current = enrolledCourses;
 

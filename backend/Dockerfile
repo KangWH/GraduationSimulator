@@ -8,8 +8,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# 4. Prisma schema 파일 복사 (generate에 필요)
+# 4. Prisma schema 및 설정 파일 복사 (generate에 필요)
 COPY prisma ./prisma
+COPY prisma.config.ts ./
 
 # 5. Prisma 클라이언트 생성
 RUN npx prisma generate

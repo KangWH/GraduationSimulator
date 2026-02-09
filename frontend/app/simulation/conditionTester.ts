@@ -8,15 +8,49 @@ export interface CourseCondition {
   firstDigits?: number[];
 }
 
+export interface SubstitutionMap {
+  // 원본 과목 코드 → 대체 과목 코드 배열
+  map: {
+    [originalCode: string]: string[];
+  };
+  
+  // 역방향 맵: 대체 과목 코드 → 원본 과목 코드 배열
+  reverse: {
+    [substituteCode: string]: string[];
+  };
+  
+  // 대체과목 그룹 (상호 배타적인 과목 그룹)
+  groups: {
+    [courseCode: string]: string[];
+  };
+}
+
 function checkCourseCondition(
   condition: CourseCondition, 
   course: CourseSimulation, 
   department?: string, 
   departments?: string[],
+  substitutionMap?: SubstitutionMap
 ) {
+  // 대체과목인 경우 원본 과목 코드 확인
+  const originalCodes = substitutionMap?.reverse?.[course.course.code] || [];
+  const isSubstitute = originalCodes.length > 0;
+  const originalCourseSimulations = originalCodes.map(code => {
+    return { ...course, course: {
+      ...course.course,
+      code: code,
+      department: code.split('.')[0], // 엄밀하게 수정할 필요 있음
+    } };
+  })
+  const originalCourseSimulationMatchesCondition = originalCourseSimulations.some(c => checkCourseCondition(condition, c, department, departments, substitutionMap))
+  
+  // 원본 과목이 조건을 만족하는 경우, 대체과목도 조건을 만족하는 것으로 취급
+  if (isSubstitute && originalCourseSimulationMatchesCondition)
+    return true;
+  
+  // 일반적인 조건 확인
   if (condition.codes !== undefined) {
     const courseCodes = [course.course.code];
-    
     if (!courseCodes.some(code => condition.codes!.includes(code)))
       return false;
   }
@@ -56,20 +90,25 @@ function checkCourseCondition(
   return true;
 }
 
-  return conditions.some(c => checkCourseCondition(c, course, department, departments));
 function checkCourseConditions(
   conditions: CourseCondition[], 
   course: CourseSimulation, 
   department?: string, 
   departments?: string[],
+  substitutionMap?: SubstitutionMap
 ) {
+  return conditions.some(c => checkCourseCondition(c, course, department, departments, substitutionMap));
 }
 
 
 /** 지정된 과목을 주어진 졸업요건 달성 여부 계산에 반영합니다. */
-function encrementRequirementCurrentValue(course: CourseSimulation, requirements: Requirement[]) {
+function encrementRequirementCurrentValue(
+  course: CourseSimulation, 
+  requirements: Requirement[],
+  substitutionMap?: SubstitutionMap
+) {
   requirements.forEach(requirement => {
-    const testResult = checkCourseConditions(requirement.targets || [], course);
+    const testResult = checkCourseConditions(requirement.targets || [], course, undefined, undefined, substitutionMap);
 
     if (testResult) {
       switch (requirement.type) {
@@ -280,6 +319,44 @@ function getConstraintUtilizationScore(
   return maxScore;
 }
 
+/**
+ * 대체과목이 다른 학과의 필수 요건에 배정될 수 있는지 확인
+ * 복잡한 예외 케이스 처리:
+ * - X학과: A과목 필수
+ * - Y학과: B과목 또는 C과목 중 하나 필수
+ * - A가 B의 대체과목인 경우, A는 X학과 전공학점으로 배정되어야 하므로 C를 우선 고려
+ */
+function shouldPreferOriginalCourse(
+  course: CourseSimulation,
+  requirement: Requirement,
+  allRequirements: RequirementsProps,
+  majorDepartment: string,
+  substitutionMap?: SubstitutionMap
+): boolean {
+  // 대체과목인 경우
+  if (!substitutionMap?.reverse) return false;
+  const originalCodes = substitutionMap.reverse[course.course.code];
+  if (!originalCodes || originalCodes.length === 0) return false;
+  
+  // 원본 과목이 다른 학과의 필수 요건인지 확인
+  for (const originalCode of originalCodes) {
+    // 주전공 필수 요건 확인 (MIN_COURSES_AMONG 타입이고 codes에 포함)
+    const isMajorRequired = allRequirements.major.some(req => 
+      req.type === 'MIN_COURSES_AMONG' &&
+      req.targets?.some(target => 
+        target.codes?.includes(originalCode)
+      )
+    );
+    
+    if (isMajorRequired) {
+      // 주전공 필수 요건이면 원본 과목을 우선 배정
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 /** 특정 요건 키에 대해 배정 가능한 미배정 과목 목록(제약·중복인정 한도·심전 상한 반영) */
 function getAssignableCourses(
   keyInfo: ResolvedRequirementKey,
@@ -288,6 +365,7 @@ function getAssignableCourses(
   _overlapCreditsUsed: number,
   _maxMajorDoubleMajorOverlapCredits: number,
   allRequirements: RequirementsProps,
+  substitutionMap?: SubstitutionMap,
 ): CourseSimulation[] {
   const { type, department, requirement } = keyInfo;
   const req = requirement;
@@ -315,7 +393,7 @@ function getAssignableCourses(
     };
 
     if (!canBe(type, department)) return false;
-    if (req && !checkCourseConditions(req.targets || [], course, dep, idMajorDepartments))
+    if (req && !checkCourseConditions(req.targets || [], course, dep, idMajorDepartments, substitutionMap))
       return false;
     // requirementArray의 모든 requirement에 대해 constraint 확인 (배정 시 모두 확인되므로)
     // MAJOR의 경우 majorDepartment를 제외할 학과 목록으로 전달 (타학과 필터링용)
@@ -340,6 +418,7 @@ export function classifyCourses(
   requirements: RequirementsProps,
   majorDepartment: string,
   maxMajorDoubleMajorOverlapCredits: number = DEFAULT_MAX_MAJOR_DOUBLE_MAJOR_OVERLAP_CREDITS,
+  substitutionMap?: SubstitutionMap,
 ) {
   /* 1단계: 수강 내역 정렬, 학점 인정 분야 초기화, 낙제·재수강한 과목 무효 처리 */
 
@@ -355,20 +434,67 @@ export function classifyCourses(
     if (['F', 'W', 'NR', 'U'].includes(c.grade))
       c.classification = { type: 'UNRECOGNIZED' };
     else {
-      const enrollmentsOfSameCourse = resultCourses.filter(ec => ec.course.code === c.course.code);
-      if (enrollmentsOfSameCourse.length > 1) {
-        // 재수강한 이력이 있음
-        const finalEnrollment = enrollmentsOfSameCourse[enrollmentsOfSameCourse.length - 1];
-        const isFinalEnrollment = finalEnrollment.enrolledYear === c.enrolledYear && finalEnrollment.enrolledSemester === c.enrolledSemester;
-        if (isFinalEnrollment)
-          // 최종 수강 이력인 경우
-          c.classification = null;
-        else
-          // 아닌 경우 (성적 무효)
+      // 대체과목 관련 재수강 확인 (단방향: 대체과목을 먼저 수강한 경우에만 원본 과목을 재수강으로 처리)
+      const currentCode = c.course.code;
+      const substitutes = substitutionMap?.map[currentCode] || []; // 현재 과목의 대체과목 목록
+      
+      // 현재 과목이 원본 과목이고, 이전에 대체과목을 수강한 경우 재수강 처리
+      if (substitutes.length > 0) {
+        // 이전에 수강한 대체과목 찾기 (현재 과목보다 먼저 수강한 것)
+        const previousSubstituteEnrollments = resultCourses.filter(ec => {
+          if (ec.enrolledYear > c.enrolledYear) return false;
+          if (ec.enrolledYear === c.enrolledYear) {
+            const semesterOrder = ['SPRING', 'SUMMER', 'FALL', 'WINTER'];
+            const currentSemesterIndex = semesterOrder.indexOf(c.enrolledSemester);
+            const ecSemesterIndex = semesterOrder.indexOf(ec.enrolledSemester);
+            if (ecSemesterIndex >= currentSemesterIndex) return false;
+          }
+          return substitutes.includes(ec.course.code) && 
+                 !['F', 'W', 'NR', 'U'].includes(ec.grade);
+        });
+        
+        if (previousSubstituteEnrollments.length > 0) {
+          // 대체과목을 먼저 수강했으므로 원본 과목은 재수강으로 처리
           c.classification = { type: 'UNRECOGNIZED' };
-      } else
-        // 재수강한 이력이 없음
-        c.classification = null;
+        } else {
+          // 대체과목을 먼저 수강하지 않았으므로 정상 처리
+          c.classification = null;
+        }
+      } else {
+        // 일반 재수강 확인 (같은 과목 코드를 여러 번 수강한 경우)
+        const sameCodeEnrollments = resultCourses.filter(ec => 
+          ec.course.code === currentCode
+        );
+        
+        if (sameCodeEnrollments.length > 1) {
+          // 같은 과목 코드 중 가장 최근 수강 이력 찾기
+          const finalEnrollment = sameCodeEnrollments
+            .filter(course => {
+              return !['F', 'W', 'NR', 'U'].includes(course.grade)
+            })
+            .sort((a, b) => {
+              if (a.enrolledYear !== b.enrolledYear) 
+                return b.enrolledYear - a.enrolledYear;
+              const semesterOrder = ['SPRING', 'SUMMER', 'FALL', 'WINTER'];
+              return semesterOrder.indexOf(b.enrolledSemester) - 
+                     semesterOrder.indexOf(a.enrolledSemester);
+            })[0];
+          
+          const isFinalEnrollment = 
+            finalEnrollment.enrolledYear === c.enrolledYear && 
+            finalEnrollment.enrolledSemester === c.enrolledSemester &&
+            finalEnrollment.course.code === c.course.code;
+          
+          if (isFinalEnrollment)
+            // 최종 수강 이력인 경우
+            c.classification = null;
+          else
+            // 아닌 경우 (성적 무효, 재수강으로 처리)
+            c.classification = { type: 'UNRECOGNIZED' };
+        } else
+          // 재수강한 이력이 없음
+          c.classification = null;
+      }
     }
     c.possibleClassifications = [];
   });
@@ -405,7 +531,7 @@ export function classifyCourses(
 
     // 기필
     requirements.basicRequired.forEach(requirement => {
-      const testResult = checkCourseConditions(requirement.targets || [], c);
+      const testResult = checkCourseConditions(requirement.targets || [], c, undefined, undefined, substitutionMap);
       if (testResult) {
         if ([...c.possibleClassifications].every(cl => cl?.type !== 'BASIC_REQUIRED'))
           c.possibleClassifications.push({ type: 'BASIC_REQUIRED' });
@@ -414,7 +540,7 @@ export function classifyCourses(
 
     // 기선
     requirements.basicElective.forEach(requirement => {
-      const testResult = checkCourseConditions(requirement.targets || [], c);
+      const testResult = checkCourseConditions(requirement.targets || [], c, undefined, undefined, substitutionMap);
       if (testResult) {
         if ([...c.possibleClassifications].every(cl => cl?.type !== 'BASIC_ELECTIVE'))
           c.possibleClassifications.push({ type: 'BASIC_ELECTIVE' });
@@ -425,7 +551,7 @@ export function classifyCourses(
 
     // 주전공
     requirements.major.forEach(requirement => {
-      const testResult = checkCourseConditions(requirement.targets || [], c);
+      const testResult = checkCourseConditions(requirement.targets || [], c, undefined, undefined, substitutionMap);
       if (testResult) {
         if ([...c.possibleClassifications].every(cl => cl?.type !== 'MAJOR'))
           c.possibleClassifications.push({ type: 'MAJOR' });
@@ -436,7 +562,7 @@ export function classifyCourses(
 
     // 심화전공
     requirements.advanced?.forEach(requirements => {
-      const testResult = checkCourseConditions(requirements.targets || [], c);
+      const testResult = checkCourseConditions(requirements.targets || [], c, undefined, undefined, substitutionMap);
       if (testResult) {
         if ([...c.possibleClassifications].every(cl => cl?.type !== 'ADVANCED_MAJOR'))
           c.possibleClassifications.push({ type: 'ADVANCED_MAJOR' });
@@ -447,7 +573,7 @@ export function classifyCourses(
 
     // 연구
     requirements.research?.forEach(requirements => {
-      const testResult = checkCourseConditions(requirements.targets || [], c);
+      const testResult = checkCourseConditions(requirements.targets || [], c, undefined, undefined, substitutionMap);
       if (testResult) {
         if ([...c.possibleClassifications].every(cl => cl?.type !== 'RESEARCH'))
           c.possibleClassifications.push({ type: 'RESEARCH' });
@@ -459,7 +585,7 @@ export function classifyCourses(
     // 복수전공
     Object.keys(requirements.doubleMajors || {}).forEach(department => {
       (requirements.doubleMajors || {})[department].forEach(requirements => {
-        const testResult = checkCourseConditions(requirements.targets || [], c);
+        const testResult = checkCourseConditions(requirements.targets || [], c, undefined, undefined, substitutionMap);
         if (testResult) {
           if ([...c.possibleClassifications].every(cl => cl?.type !== 'DOUBLE_MAJOR' || (cl?.type === 'DOUBLE_MAJOR' && cl.department !== department)))
             c.possibleClassifications.push({ type: 'DOUBLE_MAJOR', department });
@@ -476,7 +602,7 @@ export function classifyCourses(
     // 부전공
     Object.keys(requirements.minors || {}).forEach(department => {
       (requirements.minors || {})[department].forEach(requirements => {
-        const testResult = checkCourseConditions(requirements.targets || [], c);
+        const testResult = checkCourseConditions(requirements.targets || [], c, undefined, undefined, substitutionMap);
         if (testResult) {
           if ([...c.possibleClassifications].every(cl => cl?.type !== 'MINOR' || (cl?.type === 'MINOR' && cl.department !== department)))
             c.possibleClassifications.push({ type: 'MINOR', department });
@@ -489,7 +615,7 @@ export function classifyCourses(
     // 자유융합전공
     requirements.individuallyDesignedMajor?.forEach(requirement => {
       const departments = [majorDepartment, ...Object.keys(requirements.doubleMajors || []), ...Object.keys(requirements.minors || [])];
-      const testResult = checkCourseConditions(requirement.targets || [], c, undefined, departments);
+      const testResult = checkCourseConditions(requirement.targets || [], c, undefined, departments, substitutionMap);
       if (testResult) {
         if ([...c.possibleClassifications].every(cl => cl?.type !== 'INDIVIDUALLY_DESIGNED_MAJOR'))
           c.possibleClassifications.push({ type: 'INDIVIDUALLY_DESIGNED_MAJOR' });
@@ -500,7 +626,7 @@ export function classifyCourses(
 
     // 교양필수
     requirements.mandatoryGeneralCourses.forEach(requirement => {
-      const testResult = checkCourseConditions(requirement.targets || [], c);
+      const testResult = checkCourseConditions(requirement.targets || [], c, undefined, undefined, substitutionMap);
       if (testResult)
         if ([...c.possibleClassifications].every(cl => cl?.type !== 'MANDATORY_GENERAL_COURSES'))
           c.possibleClassifications.push({ type: 'MANDATORY_GENERAL_COURSES' });
@@ -508,7 +634,7 @@ export function classifyCourses(
 
     // 인문사회선택
     requirements.humanitiesSocietyElective.forEach(requirement => {
-      const testResult = checkCourseConditions(requirement.targets || [], c);
+      const testResult = checkCourseConditions(requirement.targets || [], c, undefined, undefined, substitutionMap);
       if (testResult) {
         if ([...c.possibleClassifications].every(cl => cl?.type !== 'HUMANITIES_SOCIETY_ELECTIVE'))
           c.possibleClassifications.push({ type: 'HUMANITIES_SOCIETY_ELECTIVE' });
@@ -541,38 +667,38 @@ export function classifyCourses(
 
     switch (course.specifiedClassification?.type) {
       case 'MAJOR':
-        encrementRequirementCurrentValue(course, requirements.major);
+        encrementRequirementCurrentValue(course, requirements.major, substitutionMap);
         break;
 
       case 'MAJOR_AND_DOUBLE_MAJOR':
-        encrementRequirementCurrentValue(course, requirements.major);
+        encrementRequirementCurrentValue(course, requirements.major, substitutionMap);
         if (requirements.doubleMajors)
-          encrementRequirementCurrentValue(course, requirements.doubleMajors[course.specifiedClassification.department]);
+          encrementRequirementCurrentValue(course, requirements.doubleMajors[course.specifiedClassification.department], substitutionMap);
         break;
       
       case 'ADVANCED_MAJOR':
         if (requirements.advanced)
-          encrementRequirementCurrentValue(course, requirements.advanced);
+          encrementRequirementCurrentValue(course, requirements.advanced, substitutionMap);
         break;
 
       case 'RESEARCH':
         if (requirements.research)
-          encrementRequirementCurrentValue(course, requirements.research);
+          encrementRequirementCurrentValue(course, requirements.research, substitutionMap);
         break;
 
       case 'DOUBLE_MAJOR':
         if (requirements.doubleMajors)
-          encrementRequirementCurrentValue(course, requirements.doubleMajors[course.specifiedClassification.department]);
+          encrementRequirementCurrentValue(course, requirements.doubleMajors[course.specifiedClassification.department], substitutionMap);
         break;
 
       case 'MINOR':
         if (requirements.minors)
-          encrementRequirementCurrentValue(course, requirements.minors[course.specifiedClassification.department]);
+          encrementRequirementCurrentValue(course, requirements.minors[course.specifiedClassification.department], substitutionMap);
         break;
 
       case 'INDIVIDUALLY_DESIGNED_MAJOR':
         if (requirements.individuallyDesignedMajor)
-          encrementRequirementCurrentValue(course, requirements.individuallyDesignedMajor);
+          encrementRequirementCurrentValue(course, requirements.individuallyDesignedMajor, substitutionMap);
         break;
     }
   });
@@ -590,7 +716,7 @@ export function classifyCourses(
     })
     .forEach(course => {
       course.classification = { type: 'BASIC_REQUIRED' };
-      encrementRequirementCurrentValue(course, requirements.basicRequired);
+      encrementRequirementCurrentValue(course, requirements.basicRequired, substitutionMap);
     });
   
   // 기선
@@ -603,7 +729,7 @@ export function classifyCourses(
     })
     .forEach(course => {
       course.classification = { type: 'BASIC_ELECTIVE' };
-      encrementRequirementCurrentValue(course, requirements.basicElective);
+      encrementRequirementCurrentValue(course, requirements.basicElective, substitutionMap);
     });
 
   // 교필
@@ -616,7 +742,7 @@ export function classifyCourses(
     })
     .forEach(course => {
       course.classification = { type: 'MANDATORY_GENERAL_COURSES' };
-      encrementRequirementCurrentValue(course, requirements.mandatoryGeneralCourses);
+      encrementRequirementCurrentValue(course, requirements.mandatoryGeneralCourses, substitutionMap);
     });
 
   // 인선
@@ -629,7 +755,7 @@ export function classifyCourses(
     })
     .forEach(course => {
       course.classification = { type: 'HUMANITIES_SOCIETY_ELECTIVE' };
-      encrementRequirementCurrentValue(course, requirements.humanitiesSocietyElective);
+      encrementRequirementCurrentValue(course, requirements.humanitiesSocietyElective, substitutionMap);
     });
 
   // 주전공 (인정 분야가 이것뿐인 과목)
@@ -646,7 +772,7 @@ export function classifyCourses(
       if (wouldViolateConstraint(requirements.major, course, majorDepartment, [majorDepartment]))
         return;
       course.classification = { type: 'MAJOR' };
-      encrementRequirementCurrentValue(course, requirements.major);
+      encrementRequirementCurrentValue(course, requirements.major, substitutionMap);
     });
   
   // 복수전공 (인정 분야가 이것뿐인 과목)
@@ -664,7 +790,7 @@ export function classifyCourses(
         if (wouldViolateConstraint(requirementArray, course, department))
           return;
         course.classification = { type: 'DOUBLE_MAJOR', department };
-        encrementRequirementCurrentValue(course, requirementArray);
+        encrementRequirementCurrentValue(course, requirementArray, substitutionMap);
       });
   });
 
@@ -683,7 +809,7 @@ export function classifyCourses(
         if (wouldViolateConstraint(requirementArray, course, department))
           return;
         course.classification = { type: 'MINOR', department };
-        encrementRequirementCurrentValue(course, requirementArray);
+        encrementRequirementCurrentValue(course, requirementArray, substitutionMap);
       });
   });
 
@@ -703,7 +829,7 @@ export function classifyCourses(
         if (wouldViolateConstraint(researchReqArray, course, undefined))
           return;
         course.classification = { type: 'RESEARCH' };
-        encrementRequirementCurrentValue(course, researchReqArray);
+        encrementRequirementCurrentValue(course, researchReqArray, substitutionMap);
       });
   }
 
@@ -724,7 +850,7 @@ export function classifyCourses(
         if (wouldViolateConstraint(idMajorReqArray, course, undefined, idMajorDepartments))
           return;
         course.classification = { type: 'INDIVIDUALLY_DESIGNED_MAJOR' };
-        encrementRequirementCurrentValue(course, idMajorReqArray);
+        encrementRequirementCurrentValue(course, idMajorReqArray, substitutionMap);
       });
   }
 
@@ -906,6 +1032,7 @@ export function classifyCourses(
         overlapCreditsUsed,
         maxMajorDoubleMajorOverlapCredits,
         requirements,
+        substitutionMap,
       );
       if (assignable.length === 0) continue;
 
@@ -916,7 +1043,7 @@ export function classifyCourses(
         if (!info?.requirement) continue;
         const r = (info.requirement.value ?? 0) - (info.requirement.currentValue ?? 0);
         if (r <= 0) continue;
-        const assignableForK = getAssignableCourses(info, currentlyUnspecifiedCourses, majorDepartment, overlapCreditsUsed, maxMajorDoubleMajorOverlapCredits, requirements);
+        const assignableForK = getAssignableCourses(info, currentlyUnspecifiedCourses, majorDepartment, overlapCreditsUsed, maxMajorDoubleMajorOverlapCredits, requirements, substitutionMap);
         assignableForK.forEach(c => keyCountPerCourse.set(c.courseId, (keyCountPerCourse.get(c.courseId) ?? 0) + 1));
       }
       // 심전만: 지정 학점 이상 채우되 초과 최소화. 그 외는 초과 무관, 중복인정 가능한 한 많이 사용.
@@ -931,6 +1058,36 @@ export function classifyCourses(
       );
       
       const pick = assignable.slice().sort((a, b) => {
+        // 복잡한 예외 케이스 처리: 대체과목 우선순위
+        // OR 조건에서 대체과목이 이미 다른 학과 필수 요건에 배정될 수 있는 경우
+        if (keyInfo.requirement && substitutionMap) {
+          const aIsSubstitute = shouldPreferOriginalCourse(a, keyInfo.requirement, requirements, majorDepartment, substitutionMap);
+          const bIsSubstitute = shouldPreferOriginalCourse(b, keyInfo.requirement, requirements, majorDepartment, substitutionMap);
+          
+          // 대체과목이 아닌 과목을 우선 (다른 학과 필수 요건에 배정 가능한 대체과목은 나중에)
+          if (aIsSubstitute && !bIsSubstitute) return 1;
+          if (!aIsSubstitute && bIsSubstitute) return -1;
+          
+          // 둘 다 대체과목이거나 둘 다 아닌 경우, OR 조건에서 원본 과목 코드가 아닌 옵션 우선
+          if (keyInfo.requirement.targets && keyInfo.requirement.targets.length > 1 && substitutionMap) {
+            // OR 조건인 경우 (targets가 여러 개)
+            const aOriginalCodes = substitutionMap.reverse[a.course.code] || [];
+            const bOriginalCodes = substitutionMap.reverse[b.course.code] || [];
+            
+            // 원본 과목 코드가 조건에 포함되어 있는지 확인
+            const aIsOriginalInCondition = keyInfo.requirement.targets.some(target =>
+              target.codes && aOriginalCodes.some(orig => target.codes!.includes(orig))
+            );
+            const bIsOriginalInCondition = keyInfo.requirement.targets.some(target =>
+              target.codes && bOriginalCodes.some(orig => target.codes!.includes(orig))
+            );
+            
+            // 원본 과목이 조건에 포함되지 않은 옵션 우선 (다른 옵션을 선택할 수 있도록)
+            if (!aIsOriginalInCondition && bIsOriginalInCondition) return -1;
+            if (aIsOriginalInCondition && !bIsOriginalInCondition) return 1;
+          }
+        }
+        
         // 심전이고 학점 조건일 때만: 지정 학점 이상 채우되 초과 최소화
         if (keyInfo.type === 'ADVANCED_MAJOR' && keyInfo.requirement?.type === 'MIN_CREDITS_AMONG' && reqVal > 0) {
           const overflowA = (curVal + a.course.credit) - reqVal;
@@ -1025,13 +1182,13 @@ export function classifyCourses(
 
       if (useOverlap && type === 'MAJOR' && otherDept != null) {
         course.classification = { type: 'MAJOR_AND_DOUBLE_MAJOR', department: otherDept };
-        encrementRequirementCurrentValue(course, requirements.major);
-        encrementRequirementCurrentValue(course, requirements.doubleMajors![otherDept]!);
+        encrementRequirementCurrentValue(course, requirements.major, substitutionMap);
+        encrementRequirementCurrentValue(course, requirements.doubleMajors![otherDept]!, substitutionMap);
         overlapCreditsUsed += credit;
       } else if (useOverlap && type === 'DOUBLE_MAJOR' && department) {
         course.classification = { type: 'MAJOR_AND_DOUBLE_MAJOR', department };
-        encrementRequirementCurrentValue(course, requirements.major);
-        encrementRequirementCurrentValue(course, requirements.doubleMajors![department]!);
+        encrementRequirementCurrentValue(course, requirements.major, substitutionMap);
+        encrementRequirementCurrentValue(course, requirements.doubleMajors![department]!, substitutionMap);
         overlapCreditsUsed += credit;
       } else {
         if (type === 'MAJOR')
@@ -1046,7 +1203,7 @@ export function classifyCourses(
           course.classification = { type: 'INDIVIDUALLY_DESIGNED_MAJOR' };
         else if (type === 'RESEARCH')
           course.classification = { type: 'RESEARCH' };
-        encrementRequirementCurrentValue(course, requirementArray);
+        encrementRequirementCurrentValue(course, requirementArray, substitutionMap);
       }
       assigned = true;
       break;

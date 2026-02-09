@@ -7,6 +7,7 @@ import coursesRouter from './routes/courses.js';
 import simulationRouter from './routes/simulation.js';
 import rulesRouter from './routes/rules.js';
 import adminRouter from './routes/admin.js';
+import substitutionsRouter from './routes/substitutions.js';
 
 import departments from './departments.json' with { type: 'json' };
 import courseCategories from './categories.json' with { type: 'json' };
@@ -38,6 +39,7 @@ app.use('/courses', coursesRouter);
 app.use('/simulation', simulationRouter);
 app.use('/rules', rulesRouter);
 app.use('/admin', adminRouter);
+app.use('/substitutions', substitutionsRouter);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
