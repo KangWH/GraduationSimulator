@@ -64,13 +64,7 @@ export default function LoginPage() {
     .then(data => {
       console.log('서버 응답:', data);
       if (data.success) {
-        // 쿠키가 자동으로 설정되므로 localStorage에 저장할 필요 없음
-        if (!data.hasProfile) {
-          router.push('/profile/setup');
-        } else {
-          // alert(data.message || '로그인이 완료되었습니다!');
-          router.push('/simulation');
-        }
+        router.push('/simulation');
       } else {
         alert(data.message || '로그인에 실패했습니다.');
       }

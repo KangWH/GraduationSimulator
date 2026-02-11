@@ -8,11 +8,17 @@ import { API } from '../../lib/api';
 import Accordion, { ACBody, ACTitle } from '@/app/components/Accordion';
 
 const VALID_GRADES: Grade[] = ['A+', 'A0', 'A-', 'B+', 'B0', 'B-', 'C+', 'C0', 'C-', 'D+', 'D0', 'D-', 'F', 'S', 'U', 'P', 'NR', 'W'];
-const SEMESTER_LABELS: Record<Semester, string> = {
+const SEMESTER_LABELS_KO: Record<Semester, string> = {
   SPRING: '봄',
   SUMMER: '여름',
   FALL: '가을',
   WINTER: '겨울',
+};
+const SEMESTER_LABELS_EN: Record<Semester, string> = {
+  SPRING: 'Spring',
+  SUMMER: 'Summer',
+  FALL: 'Fall',
+  WINTER: 'Winter',
 };
 
 const SEMESTER_ORDER: Semester[] = ['SPRING', 'SUMMER', 'FALL', 'WINTER'];
@@ -80,6 +86,7 @@ export function enrollmentKey(e: Enrollment): string {
 }
 
 interface EnrollmentsListProps {
+  lang?: 'ko' | 'en';
   enrollments: Enrollment[];
   semesterGroups: Map<string, Enrollment[]>;
   sortedSemesterKeys: string[];
@@ -97,6 +104,7 @@ interface EnrollmentsListProps {
 }
 
 export default function EnrollmentsList({
+  lang = 'ko',
   enrollments,
   semesterGroups,
   sortedSemesterKeys,
@@ -112,7 +120,8 @@ export default function EnrollmentsList({
   onDropOutside,
   findNearestPastSemester,
 }: EnrollmentsListProps) {
-  const [departments, setDepartments] = useState<Array<{ id: string; name: string }>>([]);
+  const SEMESTER_LABELS = lang === 'en' ? SEMESTER_LABELS_EN : SEMESTER_LABELS_KO;
+  const [departments, setDepartments] = useState<Array<{ id: string; name: string; nameEn?: string }>>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const [collapsedSemesters, setCollapsedSemesters] = useState<Set<string>>(new Set());
   const [openMenu, setOpenMenu] = useState<{
@@ -154,13 +163,14 @@ export default function EnrollmentsList({
   const getDepartmentName = (deptId: string | undefined): string => {
     if (!deptId) return '';
     const dept = departments.find((d) => d.id === deptId);
-    return dept ? dept.name : deptId;
+    return dept ? (lang === 'en' && dept.nameEn ? dept.nameEn : dept.name) : deptId;
   };
 
   const getCategoryName = (catId: string | undefined): string => {
     if (!catId) return '';
     const cat = categories.find((c) => c.id === catId);
-    return cat ? cat.name : catId;
+    const c = cat as { id: string; name: string; nameEn?: string } | undefined;
+    return c ? (lang === 'en' && c.nameEn ? c.nameEn : c.name) : catId;
   };
 
   const toggleSemester = (semesterKey: string) => {
@@ -216,8 +226,8 @@ export default function EnrollmentsList({
           onDrop(e, targetSemesterKey);
         }}
       >
-        <p className="text-gray-500 dark:text-gray-400">등록된 수강 과목이 없습니다.</p>
-        <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">과목을 드래그하여 여기에 추가하세요.</p>
+        <p className="text-gray-500 dark:text-gray-400">{lang === 'en' ? 'No enrolled courses yet.' : '등록된 수강 과목이 없습니다.'}</p>
+        <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">{lang === 'en' ? 'Drag courses here to add.' : '과목을 드래그하여 여기에 추가하세요.'}</p>
       </div>
     );
   }
@@ -231,7 +241,7 @@ export default function EnrollmentsList({
           onClick={toggleSelectAll}
           className="px-2 py-1 bg-white dark:bg-black shadow-sm rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all active:scale-90 active:rounded-md"
         >
-          {selectedEnrollmentKeys.size === enrollments.length ? '전체 해제' : '전체 선택'}
+          {selectedEnrollmentKeys.size === enrollments.length ? (lang === 'en' ? 'Deselect all' : '전체 해제') : (lang === 'en' ? 'Select all' : '전체 선택')}
         </button>
         <div className="bg-white dark:bg-black rounded-md shadow-sm overflow-hidden">
           <button
@@ -240,14 +250,14 @@ export default function EnrollmentsList({
             disabled={selectedEnrollmentKeys.size === 0}
             className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-zinc-800 text-red-600 dark:text-red-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-90 active:rounded-md"
           >
-            선택 삭제 {selectedEnrollmentKeys.size > 0 && `(${selectedEnrollmentKeys.size})`}
+            {lang === 'en' ? 'Delete selected' : '선택 삭제'}{selectedEnrollmentKeys.size > 0 && ` (${selectedEnrollmentKeys.size})`}
           </button>
           <button
             type="button"
             onClick={onRemoveAll}
             className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-zinc-800 text-red-600 dark:text-red-400 transition-all active:scale-90 active:rounded-md"
           >
-            전체 삭제
+            {lang === 'en' ? 'Delete all' : '전체 삭제'}
           </button>
         </div>
       </div>
@@ -257,8 +267,10 @@ export default function EnrollmentsList({
         const groupEnrollments = semesterGroups.get(semesterKey) || [];
         const sectionTitle =
           year === '0' && semester === 'SPRING'
-            ? '기이수'
-            : `${year}년 ${SEMESTER_LABELS[semester as Semester]}`;
+            ? (lang === 'en' ? 'Prior credit' : '기이수')
+            : lang === 'en'
+              ? `${year} ${SEMESTER_LABELS[semester as Semester]}`
+              : `${year}년 ${SEMESTER_LABELS[semester as Semester]}`;
         const isCollapsed = collapsedSemesters.has(semesterKey);
 
         return (
@@ -307,8 +319,12 @@ export default function EnrollmentsList({
                       const nextSem = getNextSemester(y, s);
                       const prevSameType = getPrevSameTypeSemester(y, s);
                       const nextSameType = getNextSameTypeSemester(y, s);
-                      const prevLabel = REGULAR_SEMESTERS.includes(s) ? '이전 정규학기로 이동' : '이전 계절학기로 이동';
-                      const nextLabel = REGULAR_SEMESTERS.includes(s) ? '다음 정규학기로 이동' : '다음 계절학기로 이동';
+                      const prevLabel = REGULAR_SEMESTERS.includes(s)
+                        ? (lang === 'en' ? 'Move to previous regular semester' : '이전 정규학기로 이동')
+                        : (lang === 'en' ? 'Move to previous seasonal semester' : '이전 계절학기로 이동');
+                      const nextLabel = REGULAR_SEMESTERS.includes(s)
+                        ? (lang === 'en' ? 'Move to next regular semester' : '다음 정규학기로 이동')
+                        : (lang === 'en' ? 'Move to next seasonal semester' : '다음 계절학기로 이동');
 
                       const key = enrollmentKey(enrollment);
                       const isSelected = selectedEnrollmentKeys.has(key);
@@ -355,7 +371,7 @@ export default function EnrollmentsList({
                             {tags.length > 0 && ` (${tags.join('·')})`}
                             {enrollment.course.au > 0
                               ? ` · ${enrollment.course.au}AU`
-                              : ` · ${enrollment.course.credit}학점`}
+                              : ` · ${enrollment.course.credit}${lang === 'en' ? (enrollment.course.credit === 1 ? ' credit' : ' credits') : '학점'}`}
                           </p>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
@@ -388,8 +404,8 @@ export default function EnrollmentsList({
                                 }
                               }}
                               className="rounded p-1.5 text-gray-500 hover:bg-gray-200 dark:text-zinc-400 dark:hover:bg-zinc-700 active:scale-85 transition-all"
-                              title="메뉴"
-                              aria-label="메뉴"
+                              title={lang === 'en' ? 'Menu' : '메뉴'}
+                              aria-label={lang === 'en' ? 'Menu' : '메뉴'}
                               aria-expanded={isMenuOpen}
                             >
                               <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -438,8 +454,12 @@ export default function EnrollmentsList({
               const nextSem = getNextSemester(y, s);
               const prevSameType = getPrevSameTypeSemester(y, s);
               const nextSameType = getNextSameTypeSemester(y, s);
-              const prevLabel = REGULAR_SEMESTERS.includes(s) ? '이전 정규학기로 이동' : '이전 계절학기로 이동';
-              const nextLabel = REGULAR_SEMESTERS.includes(s) ? '다음 정규학기로 이동' : '다음 계절학기로 이동';
+              const prevLabel = REGULAR_SEMESTERS.includes(s)
+                ? (lang === 'en' ? 'Move to previous regular semester' : '이전 정규학기로 이동')
+                : (lang === 'en' ? 'Move to previous seasonal semester' : '이전 계절학기로 이동');
+              const nextLabel = REGULAR_SEMESTERS.includes(s)
+                ? (lang === 'en' ? 'Move to next regular semester' : '다음 정규학기로 이동')
+                : (lang === 'en' ? 'Move to next seasonal semester' : '다음 계절학기로 이동');
               const close = () => setOpenMenu(null);
               
               // 기이수인 경우 삭제만 표시
@@ -459,7 +479,7 @@ export default function EnrollmentsList({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </span>
-                    <span className="flex-1">삭제</span>
+                    <span className="flex-1">{lang === 'en' ? 'Delete' : '삭제'}</span>
                   </button>
                 );
               }
@@ -480,7 +500,7 @@ export default function EnrollmentsList({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                       </svg>
                     </span>
-                    <span className="flex-1">이전 연도로 이동</span>
+                    <span className="flex-1">{lang === 'en' ? 'Move to previous year' : '이전 연도로 이동'}</span>
                   </button>
                   <button
                     type="button"
@@ -504,7 +524,7 @@ export default function EnrollmentsList({
                     }}
                   >
                     <span className="w-4 flex-shrink-0"></span>
-                    <span className="flex-1">이전 학기로 이동</span>
+                    <span className="flex-1">{lang === 'en' ? 'Move to previous semester' : '이전 학기로 이동'}</span>
                   </button>
                   <button
                     type="button"
@@ -520,7 +540,7 @@ export default function EnrollmentsList({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </span>
-                    <span className="flex-1">다음 학기로 이동</span>
+                    <span className="flex-1">{lang === 'en' ? 'Move to next semester' : '다음 학기로 이동'}</span>
                   </button>
                   <button
                     type="button"
@@ -544,7 +564,7 @@ export default function EnrollmentsList({
                     }}
                   >
                     <span className="w-4 flex-shrink-0"></span>
-                    <span className="flex-1">다음 연도로 이동</span>
+                    <span className="flex-1">{lang === 'en' ? 'Move to next year' : '다음 연도로 이동'}</span>
                   </button>
                   <div className="m-1 border-t border-gray-300 dark:border-zinc-600" role="separator" />
                   <button
@@ -561,7 +581,7 @@ export default function EnrollmentsList({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </span>
-                    <span className="flex-1">삭제</span>
+                    <span className="flex-1">{lang === 'en' ? 'Delete' : '삭제'}</span>
                   </button>
                 </>
               );

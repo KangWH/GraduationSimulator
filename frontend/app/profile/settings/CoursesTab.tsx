@@ -15,9 +15,11 @@ const SEMESTER_OPTIONS: { value: Semester; label: string }[] = [
 ];
 
 interface CoursesTabProps {
+  lang?: 'ko' | 'en';
   profile: Profile | null;
   userId: string | null;
   onProfileUpdate: (p: Profile) => void;
+  onRegisterXlsxHeader?: (action: { open: () => void; isApplying: boolean }) => void;
 }
 
 // RawEnrollment[]를 Enrollment[]로 변환
@@ -157,7 +159,7 @@ function findNearestPastSemester(): { year: number; semester: Semester } {
   return { year, semester: semesterOrder[semesterIndex] };
 }
 
-export default function CoursesTab({ profile, userId, onProfileUpdate }: CoursesTabProps) {
+export default function CoursesTab({ lang = 'ko', profile, userId, onProfileUpdate, onRegisterXlsxHeader }: CoursesTabProps) {
   const [courseMode, setCourseMode] = useState<'add' | 'view'>('add');
   const [courseSearchQuery, setCourseSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -351,7 +353,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   // 선택된 과목 추가
   const handleAddSelected = useCallback(() => {
     if (selectedCourseIds.size === 0) {
-      alert('추가할 과목을 선택해주세요.');
+      alert(lang === 'ko' ? '추가할 과목을 선택해주세요.' : 'Please select courses to add.');
       return;
     }
 
@@ -416,14 +418,14 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
     });
 
     if (addedCount === 0) {
-      alert('추가할 수 있는 과목이 없습니다. 이미 추가된 과목이거나 검색 결과에서 찾을 수 없습니다.');
+      alert(lang === 'ko' ? '추가할 수 있는 과목이 없습니다. 이미 추가된 과목이거나 검색 결과에서 찾을 수 없습니다.' : 'No courses to add. They may already be added or not found in search results.');
       return;
     }
 
     setEnrollments(newEnrollments);
     updateSelectedCourseIds(new Set());
     saveEnrollments(newEnrollments);
-  }, [selectedCourseIds, searchResults, enrollments, addYear, addSemester, addGrade, addAsPriorCredit, saveEnrollments]);
+  }, [selectedCourseIds, searchResults, enrollments, addYear, addSemester, addGrade, addAsPriorCredit, saveEnrollments, lang]);
 
   // 성적 변경
   const handleGradeChange = useCallback(
@@ -475,11 +477,11 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   // 전체 삭제
   const handleRemoveAll = useCallback(() => {
     if (enrollments.length === 0) return;
-    if (!confirm(`수강 과목 ${enrollments.length}개를 모두 삭제하시겠습니까?`)) return;
+    if (!confirm(lang === 'ko' ? `수강 과목 ${enrollments.length}개를 모두 삭제하시겠습니까?` : `Delete all ${enrollments.length} enrolled courses?`)) return;
     setSelectedEnrollmentKeys(new Set());
     setEnrollments([]);
     saveEnrollments([]);
-  }, [enrollments, saveEnrollments]);
+  }, [enrollments, saveEnrollments, lang]);
 
   // 학기 이동
   const handleMove = useCallback(
@@ -575,7 +577,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         );
 
         if (isDuplicate) {
-          alert('이미 해당 학기에 추가된 과목입니다.');
+          alert(lang === 'ko' ? '이미 해당 학기에 추가된 과목입니다.' : 'This course is already added for that semester.');
           setDraggedCourse(null);
           return;
         }
@@ -586,7 +588,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         saveEnrollments(newEnrollments);
       }
     },
-    [draggedEnrollment, draggedCourse, enrollments, saveEnrollments]
+    [draggedEnrollment, draggedCourse, enrollments, saveEnrollments, lang]
   );
 
   // 목록 밖으로 드롭 (삭제)
@@ -609,7 +611,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.name.endsWith('.xlsx')) {
-      alert('.xlsx 파일만 업로드할 수 있습니다.');
+      alert(lang === 'ko' ? '.xlsx 파일만 업로드할 수 있습니다.' : 'Only .xlsx files can be uploaded.');
       if (xlsxInputRef.current) xlsxInputRef.current.value = '';
       return;
     }
@@ -629,7 +631,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         const firstSheetName = workbook.SheetNames[0];
         if (!firstSheetName) {
           setXlsxLoading(false);
-          alert('엑셀 파일에 시트가 없습니다.');
+          alert(lang === 'ko' ? '엑셀 파일에 시트가 없습니다.' : 'The Excel file has no sheets.');
           return;
         }
         const sheet = workbook.Sheets[firstSheetName];
@@ -642,7 +644,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         
         // 다이얼로그 닫은 후 confirm 띄우기
         setTimeout(() => {
-          if (confirm(`기존 수강 내역 ${enrollments.length}건을 모두 지우고, 엑셀 파일 내용(${rows.length}행)으로 수강 목록을 대체하시겠습니까?\n(엑셀의 '구분'과 DB의 과목구분이 일치하는 과목만 반영됩니다.)`)) {
+          if (confirm(lang === 'ko' ? `기존 수강 내역 ${enrollments.length}건을 모두 지우고, 엑셀 파일 내용(${rows.length}행)으로 수강 목록을 대체하시겠습니까?\n(엑셀의 '구분'과 DB의 과목구분이 일치하는 과목만 반영됩니다.)` : `Replace all ${enrollments.length} enrollments with ${rows.length} rows from the Excel file?\n(Only courses matching the DB category will be applied.)`)) {
             setXlsxShouldApply(true);
           } else {
             // 취소하면 업로드 정보 초기화
@@ -652,17 +654,21 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         }, 100);
       } catch (err) {
         console.error('xlsx parse error:', err);
-        alert('엑셀 파일을 읽는 중 오류가 발생했습니다.');
+        alert(lang === 'ko' ? '엑셀 파일을 읽는 중 오류가 발생했습니다.' : 'An error occurred while reading the Excel file.');
         setXlsxLoading(false);
         if (xlsxInputRef.current) xlsxInputRef.current.value = '';
       }
     };
     reader.readAsArrayBuffer(file);
-  }, [enrollments.length]);
+  }, [enrollments.length, lang]);
 
   const handleXlsxButtonClick = useCallback(() => {
     setXlsxDialogOpen(true);
   }, []);
+
+  useEffect(() => {
+    onRegisterXlsxHeader?.({ open: handleXlsxButtonClick, isApplying: xlsxApplying });
+  }, [onRegisterXlsxHeader, handleXlsxButtonClick, xlsxApplying]);
 
   const handleXlsxDialogClose = useCallback(() => {
     if (!xlsxLoading && !xlsxApplying) {
@@ -817,31 +823,33 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
       setXlsxDialogOpen(false);
       if (xlsxInputRef.current) xlsxInputRef.current.value = '';
 
-      const msgs: string[] = [`수강 목록을 적용했습니다. (${newEnrollments.length}건)`];
+      const msgs: string[] = lang === 'ko'
+        ? [`수강 목록을 적용했습니다. (${newEnrollments.length}건)`]
+        : [`Enrollments applied. (${newEnrollments.length} items)`];
       if (tagMismatch.length > 0) {
         const unique = [...new Set(tagMismatch)];
-        msgs.push(`태그 불일치로 제외: ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}`);
+        msgs.push(lang === 'ko' ? `태그 불일치로 제외: ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}` : `Excluded (tag mismatch): ${unique.length}${unique.length > 10 ? ` (e.g. ${unique.slice(0, 10).join(', ')} …)` : ` (e.g. ${unique.join(', ')})`}`);
       }
       if (categoryMismatch.length > 0) {
         const unique = [...new Set(categoryMismatch)];
-        msgs.push(`구분 불일치로 제외: ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}`);
+        msgs.push(lang === 'ko' ? `구분 불일치로 제외: ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}` : `Excluded (category mismatch): ${unique.length}${unique.length > 10 ? ` (e.g. ${unique.slice(0, 10).join(', ')} …)` : ` (e.g. ${unique.join(', ')})`}`);
       }
       if (unknownCategory.length > 0) {
         const unique = [...new Set(unknownCategory)];
-        msgs.push(`구분 해석 불가(코드만으로 시도): ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}`);
+        msgs.push(lang === 'ko' ? `구분 해석 불가(코드만으로 시도): ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}` : `Unknown category: ${unique.length}${unique.length > 10 ? ` (e.g. ${unique.slice(0, 10).join(', ')} …)` : ` (e.g. ${unique.join(', ')})`}`);
       }
       if (notFoundCodes.length > 0) {
         const unique = [...new Set(notFoundCodes)];
-        msgs.push(`과목 DB에 없어 제외: ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}`);
+        msgs.push(lang === 'ko' ? `과목 DB에 없어 제외: ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}` : `Excluded (not in DB): ${unique.length}${unique.length > 10 ? ` (e.g. ${unique.slice(0, 10).join(', ')} …)` : ` (e.g. ${unique.join(', ')})`}`);
       }
       alert(msgs.join('\n'));
     } catch (err) {
       console.error('xlsx apply error:', err);
-      alert('적용 중 오류가 발생했습니다.');
+      alert(lang === 'ko' ? '적용 중 오류가 발생했습니다.' : 'An error occurred while applying.');
     } finally {
       setXlsxApplying(false);
     }
-  }, [xlsxParsedRows, enrollments.length, saveEnrollments]);
+  }, [xlsxParsedRows, enrollments.length, saveEnrollments, lang]);
 
   // xlsx 파일 파싱 후 confirm에서 확인하면 자동으로 apply 실행
   useEffect(() => {
@@ -863,7 +871,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   return (
     <>
       {/* 1열: 모바일/태블릿 탭 */}
-      <div className="flex flex-col lg:hidden h-full overflow-y-auto overflow-x-hidden">
+      <div className="flex flex-col md:hidden h-full overflow-y-auto overflow-x-hidden">
         {/* 상단: 모드 전환 */}
         <div className="md:sticky md:top-0 md:z-20 bg-gradient-to-b from-gray-50 dark:from-black from-[70%] to-transparent flex items-center gap-2 p-3 pt-0 mb-2">
           <button
@@ -876,7 +884,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             }`}
           >
             <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
-              과목 추가
+              {lang === 'ko' ? '과목 추가' : 'Add Course'}
             </span>
           </button>
           <button
@@ -889,37 +897,17 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             }`}
           >
             <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
-              수강한 과목<span className="opacity-40 ml-2">{enrollments.length}</span>
+              {lang === 'ko' ? '수강한 과목' : 'Enrolled Courses'}<span className="opacity-40 ml-2">{enrollments.length}</span>
             </span>
           </button>
         </div>
 
         {/* 본문 영역 */}
         <div className="">
-          <div className="px-4 pt-2 pb-8">
+          <div className="px-4 pt-2 pb-4">
               {courseMode === 'add' ? (
-                <>
-                  {/* 엑셀(.xlsx) 일괄 등록 업로드 */}
-                  <div className="flex flex-col items-end gap-2 mb-4">
-                    <button
-                      type="button"
-                      onClick={handleXlsxButtonClick}
-                      className="rounded-md bg-white dark:bg-black px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-zinc-800 shadow-sm active:scale-90 transition-all"
-                    >
-                      .xlsx 업로드
-                    </button>
-                    {xlsxApplying && (
-                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                        <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span>적용 중…</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <AddCoursePanel
+                <AddCoursePanel
+                  lang={lang}
                   searchQuery={courseSearchQuery}
                   onSearchQueryChange={setCourseSearchQuery}
                   searchResults={searchResults}
@@ -943,9 +931,9 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                   stickyTopOffset="3.25rem"
                   enrolledCourseIds={enrollments.map((e) => e.courseId)}
                 />
-                </>
               ) : (
                 <EnrollmentsList
+                  lang={lang}
                   enrollments={enrollments}
                   semesterGroups={semesterGroups}
                   sortedSemesterKeys={sortedSemesterKeys}
@@ -966,35 +954,16 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         </div>
       </div>
 
-      {/* 2열: 넓은 화면 */}
-      <div className="hidden h-full lg:flex justify-center items-start lg:gap-6 overflow-hidden">
-        <div className="h-full flex-1 flex min-h-0 flex-col overflow-hidden">
+      {/* 2열: 넓은 화면 - 열별로 독립 스크롤 */}
+      <div className="hidden md:flex flex-1 min-h-0 md:gap-6 overflow-hidden">
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
           <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="sticky top-0 z-100 flex-shrink-0 space-y-4 bg-gradient-to-b from-gray-50 dark:from-black from-[70%] to-transparent">
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 pb-4">과목 추가</h2>
+            <div className="sticky top-0 z-100 flex-shrink-0 flex items-center justify-between gap-4 bg-gradient-to-b from-gray-50 dark:from-black from-[70%] to-transparent pb-4">
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">{lang === 'ko' ? '과목 추가' : 'Add Course'}</h2>
             </div>
-            <div className="space-y-4 pt-0 px-2 pb-2">
-              {/* 엑셀(.xlsx) 일괄 등록 업로드 */}
-              <div className="flex flex-col items-end gap-2 mb-4">
-                <button
-                  type="button"
-                  onClick={handleXlsxButtonClick}
-                  className="rounded-md bg-white dark:bg-black px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-zinc-800 shadow-sm active:scale-90 transition-all"
-                >
-                  .xlsx 업로드
-                </button>
-                {xlsxApplying && (
-                  <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                    <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>적용 중…</span>
-                  </div>
-                )}
-              </div>
-
+            <div className="space-y-4 pt-0 px-2 pb-4">
               <AddCoursePanel
+                lang={lang}
                 searchQuery={courseSearchQuery}
                 onSearchQueryChange={setCourseSearchQuery}
                 searchResults={searchResults}
@@ -1022,7 +991,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
           </div>
         </div>
         <div
-          className="flex-1 px-2 pb-4 h-full overflow-y-auto"
+          className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden"
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -1033,11 +1002,12 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             handleDropOutside(e);
           }}
         >
-          <h2 className="sticky top-0 bg-gradient-to-b from-gray-50 dark:from-black from-[70%] to-transparent pb-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
-            수강한 과목 <span className="text-md opacity-50">{enrollments.length}</span>
+          <h2 className="flex-shrink-0 bg-gradient-to-b from-gray-50 dark:from-black from-[70%] to-transparent pb-4 text-xl font-semibold text-gray-800 dark:text-gray-200">
+            {lang === 'ko' ? '수강한 과목' : 'Enrolled Courses'} <span className="text-md opacity-50">{enrollments.length}</span>
           </h2>
-          <div className="px-2">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2 pb-4">
             <EnrollmentsList
+              lang={lang}
               enrollments={enrollments}
               semesterGroups={semesterGroups}
               sortedSemesterKeys={sortedSemesterKeys}
@@ -1062,7 +1032,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 dark:bg-black/70" onClick={handleXlsxDialogClose}>
           <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">.xlsx 파일 업로드</h3>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{lang === 'ko' ? '파일 업로드' : 'File Upload'}</h3>
               <button
                 type="button"
                 onClick={handleXlsxDialogClose}
@@ -1075,10 +1045,13 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
               </button>
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              ‘<a href="https://erp.kaist.ac.kr" target="_blank" className="text-violet-500 font-medium hover:underline">학사</a> → 성적 → 성적조회’ 메뉴에서 내려받은 .xlsx 파일을 업로드하여 수강한 과목을 일괄 등록할 수 있습니다.
+              {lang === 'ko' ? <>‘<a href="https://erp.kaist.ac.kr" target="_blank" className="text-violet-500 font-medium hover:underline">ERP</a> → 학사 → 성적 → 성적조회’ 메뉴에서 내려받은 .xlsx 파일을 업로드하여 수강한 과목을 일괄 등록할 수 있습니다.</> : <>Upload an .xlsx file downloaded from the ‘<a href="https://erp.kaist.ac.kr" target="_blank" className="text-violet-500 font-medium hover:underline">ERP</a> → Academic&nbsp;Affairs → Grades → Grade&nbsp;Report’ menu to bulk register enrolled courses.</>}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              {lang === 'ko' ? '주의: 기존에 등록한 과목들은 모두 삭제됩니다.' : 'Note: All existing enrollments will be deleted.'}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              주의: 기존에 등록한 과목들은 모두 삭제됩니다.
+              {lang === 'ko' ? '주의: 특강, 개별연구, 세미나 과목은 올바르게 처리되지 않을 수 있습니다.' : 'Note: Special lectures, independent study, and seminar courses may not be processed correctly.'}
             </p>
             <input
               ref={xlsxInputRef}
@@ -1093,7 +1066,7 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>파일 읽는 중...</span>
+                <span>{lang === 'ko' ? '파일 읽는 중...' : 'Reading file...'}</span>
               </div>
             )}
           </div>

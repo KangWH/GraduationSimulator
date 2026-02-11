@@ -35,7 +35,7 @@ export function Input({ id, name, value, onChange, type = 'text', inputMode = 't
       required={required}
       placeholder={placeholder}
       className={
-        "w-full bg-white dark:bg-black shadow-sm dark:border-zinc-700 focus:border-violet-500 rounded-md outline-none appearance-none min-h-[44px] sm:min-h-0 "
+        "w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none min-h-[44px] sm:min-h-0 "
         + fieldSizeClassNames[size] + (className ? " " + className : "")
       }
     />
@@ -63,7 +63,7 @@ export function NumberInput({ id, name, min = '0', max = '100', step = '1', valu
   return (
     <div
       className={
-        "flex flex-row w-full shadow-sm focus-within:border-violet-500 rounded-md overflow-hidden min-h-[44px] sm:min-h-0 " + (disabled ? 'bg-gray-100 text-gray-500 disabled:bg-zinc-900 ' : 'bg-white dark:bg-black ') + (className ? className : "")
+        "flex flex-row w-full shadow-sm focus-within:ring-1 focus-within:ring-violet-500/50 rounded-md overflow-hidden min-h-[44px] sm:min-h-0 " + (disabled ? 'bg-gray-100 text-gray-500 disabled:bg-zinc-900 ' : 'bg-white dark:bg-black ') + (className ? className : "")
       }
     >
       <input
@@ -114,7 +114,7 @@ export function Select({ id, name, value, onChange, disabled = false, required =
         disabled={disabled}
         required={required}
         className={
-          "w-full bg-white dark:bg-black shadow-sm focus:border-violet-500 rounded-md outline-none appearance-none pr-8 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-zinc-900 min-h-[44px] sm:min-h-0 "
+          "w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none pr-8 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-zinc-900 min-h-[44px] sm:min-h-0 "
           + fieldSizeClassNames[size]
           + (className ? " " + className : "")
         }
@@ -153,7 +153,11 @@ interface MultipleSelectProps {
   size?: FieldSize;
   allowNone?: boolean;
   className: string;
+  lang?: 'ko' | 'en';
 }
+
+// Mac: Option, Windows: Alt (관행)
+const isJumpModifier = (e: React.KeyboardEvent) => e.altKey;
 
 export function MultipleSelect({
   id,
@@ -161,17 +165,21 @@ export function MultipleSelect({
   value,
   onChange,
   options,
-  placeholder = '없음',
+  placeholder,
   size = 'medium',
   allowNone = false,
-  className
+  className,
+  lang = 'ko'
 }: MultipleSelectProps) {
+  const displayPlaceholder = placeholder ?? (lang === 'ko' ? '없음' : 'None');
   const [isOpen, setIsOpen] = useState(false);
   const [isMobileSheet, setIsMobileSheet] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [popoverStyle, setPopoverStyle] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
+  const [focusedIndex, setFocusedIndex] = useState(0);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const optionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const closeWithAnimation = () => {
     if (isMobileSheet) {
@@ -210,7 +218,7 @@ export function MultipleSelect({
       // 모바일: 하단 시트로 표시 (위치는 렌더링에서 bottom 고정)
       popoverLeft = 0;
       popoverTop = padding;
-      const maxPopoverHeight = Math.min(viewportHeight - padding * 2, 500);
+      const maxPopoverHeight = Math.min(viewportHeight - padding * 2, Math.round(viewportHeight * 0.85));
       maxHeight = maxPopoverHeight;
     } else {
       // 데스크톱: 트리거 기준 배치
@@ -313,6 +321,15 @@ export function MultipleSelect({
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (isOpen) {
+      const t = requestAnimationFrame(() => {
+        optionRefs.current[focusedIndex]?.focus();
+      });
+      return () => cancelAnimationFrame(t);
+    }
+  }, [isOpen, focusedIndex]);
+
   const handleToggle = (optionValue: string) => {
     if (value.includes(optionValue)) {
       onChange(value.filter((v) => v !== optionValue));
@@ -342,6 +359,73 @@ export function MultipleSelect({
     .map((val) => options.find((opt) => opt.value === val))
     .filter((opt): opt is Option => opt !== undefined);
 
+  // 키보드 네비게이션용 항목 목록 (allowNone이면 placeholder가 첫 항목)
+  const navItemsList = allowNone ? [{ value: '', label: displayPlaceholder, isNone: true } as const, ...options.map(o => ({ ...o, isNone: false } as const))] : options.map(o => ({ ...o, isNone: false } as const));
+
+  const openPalette = () => {
+    if (!isOpen) {
+      // 첫 선택된 항목 또는 첫 항목으로 포커스
+      const firstSelectedIdx = navItemsList.findIndex((item) => !item.isNone && value.includes(item.value));
+      setFocusedIndex(firstSelectedIdx >= 0 ? firstSelectedIdx : 0);
+      setIsOpen(true);
+    }
+  };
+
+  const handleTriggerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      return;
+    }
+    if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      openPalette();
+    }
+  };
+
+  const handlePaletteKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeWithAnimation();
+      triggerRef.current?.focus();
+      return;
+    }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const next = isJumpModifier(e) ? navItemsList.length - 1 : Math.min(focusedIndex + 1, navItemsList.length - 1);
+      setFocusedIndex(next);
+      const el = optionRefs.current[next];
+      el?.focus();
+      el?.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prev = isJumpModifier(e) ? 0 : Math.max(focusedIndex - 1, 0);
+      setFocusedIndex(prev);
+      const el = optionRefs.current[prev];
+      el?.focus();
+      el?.scrollIntoView({ block: 'nearest' });
+      return;
+    }
+    if (e.key === ' ') {
+      e.preventDefault();
+      const item = navItemsList[focusedIndex];
+      if (item.isNone) {
+        onChange([]);
+      } else {
+        handleToggle(item.value);
+      }
+    }
+  };
+
+  const handleOptionClick = (index: number) => {
+    setFocusedIndex(index);
+  };
+
   return (
     <div className="relative w-full min-w-20">
       <button
@@ -349,25 +433,27 @@ export function MultipleSelect({
         type="button"
         id={id}
         name={name}
+        tabIndex={0}
         onClick={() => {
           if (isOpen) {
             closeWithAnimation();
           } else {
-            setIsOpen(true);
+            openPalette();
           }
         }}
+        onKeyDown={handleTriggerKeyDown}
         className={
-          'w-full bg-white dark:bg-black shadow-sm focus:border-violet-500 rounded-md outline-none appearance-none text-left flex items-center gap-2 min-h-[44px] sm:min-h-0 ' +
+          'w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none text-left flex items-center gap-2 min-h-[44px] sm:min-h-0 ' +
           fieldSizeClassNames[size]
           + " " + className
-          + (isOpen ? ' border-violet-500' : '')
+          + (isOpen ? ' ring-1 ring-violet-500/50' : '')
         }
       >
         <div className="flex-1 flex flex-wrap items-center min-w-8 gap-1 sm:gap-2">
           {selectedOptions.length === 0 ? (
-            <span className="text-gray-400 dark:text-gray-500">{placeholder}</span>
+            <span className="text-gray-400 dark:text-gray-500">{displayPlaceholder}</span>
           ) : selectedOptions.length === 1 ? (
-            <span>{selectedOptions[0]?.label || value[0] || placeholder}</span>
+            <span>{selectedOptions[0]?.label || value[0] || displayPlaceholder}</span>
           ) : (
             <span>
               <span className="hidden sm:inline">{selectedOptions[0]?.label || value[0] || ''} 외 </span>
@@ -402,7 +488,7 @@ export function MultipleSelect({
             >
               <div
                 ref={popoverRef}
-                className={`fixed left-0 right-0 bottom-0 z-[9999] bg-white dark:bg-zinc-900 rounded-md shadow-lg overflow-y-auto overscroll-contain transition-transform duration-200 ${sheetVisible ? 'translate-y-0' : 'translate-y-full'}`}
+                className={`fixed left-0 right-0 bottom-0 z-[9999] bg-white dark:bg-zinc-900 rounded-t-xl shadow-lg overflow-y-auto overscroll-contain transition-transform duration-200 ${sheetVisible ? 'translate-y-0' : 'translate-y-full'}`}
                 style={{
                   maxHeight: `${popoverStyle.maxHeight}px`,
                 }}
@@ -413,9 +499,9 @@ export function MultipleSelect({
                   <button
                     type="button"
                     onClick={allSelected ? handleDeselectAll : handleSelectAll}
-                    className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-[44px] sm:min-h-0 px-2 -mx-2 rounded active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
+                    className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-[44px] sm:min-h-0 px-2 -mx-2 rounded-lg active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
                   >
-                    {allSelected ? '전체 취소' : '전체 선택'}
+                    {allSelected ? (lang === 'ko' ? '전체 취소' : 'Deselect all') : (lang === 'ko' ? '전체 선택' : 'Select all')}
                   </button>
                   <div className="flex items-center gap-2">
                     {someSelected && (
@@ -426,7 +512,7 @@ export function MultipleSelect({
                     <button
                       type="button"
                       onClick={closeWithAnimation}
-                      className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-90 transition-all"
+                      className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all"
                       aria-label="닫기"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -437,33 +523,40 @@ export function MultipleSelect({
                 </div>
 
                 {/* 옵션 목록 */}
-                <div className="py-1">
-                  {allowNone && (
-                    <label className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-[44px] active:scale-90 active:rounded-md transition-all">
-                      <input
-                        type="checkbox"
-                        checked={value.length === 0}
-                        onChange={() => onChange([])}
-                        className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-3"
-                      />
-                      <span className="text-sm flex-1">{placeholder}</span>
-                    </label>
-                  )}
-                  {options.map((option) => {
-                    const isChecked = value.includes(option.value);
+                <div
+                  role="listbox"
+                  aria-multiselectable
+                  onKeyDown={handlePaletteKeyDown}
+                  className="py-1 outline-none"
+                  tabIndex={-1}
+                >
+                  {navItemsList.map((item, index) => {
+                    const isChecked = item.isNone ? value.length === 0 : value.includes(item.value);
+                    const isFocused = focusedIndex === index;
                     return (
-                      <label
-                        key={option.value}
-                        className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-[44px] active:scale-90 active:rounded-md transition-all"
+                      <div
+                        key={item.isNone ? '__none__' : item.value}
+                        ref={(el) => { optionRefs.current[index] = el; }}
+                        role="option"
+                        aria-selected={isChecked}
+                        tabIndex={isFocused ? 0 : -1}
+                        onClick={() => {
+                          handleOptionClick(index);
+                          if (item.isNone) onChange([]);
+                          else handleToggle(item.value);
+                        }}
+                        onFocus={() => setFocusedIndex(index)}
+                        className={`flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-[44px] active:scale-90 active:rounded-md transition-all cursor-pointer ${isFocused ? 'ring-1 ring-inset ring-violet-500/50' : ''}`}
                       >
                         <input
                           type="checkbox"
                           checked={isChecked}
-                          onChange={() => handleToggle(option.value)}
-                          className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-3 flex-shrink-0"
+                          readOnly
+                          tabIndex={-1}
+                          className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-3 flex-shrink-0 pointer-events-none"
                         />
-                        <span className="text-sm flex-1 break-words">{option.label}</span>
-                      </label>
+                        <span className="text-sm flex-1 break-words">{item.label}</span>
+                      </div>
                     );
                   })}
                 </div>
@@ -472,7 +565,7 @@ export function MultipleSelect({
           ) : (
             <div
               ref={popoverRef}
-              className="fixed z-[9999] bg-white dark:bg-zinc-900 rounded-md shadow-lg overflow-y-auto overscroll-contain"
+              className="fixed z-[9999] bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-sm rounded-xl shadow-lg overflow-y-auto overscroll-contain border border-black/10 dark:border-white/20"
               style={{
                 top: popoverStyle.top,
                 left: popoverStyle.left,
@@ -480,53 +573,60 @@ export function MultipleSelect({
                 maxHeight: `${popoverStyle.maxHeight}px`,
               }}
             >
-            {/* 전체 선택/전체 취소 버튼 */}
-            <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 px-3 py-2 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={allSelected ? handleDeselectAll : handleSelectAll}
-                className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-[44px] sm:min-h-0 px-2 -mx-2 rounded active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
-              >
-                {allSelected ? '전체 취소' : '전체 선택'}
-              </button>
-              {someSelected && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  {value.length} / {options.length}
-                </span>
-              )}
-            </div>
+              {/* 전체 선택/전체 취소 버튼 */}
+              <div className="sticky top-0 z-10 bg-gray-50 dark:bg-zinc-900 px-2 py-1 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={allSelected ? handleDeselectAll : handleSelectAll}
+                  className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-[44px] sm:min-h-0 px-2 -mx-2 rounded active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
+                >
+                  {allSelected ? (lang === 'ko' ? '전체 취소' : 'Deselect all') : (lang === 'ko' ? '전체 선택' : 'Select all')}
+                </button>
+                {someSelected && (
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {value.length} / {options.length}
+                  </span>
+                )}
+              </div>
 
-            {/* 옵션 목록 */}
-            <div className="py-1">
-              {allowNone && (
-                <label className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-[44px] active:scale-90 active:rounded-md transition-all">
-                  <input
-                    type="checkbox"
-                    checked={value.length === 0}
-                    onChange={() => onChange([])}
-                    className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-3"
-                  />
-                  <span className="text-sm flex-1">{placeholder}</span>
-                </label>
-              )}
-              {options.map((option) => {
-                const isChecked = value.includes(option.value);
-                return (
-                  <label
-                    key={option.value}
-                    className="flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-[44px] active:scale-90 active:rounded-md transition-all"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isChecked}
-                      onChange={() => handleToggle(option.value)}
-                      className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-3 flex-shrink-0"
-                    />
-                    <span className="text-sm flex-1 break-words">{option.label}</span>
-                  </label>
-                );
-              })}
-            </div>
+              {/* 옵션 목록 */}
+              <div
+                role="listbox"
+                aria-multiselectable
+                onKeyDown={handlePaletteKeyDown}
+                className="p-1 outline-none"
+                tabIndex={-1}
+              >
+                {navItemsList.map((item, index) => {
+                  const isChecked = item.isNone ? value.length === 0 : value.includes(item.value);
+                  const isFocused = focusedIndex === index;
+                  return (
+                    <div
+                      key={item.isNone ? '__none__' : item.value}
+                      ref={(el) => { optionRefs.current[index] = el; }}
+                      role="option"
+                      aria-selected={isChecked}
+                      tabIndex={isFocused ? 0 : -1}
+                      onClick={() => {
+                        handleOptionClick(index);
+                        if (item.isNone) onChange([]);
+                        else handleToggle(item.value);
+                      }}
+                      onFocus={() => setFocusedIndex(index)}
+                      className={`flex items-center px-2 py-1 hover:bg-violet-600 hover:text-white select-none min-h-[44px] sm:min-h-0 active:scale-90 rounded-lg transition-all cursor-pointer outline-none ${isFocused ? 'ring-1 ring-inset ring-violet-500/50' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        readOnly
+                        tabIndex={-1}
+                        className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-2 flex-shrink-0 pointer-events-none"
+                      />
+                      <span className="text-sm flex-1 break-words">{item.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ),
           document.body

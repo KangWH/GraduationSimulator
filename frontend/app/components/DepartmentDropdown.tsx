@@ -7,7 +7,9 @@ import { API } from '../lib/api';
 interface DepartmentData {
   id: string;
   name: string;
+  nameEn?: string;
   category: string;
+  categoryEn?: string;
   majorable: boolean;
   doubleMajorable: boolean;
   minorable: boolean;
@@ -21,10 +23,11 @@ interface DepartmentDropdownProps {
   required?: boolean;
   mode: 'major' | 'doubleMajor' | 'minor' | 'course';
   allowNone?: boolean;
-  size?: FieldSize
+  size?: FieldSize;
+  lang?: 'ko' | 'en';
 }
 
-export function DepartmentDropdown({ id, name, value, onChange, required = false, mode, allowNone = false, size = 'medium' }: DepartmentDropdownProps) {
+export function DepartmentDropdown({ id, name, value, onChange, required = false, mode, allowNone = false, size = 'medium', lang = 'ko' }: DepartmentDropdownProps) {
   const [data, setData] = useState<DepartmentData[]>([]);
 
   useEffect(() => {
@@ -50,12 +53,13 @@ export function DepartmentDropdown({ id, name, value, onChange, required = false
     });
   }, []);
 
+  const getDisplayName = (d: DepartmentData) => (lang === 'en' && d.nameEn ? d.nameEn : d.name);
   const groupedMajors = data.reduce((acc: Record<string, DepartmentData[]>, major) => {
     const { category } = major;
     if (!acc[category])
       acc[category] = [];
     acc[category].push(major);
-    acc[category].sort((a, b) => a.name.localeCompare(b.name));
+    acc[category].sort((a, b) => getDisplayName(a).localeCompare(getDisplayName(b)));
     return acc;
   }, {});
 
@@ -69,17 +73,23 @@ export function DepartmentDropdown({ id, name, value, onChange, required = false
       size={size}
     >
       {allowNone && (
-        <option value="none">없음</option>
+        <option value="none">{lang === 'en' ? 'None' : '없음'}</option>
       )}
-      {Object.entries(groupedMajors).map(([category, list]) => (
-        <optgroup key={category} label={category}>
-          {list.map(department => (
-            <option key={department.id} value={department.id}>
-              {department.name}
-            </option>
-          ))}
-        </optgroup>
-      ))}
+      {Object.entries(groupedMajors)
+        .map(([category, list]) => {
+          const categoryLabel = lang === 'en' && list[0]?.categoryEn ? list[0].categoryEn : category;
+          return { category, categoryLabel, list } as const;
+        })
+        .sort((a, b) => a.categoryLabel.localeCompare(b.categoryLabel))
+        .map(({ category, categoryLabel, list }) => (
+          <optgroup key={category} label={categoryLabel}>
+            {list.map(department => (
+              <option key={department.id} value={department.id}>
+                {lang === 'en' && department.nameEn ? department.nameEn : department.name}
+              </option>
+            ))}
+          </optgroup>
+        ))}
     </Select>
   )
 }
@@ -94,9 +104,10 @@ interface MultipleDepartmentDropdownProps {
   allowNone?: boolean;
   size?: FieldSize;
   className?: string;
+  lang?: 'ko' | 'en';
 }
 
-export function MultipleDepartmentDropdown({ id, name, value, onChange, required = false, mode, allowNone = false, size = 'medium', className = '' }: MultipleDepartmentDropdownProps) {
+export function MultipleDepartmentDropdown({ id, name, value, onChange, required = false, mode, allowNone = false, size = 'medium', className = '', lang = 'ko' }: MultipleDepartmentDropdownProps) {
   const [data, setData] = useState<DepartmentData[]>([]);
 
   useEffect(() => {
@@ -122,18 +133,19 @@ export function MultipleDepartmentDropdown({ id, name, value, onChange, required
     });
   }, []);
 
+  const getDisplayName = (d: DepartmentData) => (lang === 'en' && d.nameEn ? d.nameEn : d.name);
   const groupedMajors = data.reduce((acc: Record<string, DepartmentData[]>, major) => {
     const { category } = major;
     if (!acc[category])
       acc[category] = [];
     acc[category].push(major);
-    acc[category].sort((a, b) => a.name.localeCompare(b.name));
+    acc[category].sort((a, b) => getDisplayName(a).localeCompare(getDisplayName(b)));
     return acc;
   }, {});
 
-  const options: Option[] = data.map(d => ({
-    label: d.name, value: d.id
-  }))
+  const options: Option[] = [...data]
+    .sort((a, b) => getDisplayName(a).localeCompare(getDisplayName(b)))
+    .map(d => ({ label: getDisplayName(d), value: d.id }));
 
   return (
     <MultipleSelect
@@ -145,6 +157,7 @@ export function MultipleDepartmentDropdown({ id, name, value, onChange, required
       size={size}
       allowNone={allowNone}
       className={className}
+      lang={lang}
     />
   )
 }

@@ -7,6 +7,7 @@ import { API } from '../lib/api';
 interface CourseCategoryData {
   id: string;
   name: string;
+  nameEn?: string;
 }
 
 interface CourseCategoryDropdownProps {
@@ -18,9 +19,10 @@ interface CourseCategoryDropdownProps {
   allowNone?: boolean;
   size?: FieldSize;
   className?: string;
+  lang?: 'ko' | 'en';
 }
 
-export function CourseCategoryDropdown({ id, name, value, onChange, required = false, allowNone = false, size = 'medium', className = '' }: CourseCategoryDropdownProps) {
+export function CourseCategoryDropdown({ id, name, value, onChange, required = false, allowNone = false, size = 'medium', className = '', lang = 'ko' }: CourseCategoryDropdownProps) {
   const [data, setData] = useState<CourseCategoryData[]>([]);
 
   useEffect(() => {
@@ -42,11 +44,11 @@ export function CourseCategoryDropdown({ id, name, value, onChange, required = f
       className={className}
     >
       {allowNone && (
-        <option value="none">없음</option>
+        <option value="none">{lang === 'en' ? 'None' : '없음'}</option>
       )}
-      {data.map(({ id, name }) => (
+      {data.map(({ id, name: nameKo, nameEn }) => (
         <option key={id} value={id}>
-          {name}
+          {lang === 'en' && nameEn ? nameEn : nameKo}
         </option>
       ))}
     </Select>
@@ -63,9 +65,10 @@ interface MultipleCourseCategoryDropdownProps {
   allowNone?: boolean;
   size?: FieldSize;
   className?: string;
+  lang?: 'ko' | 'en';
 }
 
-export function MultipleDepartmentDropdown({ id, name, value, onChange, required = false, mode, allowNone = false, size = 'medium', className = '' }: MultipleCourseCategoryDropdownProps) {
+export function MultipleDepartmentDropdown({ id, name, value, onChange, required = false, mode, allowNone = false, size = 'medium', className = '', lang = 'ko' }: MultipleCourseCategoryDropdownProps) {
   const [data, setData] = useState<CourseCategoryData[]>([]);
 
   useEffect(() => {
@@ -90,6 +93,7 @@ export function MultipleDepartmentDropdown({ id, name, value, onChange, required
       size={size}
       allowNone={allowNone}
       className={className}
+      lang={lang}
     />
   )
 }
