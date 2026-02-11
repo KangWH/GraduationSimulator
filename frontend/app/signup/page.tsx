@@ -517,14 +517,14 @@ export default function SignupPage() {
 
   if (isCheckingAuth) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-zinc-900">
+      <div className="flex min-h-[50vh] md:min-h-screen items-center justify-center bg-gray-50 dark:bg-zinc-900">
         <p className="text-gray-500 dark:text-gray-400">{lang === 'ko' ? '로딩 중…' : 'Loading…'}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-zinc-900">
+    <div className="flex flex-col md:min-h-screen bg-gray-50 dark:bg-zinc-900">
       {/* 데스크톱 상단바 */}
       <header className="sticky top-0 z-10 hidden h-14 shrink-0 select-none items-center justify-between bg-white px-6 text-lg shadow-lg dark:bg-black sm:flex">
         <div className="flex items-center gap-4">

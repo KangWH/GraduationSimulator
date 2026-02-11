@@ -369,7 +369,7 @@ export default function AddCoursePanel({
               </label>
             )}
             <div className="flex items-end gap-3">
-              <div className="flex flex-col gap-2 flex-1">
+              <div className="flex flex-col gap-2 basis-16 grow">
                 <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Year' : '수강 연도'}</label>
                 <NumberInput
                   min="2000"
@@ -380,8 +380,8 @@ export default function AddCoursePanel({
                   size="small"
                 />
               </div>
-              <div className="flex flex-col gap-2 flex-1">
-                <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Semester' : '수강 학기'}</label>
+              <div className="flex flex-col gap-2 basis-16 grow">
+                <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Semester' : '학기'}</label>
                 <Select
                   value={addSemester}
                   onChange={(v) => onAddSemesterChange(v as Semester)}
@@ -395,7 +395,7 @@ export default function AddCoursePanel({
                   ))}
                 </Select>
               </div>
-              <div className="flex flex-col gap-2 flex-1">
+              <div className="flex flex-col gap-2 basis-16 grow">
                 <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Grade' : '성적'}</label>
                 <Select
                   value={addGrade}

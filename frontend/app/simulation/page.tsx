@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DepartmentDropdown, MultipleDepartmentDropdown } from '../components/DepartmentDropdown';
@@ -97,9 +98,49 @@ export default function SimulationPage() {
     if (typeof window === 'undefined') return false;
     return sessionStorage.getItem('enrollmentPromptDismissed') === '1';
   });
+  const profileLinkDesktopRef = useRef<HTMLAnchorElement>(null);
+  const profileLinkMobileRef = useRef<HTMLAnchorElement>(null);
+  const [enrollmentPromptAnchor, setEnrollmentPromptAnchor] = useState<{ left: number; top: number; isMobile: boolean } | null>(null);
   
   // 모바일 탭 상태
   const [mobileTab, setMobileTab] = useState<'major' | 'courses' | 'credits' | 'requirements'>('requirements');
+
+  // 과목 추가 추천 팝업 위치 (createPortal로 body에 렌더, clip 방지)
+  useEffect(() => {
+    if (!profileEnrollmentsEmpty || enrollmentPromptDismissed) {
+      setEnrollmentPromptAnchor(null);
+      return;
+    }
+    const POPUP_EST_WIDTH = 200;
+    const PAD = 12;
+    const updateAnchor = () => {
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+      if (isMobile) {
+        const rect = profileLinkMobileRef.current?.getBoundingClientRect();
+        if (rect) {
+          const left = Math.max(PAD, Math.min(rect.left, window.innerWidth - POPUP_EST_WIDTH - PAD));
+          setEnrollmentPromptAnchor({ left, top: rect.bottom + 8, isMobile: true });
+        }
+      } else {
+        const rect = profileLinkDesktopRef.current?.getBoundingClientRect();
+        if (rect) {
+          const vw = window.innerWidth;
+          const spaceLeft = rect.left - PAD;
+          const left = spaceLeft >= POPUP_EST_WIDTH
+            ? Math.max(PAD, rect.left - POPUP_EST_WIDTH - 8)
+            : Math.max(PAD, vw - POPUP_EST_WIDTH - PAD);
+          setEnrollmentPromptAnchor({ left, top: rect.top + rect.height / 2, isMobile: false });
+        }
+      }
+    };
+    updateAnchor();
+    window.addEventListener('resize', updateAnchor);
+    window.addEventListener('scroll', updateAnchor, true);
+    return () => {
+      window.removeEventListener('resize', updateAnchor);
+      window.removeEventListener('scroll', updateAnchor, true);
+    };
+  }, [profileEnrollmentsEmpty, enrollmentPromptDismissed]);
 
   const closeScenarioModal = useCallback(() => {
     setScenarioSheetVisible(false);
@@ -1680,6 +1721,7 @@ export default function SimulationPage() {
             >
               <div className="relative flex-1 min-w-0">
                 <Link
+                  ref={profileLinkDesktopRef}
                   href="/profile/settings"
                   className={`flex items-center gap-3 rounded-lg w-full min-w-0 active:scale-90 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all ${
                     sidebarOpen
@@ -1697,28 +1739,6 @@ export default function SimulationPage() {
                     </span>
                   )}
                 </Link>
-                {profileEnrollmentsEmpty && !enrollmentPromptDismissed && (
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
-                    <div className="relative bg-violet-600 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                      <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-violet-600" />
-                      <span>수강 과목을 등록해주세요</span>
-                      <Link href="/profile/settings?tab=courses" className="block mt-1 text-violet-200 hover:text-white text-xs font-medium">
-                        등록하기 →
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          sessionStorage.setItem('enrollmentPromptDismissed', '1');
-                          setEnrollmentPromptDismissed(true);
-                        }}
-                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-xs"
-                        aria-label="닫기"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
               {sidebarOpen && (
                 <button
@@ -2056,7 +2076,7 @@ export default function SimulationPage() {
                       </svg>
                     </button>
                   )}
-                  <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>수업별 학점 인정 분야</h2>
+                  <h2 className="text-xl font-bold">수업별 학점 인정 분야</h2>
                 </div>
                 <button
                   onClick={() => setGradeBlindMode(!gradeBlindMode)}
@@ -2257,7 +2277,7 @@ export default function SimulationPage() {
             <div className="flex-1 flex-shrink-0 flex flex-col overflow-hidden transition-all duration-300">
               {/* 제목 영역 */}
               <div className="flex items-center justify-between mb-2 px-6">
-                <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>졸업 요건</h2>
+                <h2 className="text-xl font-bold">졸업 요건</h2>
               </div>
 
               {/* 본문 영역 */}
@@ -2496,6 +2516,7 @@ export default function SimulationPage() {
             </div>
             <div className="relative">
               <Link
+                ref={profileLinkMobileRef}
                 href="/profile/settings"
                 className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-90 transition-all flex items-center gap-2"
               >
@@ -2503,28 +2524,6 @@ export default function SimulationPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </Link>
-              {profileEnrollmentsEmpty && !enrollmentPromptDismissed && (
-                <div className="absolute bottom-full right-0 mb-2 z-50">
-                  <div className="relative bg-violet-600 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
-                    <div className="absolute right-4 top-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-violet-600" />
-                    <span>수강 과목을 등록해주세요</span>
-                    <Link href="/profile/settings?tab=courses" className="block mt-1 text-violet-200 hover:text-white text-xs font-medium">
-                      등록하기 →
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        sessionStorage.setItem('enrollmentPromptDismissed', '1');
-                        setEnrollmentPromptDismissed(true);
-                      }}
-                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-xs"
-                      aria-label="닫기"
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -2816,7 +2815,7 @@ export default function SimulationPage() {
                 </div>
               )}
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold" style={{ fontFamily: 'var(--font-logo)' }}>수업별 학점 인정 분야</h2>
+                <h2 className="text-xl font-bold">수업별 학점 인정 분야</h2>
                 <button
                   onClick={() => setGradeBlindMode(!gradeBlindMode)}
                   className="px-3 py-1.5 text-sm rounded-lg shadow-sm bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all"
@@ -2950,34 +2949,6 @@ export default function SimulationPage() {
           {/* 졸업 요건 탭 */}
           {mobileTab === 'requirements' && (
             <div className="relative">
-              {/* <div className="sticky top-[52px] z-10 backdrop-blur-md">
-                <div className="p-4">
-                  요약 영역
-                  {sections.length > 0 && (
-                    <div className="flex flex-row justify-between gap-3">
-                      <div>
-                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">이수 학점</span>
-                        <p className="text-base sm:text-lg font-semibold">{totalStats.totalCredit} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 138</span></p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">총 AU</span>
-                        <p className="text-base sm:text-lg font-semibold">{totalStats.totalAu} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 4</span></p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">평점</span>
-                        <p className="text-base sm:text-lg font-semibold">{totalStats.gpa} <span className="text-xs text-gray-400 dark:text-zinc-500">/ 2.0</span></p>
-                      </div>
-                      <div>
-                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">시뮬레이션 결과</span>
-                        <p className={`text-base sm:text-lg font-bold ${canGraduate ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                          졸업 {canGraduate ? '가능' : '불가'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div> */}
-
               {isLoadingSimulation && (
                 <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
                   <div className="flex flex-col items-center gap-2">
@@ -3403,6 +3374,43 @@ export default function SimulationPage() {
             <div className="absolute top-1/2 left-0 -translate-x-full -translate-y-1/2 w-0 h-0 border-t-4 border-b-4 border-r-4 border-transparent border-r-black dark:border-r-zinc-800"></div>
           </div>
         </div>
+      )}
+
+      {/* 과목 추가 추천 팝업 (createPortal로 body에 렌더, clip 방지) */}
+      {profileEnrollmentsEmpty && !enrollmentPromptDismissed && enrollmentPromptAnchor && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed z-[9999] shadow-lg"
+          style={{
+            left: enrollmentPromptAnchor.left,
+            top: enrollmentPromptAnchor.top,
+            ...(enrollmentPromptAnchor.isMobile ? {} : { transform: 'translateY(-50%)' }),
+          }}
+        >
+          <div className="relative bg-black text-white text-sm px-3 py-2 rounded-xl shadow-lg whitespace-nowrap overflow-visible min-w-[180px] max-w-[min(220px,calc(100vw-24px))]">
+            {/* 말풍선 꼬리 - 항상 오른쪽에 배치 */}
+            {enrollmentPromptAnchor.isMobile ? (
+              <div className="absolute right-4 top-0 w-0 h-0 border-[6px] border-transparent border-b-black" style={{ transform: 'translateY(-100%)' }} />
+            ) : (
+              <div className="absolute right-0 top-1/2 w-0 h-0 border-[6px] border-transparent border-l-black" style={{ transform: 'translate(100%, -50%)' }} />
+            )}
+            <span>수강 과목을 등록해주세요</span>
+            <Link href="/profile/settings?tab=courses" className="block mt-1 text-gray-300 hover:text-white text-xs font-medium">
+              등록하기 →
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.setItem('enrollmentPromptDismissed', '1');
+                setEnrollmentPromptDismissed(true);
+              }}
+              className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-sm"
+              aria-label="닫기"
+            >
+              ×
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

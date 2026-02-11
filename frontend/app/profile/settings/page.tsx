@@ -9,9 +9,22 @@ import ProfileTab from './ProfileTab';
 import CoursesTab from './CoursesTab';
 import { API } from '../../lib/api';
 
+function useIsDesktop() {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    setIsDesktop(mq.matches);
+    const handler = () => setIsDesktop(mq.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isDesktop;
+}
+
 function ProfileSettingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isDesktop = useIsDesktop();
   const [tab, setTab] = useState<Tab>('account');
   const [lang, setLang] = useState<'ko' | 'en'>('ko');
   const [xlsxHeaderAction, setXlsxHeaderAction] = useState<{ open: () => void; isApplying: boolean } | null>(null);
@@ -98,7 +111,7 @@ function ProfileSettingsContent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+      <div className="flex min-h-[50vh] md:min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
         <p className="text-gray-500 dark:text-gray-400">{lang === 'ko' ? '로딩 중…' : 'Loading…'}</p>
       </div>
     );
@@ -106,7 +119,7 @@ function ProfileSettingsContent() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-zinc-50 dark:bg-black">
+      <div className="flex min-h-[50vh] md:min-h-screen flex-col items-center justify-center gap-4 bg-zinc-50 dark:bg-black">
         <p className="text-red-600 dark:text-red-400">{error}</p>
         <Link href="/simulation" className="text-violet-600 hover:underline">
           {lang === 'ko' ? '시뮬레이션으로 돌아가기' : 'Back to simulation'}
@@ -124,7 +137,8 @@ function ProfileSettingsContent() {
   return (
     <>
       {/* 데스크톱 버전 - courses 탭일 때는 h-screen으로 고정해 열별 스크롤 가능 */}
-      <div className={`hidden md:flex flex-col bg-gray-50 dark:bg-zinc-900 overflow-x-hidden ${tab === 'courses' ? 'h-screen' : 'min-h-screen'}`}>
+      {isDesktop && (
+      <div className={`flex flex-col bg-gray-50 dark:bg-zinc-900 overflow-x-hidden ${tab === 'courses' ? 'h-screen' : 'min-h-screen'}`}>
         {/* 상단바 - 탭 네비게이션 중앙 */}
         <header className="relative sticky top-0 z-10 flex h-14 shrink-0 select-none items-center bg-white px-4 text-lg shadow-lg dark:bg-black">
           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -190,8 +204,8 @@ function ProfileSettingsContent() {
         </header>
 
         {/* 본문 */}
-        <main className={"flex-1 flex flex-col " + (tab === 'courses' ? 'min-h-0 overflow-hidden' : '')}>
-          <div className={"mx-auto w-full max-w-2xl px-6 " + (tab === 'courses' ? 'flex-1 min-h-0 md:max-w-6xl overflow-hidden flex flex-col pt-6 pb-0' : 'py-6')}>
+        <main className={"flex-1 flex flex-col " + (tab === 'courses' ? 'min-h-0' : '')}>
+          <div className={"mx-auto w-full max-w-2xl px-6 " + (tab === 'courses' ? 'flex-1 min-h-0 md:max-w-6xl flex flex-col pt-6 pb-0' : 'py-6')}>
             {tab === 'account' && (
               <AccountTab
                 lang={lang}
@@ -222,9 +236,11 @@ function ProfileSettingsContent() {
           </div>
         </main>
       </div>
+      )}
 
       {/* 모바일 버전 */}
-      <div className="md:hidden min-h-screen bg-gray-50 dark:bg-black">
+      {!isDesktop && (
+      <div className="bg-gray-50 dark:bg-black">
         {/* 상단바 */}
         <div className="sticky top-0 z-20 select-none backdrop-blur-md">
           <div className="p-2 flex flex-row items-center">
@@ -286,7 +302,7 @@ function ProfileSettingsContent() {
         </div>
 
         {/* 본문 영역 */}
-        <div className="p-4 pb-20">
+        <div className={'pt-2 pb-20 ' + (tab === 'courses' ? 'px-2' : 'px-4')}>
           {tab === 'account' && (
             <AccountTab
               lang={lang}
@@ -361,6 +377,7 @@ function ProfileSettingsContent() {
           </nav>
         </div>
       </div>
+      )}
     </>
   );
 }
@@ -368,7 +385,7 @@ function ProfileSettingsContent() {
 export default function ProfileSettingsPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
+      <div className="flex min-h-[50vh] md:min-h-screen items-center justify-center bg-zinc-50 dark:bg-black">
         <p className="text-gray-500 dark:text-gray-400">Loading…</p>
       </div>
     }>
