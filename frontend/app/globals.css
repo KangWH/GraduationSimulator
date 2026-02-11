@@ -4,7 +4,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
+  /* 라이트: gray-50 (#f9fafb), 다크: black (#000000) */
+  --background: #f9fafb;
   --foreground: #171717;
 }
 
@@ -20,7 +21,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #000000;
     --foreground: #ededed;
   }
 }
@@ -28,6 +29,9 @@
 html, body {
   margin: 0;
   padding: 0;
+  /* iOS 26 Safari: 스크롤 콘텐츠가 하단 툴바 뒤로 확장되도록 */
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 body {

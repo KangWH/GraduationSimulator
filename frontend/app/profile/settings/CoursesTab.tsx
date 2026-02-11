@@ -903,54 +903,52 @@ export default function CoursesTab({ lang = 'ko', profile, userId, onProfileUpda
         </div>
 
         {/* 본문 영역 */}
-        <div className="">
-          <div className="px-4 pt-2 pb-4">
-              {courseMode === 'add' ? (
-                <AddCoursePanel
-                  lang={lang}
-                  searchQuery={courseSearchQuery}
-                  onSearchQueryChange={setCourseSearchQuery}
-                  searchResults={searchResults}
-                  isSearching={isSearching}
-                  selectedCourseIds={selectedCourseIds}
-                  onSelectionChange={updateSelectedCourseIds}
-                  addYear={addYear}
-                  onAddYearChange={setAddYear}
-                  addSemester={addSemester}
-                  onAddSemesterChange={setAddSemester}
-                  addGrade={addGrade}
-                  onAddGradeChange={setAddGrade}
-                  addAsPriorCredit={addAsPriorCredit}
-                  onAddAsPriorCreditChange={setAddAsPriorCredit}
-                  onAddSelected={handleAddSelected}
-                  onDragStart={(course) => setDraggedCourse(course)}
-                  filterDepartment={filterDepartment}
-                  onFilterDepartmentChange={setFilterDepartment}
-                  filterCategory={filterCategory}
-                  onFilterCategoryChange={setFilterCategory}
-                  stickyTopOffset="3.25rem"
-                  enrolledCourseIds={enrollments.map((e) => e.courseId)}
-                />
-              ) : (
-                <EnrollmentsList
-                  lang={lang}
-                  enrollments={enrollments}
-                  semesterGroups={semesterGroups}
-                  sortedSemesterKeys={sortedSemesterKeys}
-                  selectedEnrollmentKeys={selectedEnrollmentKeys}
-                  onSelectionChange={setSelectedEnrollmentKeys}
-                  onGradeChange={handleGradeChange}
-                  onMove={handleMove}
-                  onRemove={handleRemove}
-                  onRemoveSelected={handleRemoveSelected}
-                  onRemoveAll={handleRemoveAll}
-                  onDragStart={handleDragStart}
-                  onDrop={handleDrop}
-                  onDropOutside={handleDropOutside}
-                  findNearestPastSemester={findNearestPastSemester}
-                />
-              )}
-          </div>
+        <div className="px-2 pt-2 pb-4">
+          {courseMode === 'add' ? (
+            <AddCoursePanel
+              lang={lang}
+              searchQuery={courseSearchQuery}
+              onSearchQueryChange={setCourseSearchQuery}
+              searchResults={searchResults}
+              isSearching={isSearching}
+              selectedCourseIds={selectedCourseIds}
+              onSelectionChange={updateSelectedCourseIds}
+              addYear={addYear}
+              onAddYearChange={setAddYear}
+              addSemester={addSemester}
+              onAddSemesterChange={setAddSemester}
+              addGrade={addGrade}
+              onAddGradeChange={setAddGrade}
+              addAsPriorCredit={addAsPriorCredit}
+              onAddAsPriorCreditChange={setAddAsPriorCredit}
+              onAddSelected={handleAddSelected}
+              onDragStart={(course) => setDraggedCourse(course)}
+              filterDepartment={filterDepartment}
+              onFilterDepartmentChange={setFilterDepartment}
+              filterCategory={filterCategory}
+              onFilterCategoryChange={setFilterCategory}
+              stickyTopOffset="3.25rem"
+              enrolledCourseIds={enrollments.map((e) => e.courseId)}
+            />
+          ) : (
+            <EnrollmentsList
+              lang={lang}
+              enrollments={enrollments}
+              semesterGroups={semesterGroups}
+              sortedSemesterKeys={sortedSemesterKeys}
+              selectedEnrollmentKeys={selectedEnrollmentKeys}
+              onSelectionChange={setSelectedEnrollmentKeys}
+              onGradeChange={handleGradeChange}
+              onMove={handleMove}
+              onRemove={handleRemove}
+              onRemoveSelected={handleRemoveSelected}
+              onRemoveAll={handleRemoveAll}
+              onDragStart={handleDragStart}
+              onDrop={handleDrop}
+              onDropOutside={handleDropOutside}
+              findNearestPastSemester={findNearestPastSemester}
+            />
+          )}
         </div>
       </div>
 
