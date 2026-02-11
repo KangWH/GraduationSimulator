@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { API } from '../../lib/api';
 import type { Profile, Enrollment, RawEnrollment, Semester, Grade } from './types';
 import AddCoursePanel from './AddCoursePanel';
-import EnrollmentsList from './EnrollmentsList';
+import EnrollmentsList, { enrollmentKey } from './EnrollmentsList';
 
 const VALID_GRADES: Grade[] = ['A+', 'A0', 'A-', 'B+', 'B0', 'B-', 'C+', 'C0', 'C-', 'D+', 'D0', 'D-', 'F', 'S', 'U', 'P', 'NR', 'W'];
 const SEMESTER_OPTIONS: { value: Semester; label: string }[] = [
@@ -79,6 +79,58 @@ function groupBySemester(enrollments: Enrollment[]): Map<string, Enrollment[]> {
   return map;
 }
 
+function parseXlsxCategoryLabel(input: string): { baseLabel: string; requiredTags: string[] } {
+  const raw = String(input ?? '').trim();
+  if (!raw) return { baseLabel: '', requiredTags: [] };
+
+  const m = raw.match(/^(.+?)\((.+?)\)$/);
+  const baseLabel = (m ? m[1] : raw).trim();
+  const inside = (m ? m[2] : '').trim();
+  if (!inside) return { baseLabel, requiredTags: [] };
+
+  // 예: 인선(사일), 인선(인융), 인선(문핵)
+  // 사- →사회, 인- →인문, 문- →문학예술
+  // -일 → 일반, -융 → 융합, -핵 → 핵심
+  const groupMap: Record<string, string> = { 사: '사회', 인: '인문', 문: '문학예술' };
+  const typeMap: Record<string, string> = { 일: '일반', 융: '융합', 핵: '핵심' };
+
+  const chars = Array.from(inside);
+  const groupChar = chars.find((c) => c in groupMap) ?? '';
+  const typeChar = chars.find((c) => c in typeMap) ?? '';
+
+  const requiredTags = [groupChar ? groupMap[groupChar] : '', typeChar ? typeMap[typeChar] : ''].filter(Boolean);
+  return { baseLabel, requiredTags };
+}
+
+// 성적 목록 xlsx 행 → { year, semester, courseCode, categoryBaseLabel, requiredTags, grade } 파싱 (20260210_성적 목록.xlsx 형식)
+// courseCode: 교과목 열 사용. categoryBaseLabel: 구분 열(예: 기필/기선/교필/자선/인선...). requiredTags: 구분의 괄호 약어(예: 사일/인융/문핵)를 tags로 매칭.
+// grade: P/NR 표기 후인 '성적' 열 사용.
+function parseXlsxRow(row: Record<string, unknown>): { year: number; semester: Semester; courseCode: string; categoryBaseLabel: string; requiredTags: string[]; grade: Grade } | null {
+  const termStr = String(row['학년도-학기'] ?? '').trim();
+  const codeRaw = row['교과목'];
+  const categoryLabelRaw = String(row['구분'] ?? '').trim();
+  const gradeStr = String(row['성적'] ?? '').trim(); // P/NR 표기 후
+  if (!termStr || codeRaw == null || codeRaw === '') return null;
+
+  let year: number;
+  let semester: Semester;
+  if (termStr === '기이수 인정 학점') {
+    year = 0;
+    semester = 'SPRING';
+  } else {
+    const m = termStr.match(/(\d{4})년\s*(봄|여름|가을|겨울)학기/);
+    if (!m) return null;
+    year = parseInt(m[1], 10);
+    const semMap: Record<string, Semester> = { 봄: 'SPRING', 여름: 'SUMMER', 가을: 'FALL', 겨울: 'WINTER' };
+    semester = semMap[m[2]] ?? 'SPRING';
+  }
+
+  const courseCode = String(codeRaw).trim();
+  const grade = (VALID_GRADES.includes(gradeStr as Grade) ? gradeStr : 'NR') as Grade;
+  const { baseLabel: categoryBaseLabel, requiredTags } = parseXlsxCategoryLabel(categoryLabelRaw);
+  return { year, semester, courseCode, categoryBaseLabel, requiredTags, grade };
+}
+
 // 오늘보다 이른 학기 중 가장 가까운 학기 찾기
 function findNearestPastSemester(): { year: number; semester: Semester } {
   const now = new Date();
@@ -130,6 +182,14 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
   const [draggedCourse, setDraggedCourse] = useState<any | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [selectedEnrollmentKeys, setSelectedEnrollmentKeys] = useState<Set<string>>(new Set());
+  const [xlsxParsedRows, setXlsxParsedRows] = useState<Record<string, unknown>[] | null>(null);
+  const [xlsxFileName, setXlsxFileName] = useState<string | null>(null);
+  const [xlsxLoading, setXlsxLoading] = useState(false);
+  const [xlsxDialogOpen, setXlsxDialogOpen] = useState(false);
+  const [xlsxApplying, setXlsxApplying] = useState(false);
+  const [xlsxShouldApply, setXlsxShouldApply] = useState(false);
+  const xlsxInputRef = useRef<HTMLInputElement>(null);
 
   // 수강 내역 로드 및 변환
   useEffect(() => {
@@ -392,11 +452,34 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
             e.enrolledSemester === enrollment.enrolledSemester
           )
       );
+      setSelectedEnrollmentKeys((prev) => {
+        const next = new Set(prev);
+        next.delete(enrollmentKey(enrollment));
+        return next;
+      });
       setEnrollments(newEnrollments);
       saveEnrollments(newEnrollments);
     },
     [enrollments, saveEnrollments]
   );
+
+  // 선택 삭제
+  const handleRemoveSelected = useCallback(() => {
+    if (selectedEnrollmentKeys.size === 0) return;
+    const newEnrollments = enrollments.filter((e) => !selectedEnrollmentKeys.has(enrollmentKey(e)));
+    setSelectedEnrollmentKeys(new Set());
+    setEnrollments(newEnrollments);
+    saveEnrollments(newEnrollments);
+  }, [enrollments, selectedEnrollmentKeys, saveEnrollments]);
+
+  // 전체 삭제
+  const handleRemoveAll = useCallback(() => {
+    if (enrollments.length === 0) return;
+    if (!confirm(`수강 과목 ${enrollments.length}개를 모두 삭제하시겠습니까?`)) return;
+    setSelectedEnrollmentKeys(new Set());
+    setEnrollments([]);
+    saveEnrollments([]);
+  }, [enrollments, saveEnrollments]);
 
   // 학기 이동
   const handleMove = useCallback(
@@ -522,6 +605,252 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
     [draggedEnrollment, draggedCourse, handleRemove]
   );
 
+  const handleXlsxFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.name.endsWith('.xlsx')) {
+      alert('.xlsx 파일만 업로드할 수 있습니다.');
+      if (xlsxInputRef.current) xlsxInputRef.current.value = '';
+      return;
+    }
+    setXlsxLoading(true);
+    setXlsxParsedRows(null);
+    setXlsxFileName(null);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const data = event.target?.result;
+        if (!data || typeof data !== 'object' || !(data instanceof ArrayBuffer)) {
+          setXlsxLoading(false);
+          return;
+        }
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) {
+          setXlsxLoading(false);
+          alert('엑셀 파일에 시트가 없습니다.');
+          return;
+        }
+        const sheet = workbook.Sheets[firstSheetName];
+        const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+        setXlsxParsedRows(rows);
+        setXlsxFileName(file.name);
+        if (xlsxInputRef.current) xlsxInputRef.current.value = '';
+        setXlsxLoading(false);
+        setXlsxDialogOpen(false); // 다이얼로그 먼저 닫기
+        
+        // 다이얼로그 닫은 후 confirm 띄우기
+        setTimeout(() => {
+          if (confirm(`기존 수강 내역 ${enrollments.length}건을 모두 지우고, 엑셀 파일 내용(${rows.length}행)으로 수강 목록을 대체하시겠습니까?\n(엑셀의 '구분'과 DB의 과목구분이 일치하는 과목만 반영됩니다.)`)) {
+            setXlsxShouldApply(true);
+          } else {
+            // 취소하면 업로드 정보 초기화
+            setXlsxParsedRows(null);
+            setXlsxFileName(null);
+          }
+        }, 100);
+      } catch (err) {
+        console.error('xlsx parse error:', err);
+        alert('엑셀 파일을 읽는 중 오류가 발생했습니다.');
+        setXlsxLoading(false);
+        if (xlsxInputRef.current) xlsxInputRef.current.value = '';
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }, [enrollments.length]);
+
+  const handleXlsxButtonClick = useCallback(() => {
+    setXlsxDialogOpen(true);
+  }, []);
+
+  const handleXlsxDialogClose = useCallback(() => {
+    if (!xlsxLoading && !xlsxApplying) {
+      setXlsxDialogOpen(false);
+      if (xlsxInputRef.current) xlsxInputRef.current.value = '';
+    }
+  }, [xlsxLoading, xlsxApplying]);
+
+  // xlsx 파싱 결과로 기존 수강 내역 전부 지우고 일괄 반영
+  const handleXlsxApply = useCallback(async () => {
+    if (!xlsxParsedRows || xlsxParsedRows.length === 0) return;
+
+    setXlsxApplying(true);
+    try {
+      const parsed: { year: number; semester: Semester; courseCode: string; categoryBaseLabel: string; requiredTags: string[]; grade: Grade }[] = [];
+      for (const row of xlsxParsedRows) {
+        const p = parseXlsxRow(row);
+        if (p) parsed.push(p);
+      }
+
+      const courseCategoriesRes = await fetch(`${API}/courseCategories`);
+      const courseCategoriesJson = await courseCategoriesRes.json();
+      const courseCategories: Array<{ id: string; name: string }> = Array.isArray(courseCategoriesJson) ? courseCategoriesJson : [];
+      const categoryNameToId = new Map(courseCategories.map((c) => [String(c.name).trim(), String(c.id).trim()]));
+      const categoryIdToName = new Map(courseCategories.map((c) => [String(c.id).trim(), String(c.name).trim()]));
+      const categoryAliasToName: Record<string, string> = {
+        교필: '교양필수',
+        자선: '자유선택',
+        기필: '기초필수',
+        기선: '기초선택',
+        전필: '전공필수',
+        전선: '전공선택',
+        인선: '인문사회선택',
+        선택: '선택(석/박사)',
+      };
+      const getCategoryId = (label: string): string | null => {
+        const t = String(label ?? '').trim();
+        if (!t) return null;
+        // 이미 id로 들어온 경우
+        if (categoryIdToName.has(t)) return t;
+        // name이 그대로 들어온 경우
+        if (categoryNameToId.has(t)) return categoryNameToId.get(t)!;
+        // 약어(교필/기필 등) 매핑
+        const aliased = categoryAliasToName[t];
+        if (aliased && categoryNameToId.has(aliased)) return categoryNameToId.get(aliased)!;
+        return null;
+      };
+
+      const hasAllTags = (courseTags: unknown, required: string[]) => {
+        if (!required || required.length === 0) return true;
+        const tags = Array.isArray(courseTags) ? courseTags.map((t) => String(t)) : [];
+        return required.every((r) => tags.includes(r));
+      };
+
+      const pickCourse = (courses: any[], expectedCategoryId: string | null, requiredTags: string[], allowFallback = false) => {
+        const list = Array.isArray(courses) ? courses : [];
+        
+        // 1) 정확히 매칭되는 것 찾기
+        const exactMatch = list.find((c) => {
+          if (expectedCategoryId && String(c?.category ?? '').trim() !== expectedCategoryId) return false;
+          if (!hasAllTags(c?.tags, requiredTags)) return false;
+          return true;
+        });
+        if (exactMatch) return exactMatch;
+        
+        // 2) fallback: 인선 과목이고 태그가 2개인 경우에만
+        if (allowFallback && expectedCategoryId === 'HSE' && requiredTags.length === 2) {
+          const firstTag = requiredTags[0];
+          // 첫 번째 태그만 일치하고 두 번째가 '핵심'인 것
+          const firstTagPlusCore = list.find((c) => {
+            if (String(c?.category ?? '').trim() !== expectedCategoryId) return false;
+            const tags = Array.isArray(c?.tags) ? c.tags.map((t: unknown) => String(t)) : [];
+            return tags.includes(firstTag) && tags.includes('핵심');
+          });
+          if (firstTagPlusCore) return firstTagPlusCore;
+          
+          // 태그 없이 category만 인선인 것
+          const noTags = list.find((c) => {
+            if (String(c?.category ?? '').trim() !== expectedCategoryId) return false;
+            const tags = Array.isArray(c?.tags) ? c.tags : [];
+            return tags.length === 0;
+          });
+          if (noTags) return noTags;
+        }
+        
+        return null;
+      };
+
+      const rawMap = new Map<string, RawEnrollment>();
+      const notFoundCodes: string[] = [];
+      const categoryMismatch: string[] = [];
+      const unknownCategory: string[] = [];
+      const tagMismatch: string[] = [];
+      for (const p of parsed) {
+        const expectedCategoryId = getCategoryId(p.categoryBaseLabel);
+        if (!expectedCategoryId) {
+          unknownCategory.push(`${p.courseCode}(${p.categoryBaseLabel || '구분없음'})`);
+        }
+
+        // 1) code+category 우선 조회 (가능할 때만)
+        let course: any | null = null;
+        if (expectedCategoryId) {
+          const res = await fetch(`${API}/courses?code=${encodeURIComponent(p.courseCode)}&category=${encodeURIComponent(expectedCategoryId)}`);
+          const courses = await res.json();
+          const isHSE = expectedCategoryId === 'HSE'; // 인문사회선택
+          course = pickCourse(courses, expectedCategoryId, p.requiredTags, isHSE);
+          // category는 맞는데 tags가 안 맞는 경우 (fallback도 시도했지만 실패)
+          if (!course && Array.isArray(courses) && courses.length > 0 && p.requiredTags.length > 0 && !isHSE) {
+            tagMismatch.push(`${p.courseCode}(${p.requiredTags.join('+')})`);
+          }
+        }
+
+        // 2) fallback: code만 조회 (category 미상 또는 매칭 실패 시)
+        if (!course) {
+          const res2 = await fetch(`${API}/courses?code=${encodeURIComponent(p.courseCode)}`);
+          const courses2 = await res2.json();
+          const isHSE = expectedCategoryId === 'HSE';
+          const fallback = pickCourse(courses2, expectedCategoryId, p.requiredTags, isHSE);
+          if (!fallback?.id) {
+            // code는 있는데 tags 조건 때문에 못 찾았는지 구분 (인선은 fallback 시도했으므로 제외)
+            if (Array.isArray(courses2) && courses2.length > 0 && p.requiredTags.length > 0 && !isHSE) {
+              tagMismatch.push(`${p.courseCode}(${p.requiredTags.join('+')})`);
+              continue;
+            }
+            notFoundCodes.push(p.courseCode);
+            continue;
+          }
+          course = fallback;
+        }
+
+        if (course?.id) {
+          const key = `${course.id}-${p.year}-${p.semester}`;
+          rawMap.set(key, {
+            courseId: course.id,
+            enrolledYear: p.year,
+            enrolledSemester: p.semester,
+            grade: p.grade,
+          });
+        } else {
+          notFoundCodes.push(p.courseCode);
+        }
+      }
+      const rawEnrollments = Array.from(rawMap.values());
+
+      const newEnrollments = await convertToEnrollments(rawEnrollments);
+      setSelectedEnrollmentKeys(new Set());
+      setEnrollments(newEnrollments);
+      await saveEnrollments(newEnrollments);
+
+      setXlsxParsedRows(null);
+      setXlsxFileName(null);
+      setXlsxDialogOpen(false);
+      if (xlsxInputRef.current) xlsxInputRef.current.value = '';
+
+      const msgs: string[] = [`수강 목록을 적용했습니다. (${newEnrollments.length}건)`];
+      if (tagMismatch.length > 0) {
+        const unique = [...new Set(tagMismatch)];
+        msgs.push(`태그 불일치로 제외: ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}`);
+      }
+      if (categoryMismatch.length > 0) {
+        const unique = [...new Set(categoryMismatch)];
+        msgs.push(`구분 불일치로 제외: ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}`);
+      }
+      if (unknownCategory.length > 0) {
+        const unique = [...new Set(unknownCategory)];
+        msgs.push(`구분 해석 불가(코드만으로 시도): ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}`);
+      }
+      if (notFoundCodes.length > 0) {
+        const unique = [...new Set(notFoundCodes)];
+        msgs.push(`과목 DB에 없어 제외: ${unique.length}건${unique.length > 10 ? ` (예: ${unique.slice(0, 10).join(', ')} …)` : ` (예: ${unique.join(', ')})`}`);
+      }
+      alert(msgs.join('\n'));
+    } catch (err) {
+      console.error('xlsx apply error:', err);
+      alert('적용 중 오류가 발생했습니다.');
+    } finally {
+      setXlsxApplying(false);
+    }
+  }, [xlsxParsedRows, enrollments.length, saveEnrollments]);
+
+  // xlsx 파일 파싱 후 confirm에서 확인하면 자동으로 apply 실행
+  useEffect(() => {
+    if (xlsxShouldApply && xlsxParsedRows && xlsxParsedRows.length > 0) {
+      setXlsxShouldApply(false);
+      handleXlsxApply();
+    }
+  }, [xlsxShouldApply, xlsxParsedRows, handleXlsxApply]);
+
   const semesterGroups = useMemo(() => groupBySemester(enrollments), [enrollments]);
   const sortedSemesterKeys = Array.from(semesterGroups.keys()).sort((a, b) => {
     const [yearA, semA] = a.split('-');
@@ -569,7 +898,28 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
         <div className="">
           <div className="px-4 pt-2 pb-8">
               {courseMode === 'add' ? (
-                <AddCoursePanel
+                <>
+                  {/* 엑셀(.xlsx) 일괄 등록 업로드 */}
+                  <div className="flex flex-col items-end gap-2 mb-4">
+                    <button
+                      type="button"
+                      onClick={handleXlsxButtonClick}
+                      className="rounded-md bg-white dark:bg-black px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-zinc-800 shadow-sm active:scale-90 transition-all"
+                    >
+                      .xlsx 업로드
+                    </button>
+                    {xlsxApplying && (
+                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                        <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>적용 중…</span>
+                      </div>
+                    )}
+                  </div>
+
+                  <AddCoursePanel
                   searchQuery={courseSearchQuery}
                   onSearchQueryChange={setCourseSearchQuery}
                   searchResults={searchResults}
@@ -593,14 +943,19 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
                   stickyTopOffset="3.25rem"
                   enrolledCourseIds={enrollments.map((e) => e.courseId)}
                 />
+                </>
               ) : (
                 <EnrollmentsList
                   enrollments={enrollments}
                   semesterGroups={semesterGroups}
                   sortedSemesterKeys={sortedSemesterKeys}
+                  selectedEnrollmentKeys={selectedEnrollmentKeys}
+                  onSelectionChange={setSelectedEnrollmentKeys}
                   onGradeChange={handleGradeChange}
                   onMove={handleMove}
                   onRemove={handleRemove}
+                  onRemoveSelected={handleRemoveSelected}
+                  onRemoveAll={handleRemoveAll}
                   onDragStart={handleDragStart}
                   onDrop={handleDrop}
                   onDropOutside={handleDropOutside}
@@ -619,6 +974,26 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
               <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 pb-4">과목 추가</h2>
             </div>
             <div className="space-y-4 pt-0 px-2 pb-2">
+              {/* 엑셀(.xlsx) 일괄 등록 업로드 */}
+              <div className="flex flex-col items-end gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={handleXlsxButtonClick}
+                  className="rounded-md bg-white dark:bg-black px-2 py-1 text-xs hover:bg-gray-100 dark:hover:bg-zinc-800 shadow-sm active:scale-90 transition-all"
+                >
+                  .xlsx 업로드
+                </button>
+                {xlsxApplying && (
+                  <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                    <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>적용 중…</span>
+                  </div>
+                )}
+              </div>
+
               <AddCoursePanel
                 searchQuery={courseSearchQuery}
                 onSearchQueryChange={setCourseSearchQuery}
@@ -666,9 +1041,13 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
               enrollments={enrollments}
               semesterGroups={semesterGroups}
               sortedSemesterKeys={sortedSemesterKeys}
+              selectedEnrollmentKeys={selectedEnrollmentKeys}
+              onSelectionChange={setSelectedEnrollmentKeys}
               onGradeChange={handleGradeChange}
               onMove={handleMove}
               onRemove={handleRemove}
+              onRemoveSelected={handleRemoveSelected}
+              onRemoveAll={handleRemoveAll}
               onDragStart={handleDragStart}
               onDrop={handleDrop}
               onDropOutside={handleDropOutside}
@@ -677,6 +1056,49 @@ export default function CoursesTab({ profile, userId, onProfileUpdate }: Courses
           </div>
         </div>
       </div>
+
+      {/* 엑셀 업로드 다이얼로그 (공통) */}
+      {xlsxDialogOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 dark:bg-black/70" onClick={handleXlsxDialogClose}>
+          <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">.xlsx 파일 업로드</h3>
+              <button
+                type="button"
+                onClick={handleXlsxDialogClose}
+                disabled={xlsxLoading}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              ‘<a href="https://erp.kaist.ac.kr" target="_blank" className="text-violet-500 font-medium hover:underline">학사</a> → 성적 → 성적조회’ 메뉴에서 내려받은 .xlsx 파일을 업로드하여 수강한 과목을 일괄 등록할 수 있습니다.
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              주의: 기존에 등록한 과목들은 모두 삭제됩니다.
+            </p>
+            <input
+              ref={xlsxInputRef}
+              type="file"
+              accept=".xlsx"
+              onChange={handleXlsxFileChange}
+              className="block w-full text-sm text-gray-600 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-violet-50 file:text-violet-700 dark:file:bg-violet-900/30 dark:file:text-violet-300 hover:file:bg-violet-100 dark:hover:file:bg-violet-900/50"
+            />
+            {xlsxLoading && (
+              <div className="mt-4 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>파일 읽는 중...</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

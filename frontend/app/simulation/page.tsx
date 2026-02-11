@@ -9,7 +9,7 @@ import { API } from '../lib/api';
 import type { Profile, Enrollment, RawEnrollment, Semester, Grade, Course } from '../profile/settings/types';
 import type { CourseSimulation, RawCourseSimulation, CreditType, Requirement } from './types';
 import AddCoursePanel from '../profile/settings/AddCoursePanel';
-import EnrollmentsList from '../profile/settings/EnrollmentsList';
+import EnrollmentsList, { enrollmentKey } from '../profile/settings/EnrollmentsList';
 import { classifyCourses, RequirementsProps, SubstitutionMap } from './conditionTester';
 import {
   type Section,
@@ -82,6 +82,7 @@ export default function SimulationPage() {
   const [draggedFromSemester, setDraggedFromSemester] = useState<string | null>(null);
   const [draggedCourse, setDraggedCourse] = useState<any | null>(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [selectedEnrollmentKeys, setSelectedEnrollmentKeys] = useState<Set<string>>(new Set());
 
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const prevSimulationCoursesRef = useRef<CourseSimulation[]>([]);
@@ -1929,6 +1930,8 @@ export default function SimulationPage() {
                             enrollments={enrollmentsForList}
                             semesterGroups={semesterGroups}
                             sortedSemesterKeys={sortedSemesterKeys}
+                            selectedEnrollmentKeys={selectedEnrollmentKeys}
+                            onSelectionChange={setSelectedEnrollmentKeys}
                             onGradeChange={(enrollment, grade) => {
                               const cs = simulationCourses.find(
                                 (c) =>
@@ -1961,6 +1964,14 @@ export default function SimulationPage() {
                               if (cs) {
                                 handleRemove(cs);
                               }
+                            }}
+                            onRemoveSelected={() => {
+                              // simulation에서는 선택 삭제 기능 사용 안 함
+                              setSelectedEnrollmentKeys(new Set());
+                            }}
+                            onRemoveAll={() => {
+                              // simulation에서는 전체 삭제 기능 사용 안 함
+                              setSelectedEnrollmentKeys(new Set());
                             }}
                             onDragStart={(e, enrollment, semesterKey) => {
                               const cs = simulationCourses.find(
@@ -2664,6 +2675,8 @@ export default function SimulationPage() {
                       enrollments={enrollmentsForList}
                       semesterGroups={semesterGroups}
                       sortedSemesterKeys={sortedSemesterKeys}
+                      selectedEnrollmentKeys={selectedEnrollmentKeys}
+                      onSelectionChange={setSelectedEnrollmentKeys}
                       onGradeChange={(enrollment, grade) => {
                         const cs = simulationCourses.find(
                           (c) =>
@@ -2696,6 +2709,14 @@ export default function SimulationPage() {
                         if (cs) {
                           handleRemove(cs);
                         }
+                      }}
+                      onRemoveSelected={() => {
+                        // simulation에서는 선택 삭제 기능 사용 안 함
+                        setSelectedEnrollmentKeys(new Set());
+                      }}
+                      onRemoveAll={() => {
+                        // simulation에서는 전체 삭제 기능 사용 안 함
+                        setSelectedEnrollmentKeys(new Set());
                       }}
                       onDragStart={(e, enrollment, semesterKey) => {
                         const cs = simulationCourses.find(

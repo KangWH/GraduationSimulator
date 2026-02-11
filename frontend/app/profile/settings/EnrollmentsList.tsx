@@ -75,13 +75,21 @@ function getNextSameTypeSemester(year: number, semester: Semester): { year: numb
   return semester === 'WINTER' ? { year: year + 1, semester: 'SUMMER' } : { year, semester: 'WINTER' };
 }
 
+export function enrollmentKey(e: Enrollment): string {
+  return `${e.courseId}-${e.enrolledYear}-${e.enrolledSemester}`;
+}
+
 interface EnrollmentsListProps {
   enrollments: Enrollment[];
   semesterGroups: Map<string, Enrollment[]>;
   sortedSemesterKeys: string[];
+  selectedEnrollmentKeys: Set<string>;
+  onSelectionChange: (keys: Set<string>) => void;
   onGradeChange: (enrollment: Enrollment, grade: Grade) => void;
   onMove: (enrollment: Enrollment, newYear: number, newSemester: Semester) => void;
   onRemove: (enrollment: Enrollment) => void;
+  onRemoveSelected: () => void;
+  onRemoveAll: () => void;
   onDragStart: (e: React.DragEvent, enrollment: Enrollment, semesterKey: string) => void;
   onDrop: (e: React.DragEvent, semesterKey: string) => void;
   onDropOutside: (e: React.DragEvent) => void;
@@ -92,9 +100,13 @@ export default function EnrollmentsList({
   enrollments,
   semesterGroups,
   sortedSemesterKeys,
+  selectedEnrollmentKeys,
+  onSelectionChange,
   onGradeChange,
   onMove,
   onRemove,
+  onRemoveSelected,
+  onRemoveAll,
   onDragStart,
   onDrop,
   onDropOutside,
@@ -163,6 +175,22 @@ export default function EnrollmentsList({
     });
   };
 
+  const toggleSelection = (e: Enrollment) => {
+    const key = enrollmentKey(e);
+    const next = new Set(selectedEnrollmentKeys);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    onSelectionChange(next);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedEnrollmentKeys.size === enrollments.length) {
+      onSelectionChange(new Set());
+    } else {
+      onSelectionChange(new Set(enrollments.map(enrollmentKey)));
+    }
+  };
+
   if (enrollments.length === 0) {
     return (
       <div
@@ -196,6 +224,34 @@ export default function EnrollmentsList({
 
   return (
     <div className="space-y-6">
+      {/* 선택 삭제 / 전체 삭제 툴바 */}
+      <div className="flex flex-wrap justify-end items-stretch mb-4 text-xs gap-2">
+        <button
+          type="button"
+          onClick={toggleSelectAll}
+          className="px-2 py-1 bg-white dark:bg-black shadow-sm rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all active:scale-90 active:rounded-md"
+        >
+          {selectedEnrollmentKeys.size === enrollments.length ? '전체 해제' : '전체 선택'}
+        </button>
+        <div className="bg-white dark:bg-black rounded-md shadow-sm overflow-hidden">
+          <button
+            type="button"
+            onClick={onRemoveSelected}
+            disabled={selectedEnrollmentKeys.size === 0}
+            className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-zinc-800 text-red-600 dark:text-red-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all active:scale-90 active:rounded-md"
+          >
+            선택 삭제 {selectedEnrollmentKeys.size > 0 && `(${selectedEnrollmentKeys.size})`}
+          </button>
+          <button
+            type="button"
+            onClick={onRemoveAll}
+            className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-zinc-800 text-red-600 dark:text-red-400 transition-all active:scale-90 active:rounded-md"
+          >
+            전체 삭제
+          </button>
+        </div>
+      </div>
+
       {sortedSemesterKeys.map((semesterKey) => {
         const [year, semester] = semesterKey.split('-');
         const groupEnrollments = semesterGroups.get(semesterKey) || [];
@@ -254,6 +310,8 @@ export default function EnrollmentsList({
                       const prevLabel = REGULAR_SEMESTERS.includes(s) ? '이전 정규학기로 이동' : '이전 계절학기로 이동';
                       const nextLabel = REGULAR_SEMESTERS.includes(s) ? '다음 정규학기로 이동' : '다음 계절학기로 이동';
 
+                      const key = enrollmentKey(enrollment);
+                      const isSelected = selectedEnrollmentKeys.has(key);
                       return <div
                         key={menuKey}
                         draggable
@@ -265,8 +323,21 @@ export default function EnrollmentsList({
                         onDragEnd={(e) => {
                           (e.currentTarget as HTMLElement).style.opacity = '1';
                         }}
-                        className="flex items-center justify-between gap-4 rounded p-2 bg-gray-50 cursor-move dark:bg-zinc-900"
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).closest('select, [role="menu"], button')) return;
+                          toggleSelection(enrollment);
+                        }}
+                        className={`flex items-center justify-between gap-4 rounded-md p-2 cursor-move border ${
+                          isSelected ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-500/50' : 'bg-gray-50 dark:bg-zinc-900 border-transparent'
+                        }`}
                       >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelection(enrollment)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 shrink-0"
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <div className="min-w-0 flex-1 flex items-baseline gap-2">
@@ -342,7 +413,11 @@ export default function EnrollmentsList({
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-[9999] min-w-[200px] max-h-[calc(100vh-16px)] overflow-y-auto py-1 rounded-lg bg-white dark:bg-zinc-800 shadow-lg border border-gray-200 dark:border-zinc-700"
+            className={`fixed z-[9999] min-w-[160px] max-h-[calc(100vh-16px)] overflow-y-auto p-1 rounded-xl bg-gray-50/50 dark:bg-zinc-900/50 shadow-xl backdrop-blur-sm border border-black/10 dark:border-white/20 text-sm ${
+              openMenu.anchor.top != null 
+                ? 'animate-slide-down' 
+                : 'animate-slide-up'
+            }`}
             role="menu"
             style={{
               ...(openMenu.anchor.top != null && { top: openMenu.anchor.top }),
@@ -358,6 +433,7 @@ export default function EnrollmentsList({
               const e = openMenu.enrollment;
               const y = e.enrolledYear;
               const s = e.enrolledSemester;
+              const isPreEnrollment = y === 0 && s === 'SPRING';
               const prevSem = getPrevSemester(y, s);
               const nextSem = getNextSemester(y, s);
               const prevSameType = getPrevSameTypeSemester(y, s);
@@ -365,85 +441,127 @@ export default function EnrollmentsList({
               const prevLabel = REGULAR_SEMESTERS.includes(s) ? '이전 정규학기로 이동' : '이전 계절학기로 이동';
               const nextLabel = REGULAR_SEMESTERS.includes(s) ? '다음 정규학기로 이동' : '다음 계절학기로 이동';
               const close = () => setOpenMenu(null);
-              return (
-                <>
+              
+              // 기이수인 경우 삭제만 표시
+              if (isPreEnrollment) {
+                return (
                   <button
                     type="button"
                     role="menuitem"
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-90 active:rounded-md"
-                    onClick={() => {
-                      onMove(e, prevSem.year, prevSem.semester);
-                      close();
-                    }}
-                  >
-                    이전 학기로 이동
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-90 active:rounded-md"
-                    onClick={() => {
-                      onMove(e, prevSameType.year, prevSameType.semester);
-                      close();
-                    }}
-                  >
-                    {prevLabel}
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-90 active:rounded-md"
-                    onClick={() => {
-                      onMove(e, y - 1, s);
-                      close();
-                    }}
-                  >
-                    이전 연도로 이동
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-90 active:rounded-md"
-                    onClick={() => {
-                      onMove(e, nextSem.year, nextSem.semester);
-                      close();
-                    }}
-                  >
-                    다음 학기로 이동
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-90 active:rounded-md"
-                    onClick={() => {
-                      onMove(e, nextSameType.year, nextSameType.semester);
-                      close();
-                    }}
-                  >
-                    {nextLabel}
-                  </button>
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all active:scale-90 active:rounded-md"
-                    onClick={() => {
-                      onMove(e, y + 1, s);
-                      close();
-                    }}
-                  >
-                    다음 연도로 이동
-                  </button>
-                  <div className="my-1 border-t border-gray-200 dark:border-zinc-600" role="separator" />
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-all active:scale-90 active:rounded-md"
+                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
                     onClick={() => {
                       onRemove(e);
                       close();
                     }}
                   >
-                    삭제
+                    <span className="w-4 flex-shrink-0 flex items-center justify-center">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </span>
+                    <span className="flex-1">삭제</span>
+                  </button>
+                );
+              }
+              
+              return (
+                <>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    onClick={() => {
+                      onMove(e, y - 1, s);
+                      close();
+                    }}
+                  >
+                    <span className="w-4 flex-shrink-0 flex items-center justify-center">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                    </span>
+                    <span className="flex-1">이전 연도로 이동</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    onClick={() => {
+                      onMove(e, prevSameType.year, prevSameType.semester);
+                      close();
+                    }}
+                  >
+                    <span className="w-4 flex-shrink-0"></span>
+                    <span className="flex-1">{prevLabel}</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    onClick={() => {
+                      onMove(e, prevSem.year, prevSem.semester);
+                      close();
+                    }}
+                  >
+                    <span className="w-4 flex-shrink-0"></span>
+                    <span className="flex-1">이전 학기로 이동</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    onClick={() => {
+                      onMove(e, nextSem.year, nextSem.semester);
+                      close();
+                    }}
+                  >
+                    <span className="w-4 flex-shrink-0 flex items-center justify-center">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </span>
+                    <span className="flex-1">다음 학기로 이동</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    onClick={() => {
+                      onMove(e, nextSameType.year, nextSameType.semester);
+                      close();
+                    }}
+                  >
+                    <span className="w-4 flex-shrink-0"></span>
+                    <span className="flex-1">{nextLabel}</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    onClick={() => {
+                      onMove(e, y + 1, s);
+                      close();
+                    }}
+                  >
+                    <span className="w-4 flex-shrink-0"></span>
+                    <span className="flex-1">다음 연도로 이동</span>
+                  </button>
+                  <div className="m-1 border-t border-gray-300 dark:border-zinc-600" role="separator" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    onClick={() => {
+                      onRemove(e);
+                      close();
+                    }}
+                  >
+                    <span className="w-4 flex-shrink-0 flex items-center justify-center">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </span>
+                    <span className="flex-1">삭제</span>
                   </button>
                 </>
               );

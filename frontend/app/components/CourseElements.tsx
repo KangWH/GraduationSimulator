@@ -226,7 +226,11 @@ export function CourseBar({
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-[9999] min-w-[200px] max-h-[calc(100vh-16px)] overflow-y-auto py-1 rounded-lg bg-white dark:bg-zinc-800 shadow-lg border border-gray-200 dark:border-zinc-700"
+            className={`fixed z-[9999] min-w-[160px] max-h-[calc(100vh-16px)] p-1 overflow-y-auto rounded-xl bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-sm shadow-xl dark:shadow-white/10 border border-black/10 dark:border-white/20 text-sm ${
+              openMenu!.anchor.top != null 
+                ? 'animate-slide-down' 
+                : 'animate-slide-up'
+            }`}
             role="menu"
             style={{
               ...(openMenu!.anchor.top != null && { top: openMenu!.anchor.top }),
@@ -242,11 +246,7 @@ export function CourseBar({
             <button
               type="button"
               role="menuitem"
-              className={`w-full text-left px-3 py-2 text-sm transition-all active:scale-90 active:rounded-md ${
-                course.specifiedClassification === null || course.specifiedClassification === undefined
-                  ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 font-medium'
-                  : 'text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700'
-              }`}
+              className="w-full text-left px-2 py-1 transition-all active:scale-90 rounded-lg flex items-center gap-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white"
               onClick={() => {
                 if (onClassificationChange) {
                   onClassificationChange(course, null);
@@ -254,11 +254,18 @@ export function CourseBar({
                 setOpenMenu(null);
               }}
             >
-              자동{(course.specifiedClassification === null || course.specifiedClassification === undefined) && course.classification ? ` (${getCreditTypeLabel(course.classification, getDeptName)})` : ''}
+              <span className="w-4 flex-shrink-0 flex items-center justify-center">
+                {(course.specifiedClassification === null || course.specifiedClassification === undefined) && (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </span>
+              <span className="flex-1">
+                자동{(course.specifiedClassification === null || course.specifiedClassification === undefined) && course.classification ? ` (${getCreditTypeLabel(course.classification, getDeptName)})` : ''}
+              </span>
             </button>
-            {course.possibleClassifications && course.possibleClassifications.length > 0 && (
-              <div className="my-1 border-t border-gray-200 dark:border-zinc-600" role="separator" />
-            )}
+            <div className="m-1 border-t border-gray-300 dark:border-zinc-600" role="separator" />
             {course.possibleClassifications && course.possibleClassifications.map((classification) => {
               const label = getCreditTypeLabel(classification, getDeptName);
               // const isCurrent = JSON.stringify(course.specifiedClassification || course.classification) === JSON.stringify(classification);
@@ -269,11 +276,7 @@ export function CourseBar({
                   key={classificationKey}
                   type="button"
                   role="menuitem"
-                  className={`w-full text-left px-3 py-2 text-sm transition-all active:scale-90 active:rounded-md ${
-                    isCurrent
-                      ? 'bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 font-medium'
-                      : 'text-gray-700 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-700'
-                  }`}
+                  className="w-full text-left px-2 py-1 transition-all active:scale-90 rounded-lg flex items-center gap-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white"
                   onClick={() => {
                     if (onClassificationChange) {
                       onClassificationChange(course, classification);
@@ -281,7 +284,14 @@ export function CourseBar({
                     setOpenMenu(null);
                   }}
                 >
-                  {label}
+                  <span className="w-4 flex-shrink-0 flex items-center justify-center">
+                    {isCurrent && (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="flex-1">{label}</span>
                 </button>
               );
             })}
