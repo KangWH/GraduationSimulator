@@ -9,7 +9,7 @@ import { API } from '../lib/api';
 import type { Profile, Enrollment, RawEnrollment, Semester, Grade, Course } from '../profile/settings/types';
 import type { CourseSimulation, RawCourseSimulation, CreditType, Requirement } from './types';
 import AddCoursePanel from '../profile/settings/AddCoursePanel';
-import EnrollmentsList from '../profile/settings/EnrollmentsList';
+import EnrollmentsList, { enrollmentKey } from '../profile/settings/EnrollmentsList';
 import { classifyCourses, RequirementsProps, SubstitutionMap } from './conditionTester';
 import {
   type Section,
@@ -28,6 +28,7 @@ type Dept = { id: string; name: string };
 
 export default function SimulationPage() {
   const router = useRouter();
+  const [lang, setLang] = useState<'ko' | 'en'>('ko');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [previousSimulations, setPreviousSimulations] = useState<Array<{
     id: string;
@@ -82,6 +83,7 @@ export default function SimulationPage() {
   const [draggedFromSemester, setDraggedFromSemester] = useState<string | null>(null);
   const [draggedCourse, setDraggedCourse] = useState<any | null>(null);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [selectedEnrollmentKeys, setSelectedEnrollmentKeys] = useState<Set<string>>(new Set());
 
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const prevSimulationCoursesRef = useRef<CourseSimulation[]>([]);
@@ -90,6 +92,11 @@ export default function SimulationPage() {
   const [gradeBlindMode, setGradeBlindMode] = useState(true);
   const [tooltipState, setTooltipState] = useState<{ text: string; x: number; y: number } | null>(null);
   const [sidebarTooltipState, setSidebarTooltipState] = useState<{ text: string; x: number; y: number } | null>(null);
+  const [profileEnrollmentsEmpty, setProfileEnrollmentsEmpty] = useState(false);
+  const [enrollmentPromptDismissed, setEnrollmentPromptDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('enrollmentPromptDismissed') === '1';
+  });
   
   // 모바일 탭 상태
   const [mobileTab, setMobileTab] = useState<'major' | 'courses' | 'credits' | 'requirements'>('requirements');
@@ -186,8 +193,8 @@ export default function SimulationPage() {
 
   const getDepartmentName = (deptId: string | undefined): string => {
     if (!deptId) return '';
-    const dept = depts.find((d) => d.id === deptId);
-    return dept ? dept.name : deptId;
+    const dept = depts.find((d) => d.id === deptId) as { id: string; name: string; nameEn?: string } | undefined;
+    return dept ? (lang === 'en' && dept.nameEn ? dept.nameEn : dept.name) : deptId;
   };
 
   const getCategoryName = (catId: string | undefined): string => {
@@ -278,12 +285,14 @@ export default function SimulationPage() {
         const courseSimulations = convertEnrollmentsToCourseSimulations(enrollments, profileData);
         prevSimulationCoursesRef.current = [];
         setSimulationCourses(courseSimulations);
+        setProfileEnrollmentsEmpty(enrollments.length === 0);
         setIsLoadingSimulation(false);
       })
       .catch((error) => {
         console.error('초기 데이터 생성 오류:', error);
         prevSimulationCoursesRef.current = [];
         setSimulationCourses([]);
+        setProfileEnrollmentsEmpty(true);
         setIsLoadingSimulation(false);
       });
   }, [isLoadingSimulation]);
@@ -312,13 +321,13 @@ export default function SimulationPage() {
           return Promise.reject();
         }
         if (!profileRes.success || !profileRes.profile) {
-          router.push('/profile/setup');
+          router.push('/signup');
           setProfileLoaded(true);
           return Promise.reject();
         }
         const p = profileRes.profile as Profile;
         if (!p.studentId || !p.name || !p.admissionYear || !p.major) {
-          router.push('/profile/setup');
+          router.push('/signup');
           setProfileLoaded(true);
           return Promise.reject();
         }
@@ -1665,28 +1674,52 @@ export default function SimulationPage() {
             }`}
           >
             <div
-              className={`flex items-center gap-3 rounded-lg transition-all ${
+              className={`flex items-center gap-3 rounded-lg transition-all relative ${
                 sidebarOpen ? 'w-full' : 'justify-center'
               }`}
             >
-              <Link
-                href="/profile/settings"
-                className={`flex items-center gap-3 rounded-lg flex-1 min-w-0 active:scale-90 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all ${
-                  sidebarOpen
-                    ? 'text-gray-700 dark:text-gray-300 px-4 py-2'
-                    : 'justify-center p-2'
-                }`}
-                title={sidebarOpen ? undefined : userName || '프로필 설정'}
-              >
-                <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                {sidebarOpen && (
-                  <span className="whitespace-nowrap min-w-0 truncate">
-                    {userName || '프로필 설정'}
-                  </span>
+              <div className="relative flex-1 min-w-0">
+                <Link
+                  href="/profile/settings"
+                  className={`flex items-center gap-3 rounded-lg w-full min-w-0 active:scale-90 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all ${
+                    sidebarOpen
+                      ? 'text-gray-700 dark:text-gray-300 px-4 py-2'
+                      : 'justify-center p-2'
+                  }`}
+                  title={sidebarOpen ? undefined : userName || '프로필 설정'}
+                >
+                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  {sidebarOpen && (
+                    <span className="whitespace-nowrap min-w-0 truncate">
+                      {userName || '프로필 설정'}
+                    </span>
+                  )}
+                </Link>
+                {profileEnrollmentsEmpty && !enrollmentPromptDismissed && (
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
+                    <div className="relative bg-violet-600 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                      <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-violet-600" />
+                      <span>수강 과목을 등록해주세요</span>
+                      <Link href="/profile/settings?tab=courses" className="block mt-1 text-violet-200 hover:text-white text-xs font-medium">
+                        등록하기 →
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sessionStorage.setItem('enrollmentPromptDismissed', '1');
+                          setEnrollmentPromptDismissed(true);
+                        }}
+                        className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-xs"
+                        aria-label="닫기"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
                 )}
-              </Link>
+              </div>
               {sidebarOpen && (
                 <button
                   type="button"
@@ -1737,6 +1770,7 @@ export default function SimulationPage() {
                       주전공
                     </label>
                     <DepartmentDropdown
+                      lang={lang}
                       value={filters.major}
                       onChange={(newValue) => setFilters({ ...filters, major: newValue })}
                       mode="major"
@@ -1748,6 +1782,7 @@ export default function SimulationPage() {
                       복수전공
                     </label>
                     <MultipleDepartmentDropdown
+                      lang={lang}
                       value={filters.doubleMajors}
                       onChange={(newValues) => setFilters({ ...filters, doubleMajors: newValues })}
                       mode="doubleMajor"
@@ -1760,6 +1795,7 @@ export default function SimulationPage() {
                       부전공
                     </label>
                     <MultipleDepartmentDropdown
+                      lang={lang}
                       value={filters.minors}
                       onChange={(newValues) => setFilters({ ...filters, minors: newValues })}
                       mode="minor"
@@ -1929,6 +1965,8 @@ export default function SimulationPage() {
                             enrollments={enrollmentsForList}
                             semesterGroups={semesterGroups}
                             sortedSemesterKeys={sortedSemesterKeys}
+                            selectedEnrollmentKeys={selectedEnrollmentKeys}
+                            onSelectionChange={setSelectedEnrollmentKeys}
                             onGradeChange={(enrollment, grade) => {
                               const cs = simulationCourses.find(
                                 (c) =>
@@ -1961,6 +1999,14 @@ export default function SimulationPage() {
                               if (cs) {
                                 handleRemove(cs);
                               }
+                            }}
+                            onRemoveSelected={() => {
+                              // simulation에서는 선택 삭제 기능 사용 안 함
+                              setSelectedEnrollmentKeys(new Set());
+                            }}
+                            onRemoveAll={() => {
+                              // simulation에서는 전체 삭제 기능 사용 안 함
+                              setSelectedEnrollmentKeys(new Set());
                             }}
                             onDragStart={(e, enrollment, semesterKey) => {
                               const cs = simulationCourses.find(
@@ -2448,14 +2494,38 @@ export default function SimulationPage() {
             <div className="text-2xl">
               <Logo />
             </div>
-            <Link
-              href="/profile/settings"
-              className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-90 transition-all flex items-center gap-2"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </Link>
+            <div className="relative">
+              <Link
+                href="/profile/settings"
+                className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-90 transition-all flex items-center gap-2"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </Link>
+              {profileEnrollmentsEmpty && !enrollmentPromptDismissed && (
+                <div className="absolute bottom-full right-0 mb-2 z-50">
+                  <div className="relative bg-violet-600 text-white text-sm px-3 py-2 rounded-lg shadow-lg whitespace-nowrap">
+                    <div className="absolute right-4 top-full w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-violet-600" />
+                    <span>수강 과목을 등록해주세요</span>
+                    <Link href="/profile/settings?tab=courses" className="block mt-1 text-violet-200 hover:text-white text-xs font-medium">
+                      등록하기 →
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sessionStorage.setItem('enrollmentPromptDismissed', '1');
+                        setEnrollmentPromptDismissed(true);
+                      }}
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-xs"
+                      aria-label="닫기"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 요약 */}
@@ -2515,6 +2585,7 @@ export default function SimulationPage() {
                     주전공
                   </label>
                   <DepartmentDropdown
+                    lang={lang}
                     value={filters.major}
                     onChange={(newValue) => setFilters({ ...filters, major: newValue })}
                     mode="major"
@@ -2526,6 +2597,7 @@ export default function SimulationPage() {
                     복수전공
                   </label>
                   <MultipleDepartmentDropdown
+                    lang={lang}
                     value={filters.doubleMajors}
                     onChange={(newValues) => setFilters({ ...filters, doubleMajors: newValues })}
                     mode="doubleMajor"
@@ -2538,6 +2610,7 @@ export default function SimulationPage() {
                     부전공
                   </label>
                   <MultipleDepartmentDropdown
+                    lang={lang}
                     value={filters.minors}
                     onChange={(newValues) => setFilters({ ...filters, minors: newValues })}
                     mode="minor"
@@ -2664,6 +2737,8 @@ export default function SimulationPage() {
                       enrollments={enrollmentsForList}
                       semesterGroups={semesterGroups}
                       sortedSemesterKeys={sortedSemesterKeys}
+                      selectedEnrollmentKeys={selectedEnrollmentKeys}
+                      onSelectionChange={setSelectedEnrollmentKeys}
                       onGradeChange={(enrollment, grade) => {
                         const cs = simulationCourses.find(
                           (c) =>
@@ -2696,6 +2771,14 @@ export default function SimulationPage() {
                         if (cs) {
                           handleRemove(cs);
                         }
+                      }}
+                      onRemoveSelected={() => {
+                        // simulation에서는 선택 삭제 기능 사용 안 함
+                        setSelectedEnrollmentKeys(new Set());
+                      }}
+                      onRemoveAll={() => {
+                        // simulation에서는 전체 삭제 기능 사용 안 함
+                        setSelectedEnrollmentKeys(new Set());
                       }}
                       onDragStart={(e, enrollment, semesterKey) => {
                         const cs = simulationCourses.find(

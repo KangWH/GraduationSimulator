@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "졸업로그 — KAIST 졸업시뮬레이터",
+  title: "졸업로그",
   description: "KAIST 학부 재학생의 졸업요건을 확인하고 예비 졸업사정을 진행합니다.",
 };
 

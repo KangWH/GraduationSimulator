@@ -5,12 +5,13 @@ import { Input } from '../../components/formFields';
 import { API } from '../../lib/api';
 
 interface AccountTabProps {
+  lang?: 'ko' | 'en';
   user: { email?: string } | null;
   userId: string | null;
   onDeleteSuccess: () => void;
 }
 
-export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTabProps) {
+export default function AccountTab({ lang = 'ko', user, userId, onDeleteSuccess }: AccountTabProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPasswordConfirm, setNewPasswordConfirm] = useState('');
@@ -20,11 +21,11 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== newPasswordConfirm) {
-      alert('새 비밀번호가 일치하지 않습니다.');
+      alert(lang === 'ko' ? '새 비밀번호가 일치하지 않습니다.' : 'New passwords do not match.');
       return;
     }
     if (newPassword.length < 6) {
-      alert('새 비밀번호는 최소 6자 이상이어야 합니다.');
+      alert(lang === 'ko' ? '새 비밀번호는 최소 6자 이상이어야 합니다.' : 'Password must be at least 6 characters.');
       return;
     }
     setAccountSubmitting(true);
@@ -37,15 +38,15 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
       });
       const data = await res.json();
       if (data.success) {
-        alert('비밀번호가 변경되었습니다.');
+        alert(lang === 'ko' ? '비밀번호가 변경되었습니다.' : 'Password changed successfully.');
         setCurrentPassword('');
         setNewPassword('');
         setNewPasswordConfirm('');
       } else {
-        alert(data.message || '비밀번호 변경에 실패했습니다.');
+        alert(data.message || (lang === 'ko' ? '비밀번호 변경에 실패했습니다.' : 'Failed to change password.'));
       }
     } catch {
-      alert('서버 오류가 발생했습니다.');
+      alert(lang === 'ko' ? '서버 오류가 발생했습니다.' : 'A server error occurred.');
     } finally {
       setAccountSubmitting(false);
     }
@@ -53,10 +54,10 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
 
   const handleDeleteAccount = async () => {
     if (!deletePassword) {
-      alert('비밀번호를 입력해주세요.');
+      alert(lang === 'ko' ? '비밀번호를 입력해주세요.' : 'Please enter your password.');
       return;
     }
-    if (!confirm('정말 회원 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+    if (!confirm(lang === 'ko' ? '정말 회원 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.' : 'Are you sure you want to delete your account? This cannot be undone.')) return;
     setAccountSubmitting(true);
     try {
       const res = await fetch(`${API}/auth/delete-account`, {
@@ -69,10 +70,10 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
       if (data.success) {
         onDeleteSuccess();
       } else {
-        alert(data.message || '회원 탈퇴에 실패했습니다.');
+        alert(data.message || (lang === 'ko' ? '회원 탈퇴에 실패했습니다.' : 'Failed to delete account.'));
       }
     } catch {
-      alert('서버 오류가 발생했습니다.');
+      alert(lang === 'ko' ? '서버 오류가 발생했습니다.' : 'A server error occurred.');
     } finally {
       setAccountSubmitting(false);
     }
@@ -80,20 +81,18 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">계정 정보</h1>
-      <div className="rounded-lg bg-white p-6 dark:bg-zinc-900 shadow-lg">
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-500 dark:text-gray-400">이메일</label>
-          <p className="text-gray-900 dark:text-white">{user?.email}</p>
-        </div>
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">{lang === 'ko' ? '계정 정보' : 'Account'}</h1>
+      <div className="space-y-1">
+        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">{lang === 'ko' ? '이메일' : 'Email'}</label>
+        <p className="text-gray-900 dark:text-white">{user?.email}</p>
       </div>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">비밀번호 변경</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-200">{lang === 'ko' ? '비밀번호 변경' : 'Change password'}</h2>
         <form onSubmit={handleChangePassword} className="space-y-4 rounded-lg bg-white p-6 dark:bg-zinc-900 shadow-lg">
           <div>
             <label htmlFor="currentPassword" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              현재 비밀번호
+              {lang === 'ko' ? '현재 비밀번호' : 'Current password'}
             </label>
             <Input
               id="currentPassword"
@@ -101,12 +100,12 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
               value={currentPassword}
               onChange={setCurrentPassword}
               required
-              placeholder="현재 비밀번호"
+              placeholder={lang === 'ko' ? '현재 비밀번호' : 'Current password'}
             />
           </div>
           <div>
             <label htmlFor="newPassword" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              새 비밀번호
+              {lang === 'ko' ? '새 비밀번호' : 'New password'}
             </label>
             <Input
               id="newPassword"
@@ -114,12 +113,12 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
               value={newPassword}
               onChange={setNewPassword}
               required
-              placeholder="새 비밀번호 (6자 이상)"
+              placeholder={lang === 'ko' ? '새 비밀번호 (6자 이상)' : 'New password (6+ characters)'}
             />
           </div>
           <div>
             <label htmlFor="newPasswordConfirm" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              새 비밀번호 확인
+              {lang === 'ko' ? '새 비밀번호 확인' : 'Confirm new password'}
             </label>
             <Input
               id="newPasswordConfirm"
@@ -127,7 +126,7 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
               value={newPasswordConfirm}
               onChange={setNewPasswordConfirm}
               required
-              placeholder="새 비밀번호 다시 입력"
+              placeholder={lang === 'ko' ? '새 비밀번호 다시 입력' : 'Re-enter new password'}
             />
           </div>
           <button
@@ -135,27 +134,27 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
             disabled={accountSubmitting}
             className="rounded-lg bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 disabled:opacity-50 active:scale-90 transition-all"
           >
-            비밀번호 변경
+            {lang === 'ko' ? '비밀번호 변경' : 'Change password'}
           </button>
         </form>
       </section>
 
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-red-600 dark:text-red-400">회원 탈퇴</h2>
+        <h2 className="mb-4 text-lg font-semibold text-red-600 dark:text-red-400">{lang === 'ko' ? '회원 탈퇴' : 'Delete account'}</h2>
         <div className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-900/50 dark:bg-red-950/30 shadow-lg">
           <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-            탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.
+            {lang === 'ko' ? '탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.' : 'All data will be permanently deleted and cannot be recovered.'}
           </p>
           <div className="mb-4">
             <label htmlFor="deletePassword" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              비밀번호 확인
+              {lang === 'ko' ? '비밀번호 확인' : 'Confirm password'}
             </label>
             <Input
               id="deletePassword"
               type="password"
               value={deletePassword}
               onChange={setDeletePassword}
-              placeholder="비밀번호 입력"
+              placeholder={lang === 'ko' ? '비밀번호 입력' : 'Enter password'}
             />
           </div>
           <button
@@ -164,7 +163,7 @@ export default function AccountTab({ user, userId, onDeleteSuccess }: AccountTab
             disabled={accountSubmitting}
             className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50 active:scale-90 transition-all"
           >
-            회원 탈퇴
+            {lang === 'ko' ? '회원 탈퇴' : 'Delete account'}
           </button>
         </div>
       </section>

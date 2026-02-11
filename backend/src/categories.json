@@ -1,46 +1,57 @@
 [
   {
     "id": "BR",
-    "name": "기초필수"
+    "name": "기초필수",
+    "nameEn": "Basic required"
   },
   {
     "id": "BE",
-    "name": "기초선택"
+    "name": "기초선택",
+    "nameEn": "Basic elective"
   },
   {
     "id": "MR",
-    "name": "전공필수"
+    "name": "전공필수",
+    "nameEn": "Major required"
   },
   {
     "id": "ME",
-    "name": "전공선택"
+    "name": "전공선택",
+    "nameEn": "Major elective"
   },
   {
     "id": "MGC",
-    "name": "교양필수"
+    "name": "교양필수",
+    "nameEn": "Mandatory general courses"
   },
   {
     "id": "HSE",
-    "name": "인문사회선택"
+    "name": "인문사회선택",
+    "nameEn": "Humanities & society elective"
   },
   {
     "id": "GR",
-    "name": "공통(석/박사)"
+    "name": "공통(석/박사)",
+    "nameEn": "General required"
   },
   {
     "id": "GE",
-    "name": "선택(석/박사)"
+    "name": "선택(석/박사)",
+    "nameEn": "Elective (graduate)"
   },
   {
     "id": "OE",
-    "name": "자유선택"
+    "name": "자유선택",
+    "nameEn": "Other elective"
   },
   {
     "id": "RS",
-    "name": "연구"
+    "name": "연구",
+    "nameEn": "Research"
   },
   {
     "id": "ETC",
-    "name": "기타"
+    "name": "기타",
+    "nameEn": "Others"
   }
 ]

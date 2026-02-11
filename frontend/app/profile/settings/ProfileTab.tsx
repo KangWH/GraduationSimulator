@@ -18,12 +18,13 @@ interface ProfileForm {
 }
 
 interface ProfileTabProps {
+  lang?: 'ko' | 'en';
   profile: Profile | null;
   userId: string | null;
   onProfileUpdate: (p: Profile) => void;
 }
 
-export default function ProfileTab({ profile, userId, onProfileUpdate }: ProfileTabProps) {
+export default function ProfileTab({ lang = 'ko', profile, userId, onProfileUpdate }: ProfileTabProps) {
   const [form, setForm] = useState<ProfileForm>({
     name: '',
     admissionYear: new Date().getFullYear(),
@@ -53,7 +54,7 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.major) {
-      alert('이름과 주전공을 입력해주세요.');
+      alert(lang === 'ko' ? '이름과 주전공을 입력해주세요.' : 'Please enter your name and major.');
       return;
     }
     setProfileSubmitting(true);
@@ -81,13 +82,13 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
       });
       const data = await res.json();
       if (data.success) {
-        alert('프로필이 수정되었습니다.');
+        alert(lang === 'ko' ? '프로필이 수정되었습니다.' : 'Profile updated successfully.');
         onProfileUpdate(data.profile ? { ...profile!, ...data.profile } : profile!);
       } else {
-        alert(data.message || '프로필 수정에 실패했습니다.');
+        alert(data.message || (lang === 'ko' ? '프로필 수정에 실패했습니다.' : 'Failed to update profile.'));
       }
     } catch {
-      alert('서버 오류가 발생했습니다.');
+      alert(lang === 'ko' ? '서버 오류가 발생했습니다.' : 'A server error occurred.');
     } finally {
       setProfileSubmitting(false);
     }
@@ -95,11 +96,11 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">프로필 수정</h1>
-      <form onSubmit={handleSubmit} className="space-y-6 rounded-lg bg-white p-6 dark:bg-zinc-900 shadow-lg">
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">{lang === 'ko' ? '프로필 수정' : 'Edit profile'}</h1>
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="name" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            이름 <span className="text-red-500">*</span>
+            {lang === 'ko' ? '이름' : 'Name'} <span className="text-red-500">*</span>
           </label>
           <Input
             id="name"
@@ -107,18 +108,18 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
             value={form.name}
             onChange={(v) => setForm((f) => ({ ...f, name: v }))}
             required
-            placeholder="이름"
+            placeholder={lang === 'ko' ? '이름' : 'Name'}
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">학번</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{lang === 'ko' ? '학번' : 'Student ID'}</label>
           <p className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-600 dark:border-gray-700 dark:bg-zinc-800 dark:text-gray-400 shadow-sm">
             {profile?.studentId}
           </p>
         </div>
         <div>
           <label htmlFor="admissionYear" className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            입학연도 <span className="text-red-500">*</span>
+            {lang === 'ko' ? '입학연도' : 'Admission year'} <span className="text-red-500">*</span>
           </label>
           <NumberInput
             id="admissionYear"
@@ -137,14 +138,15 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
             className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
           />
           <label htmlFor="isFallAdmission" className="text-sm text-gray-700 dark:text-gray-300">
-            가을학기 입학
+            {lang === 'ko' ? '가을학기 입학' : 'Fall admission'}
           </label>
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            주전공 <span className="text-red-500">*</span>
+            {lang === 'ko' ? '주전공' : 'Major'} <span className="text-red-500">*</span>
           </label>
           <DepartmentDropdown
+            lang={lang}
             value={form.major}
             onChange={(v) => setForm((f) => ({ ...f, major: v }))}
             mode="major"
@@ -152,8 +154,9 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">복수전공</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{lang === 'ko' ? '복수전공' : 'Double major'}</label>
           <MultipleDepartmentDropdown
+            lang={lang}
             value={form.doubleMajors}
             onChange={(v) => setForm((f) => ({ ...f, doubleMajors: v }))}
             mode="doubleMajor"
@@ -162,8 +165,9 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">부전공</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">{lang === 'ko' ? '부전공' : 'Minor'}</label>
           <MultipleDepartmentDropdown
+            lang={lang}
             value={form.minors}
             onChange={(v) => setForm((f) => ({ ...f, minors: v }))}
             mode="minor"
@@ -180,7 +184,7 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
             className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
           />
           <label htmlFor="advancedMajor" className="text-sm text-gray-700 dark:text-gray-300">
-            심화전공
+            {lang === 'ko' ? '심화전공' : 'Advanced major'}
           </label>
         </div>
         <div className="flex items-center gap-2">
@@ -192,7 +196,7 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
             className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500"
           />
           <label htmlFor="individuallyDesignedMajor" className="text-sm text-gray-700 dark:text-gray-300">
-            자유융합전공
+            {lang === 'ko' ? '자유융합전공' : 'Individually designed major'}
           </label>
         </div>
         <button
@@ -200,7 +204,7 @@ export default function ProfileTab({ profile, userId, onProfileUpdate }: Profile
           disabled={profileSubmitting}
           className="rounded-lg bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 disabled:opacity-50 active:scale-90 transition-all"
         >
-          저장하기
+          {lang === 'ko' ? '저장하기' : 'Save'}
         </button>
       </form>
     </div>

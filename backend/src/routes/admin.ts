@@ -61,6 +61,234 @@ router.post('/login', async (req: Request, res: Response) => {
 // CSV 파일 업로드를 위한 multer 설정
 const upload = multer({ storage: multer.memoryStorage() });
 
+// 과목 CRUD
+
+// 목록 조회
+router.get('/courses', async (req: Request, res: Response) => {
+  try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const skip = (page - 1) * limit;
+    const search = req.query.search as string || '';
+
+    const where: any = {};
+    if (search) {
+      const searchTitle = search.replace(/[^가-힣0-9A-Za-z]/g, '').toLowerCase();
+      where.OR = [
+        { searchTitle: { contains: searchTitle } },
+        { title: { contains: search } },
+        { code: { contains: search } }
+      ];
+    }
+
+    const [courses, total] = await Promise.all([
+      prisma.courseOffering.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { code: 'asc' }
+      }),
+      prisma.courseOffering.count({ where })
+    ]);
+
+    res.json({
+      success: true,
+      data: courses,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching courses:', error);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 단일 조회
+router.get('/courses/:id', async (req: Request, res: Response) => {
+  try {
+    const id = validateUUID(req.params.id);
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 ID 형식입니다.'
+      });
+    }
+    const course = await prisma.courseOffering.findUnique({
+      where: { id }
+    });
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: '과목을 찾을 수 없습니다.'
+      });
+    }
+    res.json({
+      success: true,
+      data: course
+    });
+  } catch (error) {
+    console.error('Error fetching course:', error);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 생성
+router.post('/courses', async (req: Request, res: Response) => {
+  try {
+    const { code, title, department, category, credit, au, tags, level, crossRecognition } = req.body;
+
+    if (!code || !title || !department || !category || credit === undefined || au === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: '필수 필드(code, title, department, category, credit, au)를 모두 입력해주세요.'
+      });
+    }
+
+    // searchTitle 생성
+    const searchTitle = title.replace(/[^가-힣0-9A-Za-z]/g, '').toLowerCase();
+
+    const course = await prisma.courseOffering.create({
+      data: {
+        code,
+        title,
+        searchTitle,
+        department,
+        category,
+        credit: parseInt(credit),
+        au: parseInt(au),
+        tags: Array.isArray(tags) ? tags : (tags ? tags.split('|').map((t: string) => t.trim()) : []),
+        level: level || 'UG',
+        crossRecognition: crossRecognition === true || crossRecognition === 'true'
+      }
+    });
+
+    res.json({
+      success: true,
+      message: '과목이 생성되었습니다.',
+      data: course
+    });
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return res.status(409).json({
+        success: false,
+        message: '이미 존재하는 과목입니다.'
+      });
+    }
+    console.error('Error creating course:', error);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 수정
+router.put('/courses/:id', async (req: Request, res: Response) => {
+  try {
+    const id = validateUUID(req.params.id);
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 ID 형식입니다.'
+      });
+    }
+
+    const { code, title, department, category, credit, au, tags, level, crossRecognition } = req.body;
+
+    const updateData: any = {};
+    if (code !== undefined) updateData.code = code;
+    if (title !== undefined) {
+      updateData.title = title;
+      updateData.searchTitle = title.replace(/[^가-힣0-9A-Za-z]/g, '').toLowerCase();
+    }
+    if (department !== undefined) updateData.department = department;
+    if (category !== undefined) updateData.category = category;
+    if (credit !== undefined) updateData.credit = parseInt(credit);
+    if (au !== undefined) updateData.au = parseInt(au);
+    if (tags !== undefined) {
+      updateData.tags = Array.isArray(tags) ? tags : (tags ? tags.split('|').map((t: string) => t.trim()) : []);
+    }
+    if (level !== undefined) updateData.level = level;
+    if (crossRecognition !== undefined) {
+      updateData.crossRecognition = crossRecognition === true || crossRecognition === 'true';
+    }
+
+    const course = await prisma.courseOffering.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json({
+      success: true,
+      message: '과목이 수정되었습니다.',
+      data: course
+    });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({
+        success: false,
+        message: '과목을 찾을 수 없습니다.'
+      });
+    }
+    if (error.code === 'P2002') {
+      return res.status(409).json({
+        success: false,
+        message: '이미 존재하는 과목입니다.'
+      });
+    }
+    console.error('Error updating course:', error);
+    res.status(500).json({
+      success: false,
+      message: '서버 오류가 발생했습니다.'
+    });
+  }
+});
+
+// 삭제
+router.delete('/courses/:id', async (req: Request, res: Response) => {
+  try {
+    const id = validateUUID(req.params.id);
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: '유효하지 않은 ID 형식입니다.'
+      });
+    }
+
+    await prisma.courseOffering.delete({
+      where: { id }
+    });
+
+    res.json({
+      success: true,
+      message: '과목이 삭제되었습니다.'
+    });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({
+        success: false,
+        message: '과목을 찾을 수 없습니다.'
+      });
+    }
+    console.error('Error deleting course:', error);
+    const errorMessage = error.message || '서버 오류가 발생했습니다.';
+    res.status(500).json({
+      success: false,
+      message: errorMessage
+    });
+  }
+});
+
 // 과목 정보 업데이트 (CSV 업로드)
 router.post('/courses/upload', upload.single('csv'), async (req: Request, res: Response) => {
   try {

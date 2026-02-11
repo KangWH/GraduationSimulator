@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input, Select, NumberInput } from '../components/formFields';
 import { DepartmentDropdown } from '../components/DepartmentDropdown';
+import { CourseCategoryDropdown } from '../components/CourseCategoryDropdown';
 import { API } from '../lib/api';
 
 type Tab = 'courses' | 'general' | 'major' | 'substitutions';
@@ -125,11 +126,68 @@ export default function AdminPage() {
   );
 }
 
+interface Course {
+  id: string;
+  code: string;
+  title: string;
+  department: string;
+  category: string;
+  credit: number;
+  au: number;
+  tags: string[];
+  level: string;
+  crossRecognition: boolean;
+}
+
 // 과목 탭
 function CoursesTab() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState({
+    code: '',
+    title: '',
+    department: '',
+    category: '',
+    credit: '',
+    au: '',
+    tags: '',
+    level: 'UG',
+    crossRecognition: false,
+  });
+
+  useEffect(() => {
+    loadCourses();
+  }, [page, search]);
+
+  const loadCourses = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '50',
+      });
+      if (search) {
+        params.append('search', search);
+      }
+      const res = await fetch(`${API}/admin/courses?${params}`);
+      const data = await res.json();
+      if (data.success) {
+        setCourses(data.data);
+        setTotalPages(data.pagination.totalPages);
+      }
+    } catch (error) {
+      console.error('Error loading courses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -161,9 +219,9 @@ function CoursesTab() {
       if (data.success) {
         setMessage(`성공: ${data.message}`);
         setFile(null);
-        // 파일 input 초기화
         const fileInput = document.getElementById('csv-file') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
+        loadCourses();
       } else {
         setMessage(`오류: ${data.message}`);
       }
@@ -175,36 +233,350 @@ function CoursesTab() {
     }
   };
 
+  const handleCreate = () => {
+    setEditingId(null);
+    setFormData({
+      code: '',
+      title: '',
+      department: '',
+      category: '',
+      credit: '',
+      au: '',
+      tags: '',
+      level: 'UG',
+      crossRecognition: false,
+    });
+  };
+
+  const handleEdit = (course: Course) => {
+    setEditingId(course.id);
+    setFormData({
+      code: course.code,
+      title: course.title,
+      department: course.department,
+      category: course.category,
+      credit: course.credit.toString(),
+      au: course.au.toString(),
+      tags: course.tags.join('|'),
+      level: course.level,
+      crossRecognition: course.crossRecognition,
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const url = editingId
+        ? `${API}/admin/courses/${editingId}`
+        : `${API}/admin/courses`;
+      const method = editingId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: formData.code,
+          title: formData.title,
+          department: formData.department,
+          category: formData.category,
+          credit: parseInt(formData.credit),
+          au: parseInt(formData.au),
+          tags: formData.tags,
+          level: formData.level,
+          crossRecognition: formData.crossRecognition,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message);
+        loadCourses();
+        setEditingId(null);
+        handleCreate();
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      console.error('Error saving course:', error);
+      alert('저장 중 오류가 발생했습니다.');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return;
+
+    try {
+      const res = await fetch(`${API}/admin/courses/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message);
+        loadCourses();
+      } else {
+        alert(`오류: ${data.message}`);
+      }
+    } catch (error: any) {
+      console.error('Error deleting course:', error);
+      const errorMessage = error?.message || '삭제 중 오류가 발생했습니다.';
+      alert(`삭제 중 오류가 발생했습니다: ${errorMessage}`);
+    }
+  };
+
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-4">과목 정보 업데이트</h2>
-      <form onSubmit={handleUpload} className="space-y-4">
-        <div>
-          <label htmlFor="csv-file" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            CSV 파일 선택
-          </label>
-          <input
-            id="csv-file"
-            type="file"
-            accept=".csv"
-            onChange={handleFileChange}
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100 dark:file:bg-violet-900 dark:file:text-violet-300"
-            required
-          />
-        </div>
-        {message && (
-          <div className={`p-3 rounded-md ${message.startsWith('성공') ? 'bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-50 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
-            {message}
+    <div className="space-y-6">
+      {/* CSV 업로드 */}
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6">
+        <h2 className="text-xl font-semibold mb-4">과목 정보 업데이트 (CSV)</h2>
+        <form onSubmit={handleUpload} className="space-y-4">
+          <div>
+            <label htmlFor="csv-file" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              CSV 파일 선택
+            </label>
+            <input
+              id="csv-file"
+              type="file"
+              accept=".csv"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100 dark:file:bg-violet-900 dark:file:text-violet-300"
+            />
           </div>
+          {message && (
+            <div className={`p-3 rounded-md ${message.startsWith('성공') ? 'bg-green-50 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-50 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
+              {message}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={uploading || !file}
+            className="px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {uploading ? '업로드 중...' : '업로드'}
+          </button>
+        </form>
+      </div>
+
+      {/* CRUD 폼 */}
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6">
+        <h2 className="text-xl font-semibold mb-4">
+          {editingId ? '과목 수정' : '과목 생성'}
+        </h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                과목 코드 *
+              </label>
+              <Input
+                value={formData.code}
+                onChange={(val) => setFormData({ ...formData, code: val })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                과목명 *
+              </label>
+              <Input
+                value={formData.title}
+                onChange={(val) => setFormData({ ...formData, title: val })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                학과 *
+              </label>
+              <DepartmentDropdown
+                value={formData.department}
+                onChange={(val) => setFormData({ ...formData, department: val })}
+                mode="course"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                카테고리 *
+              </label>
+              <CourseCategoryDropdown
+                value={formData.category}
+                onChange={(val) => setFormData({ ...formData, category: val })}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                학점 *
+              </label>
+              <NumberInput
+                value={formData.credit}
+                onChange={(val) => setFormData({ ...formData, credit: val })}
+                required
+                min="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                AU *
+              </label>
+              <NumberInput
+                value={formData.au}
+                onChange={(val) => setFormData({ ...formData, au: val })}
+                required
+                min="0"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                태그 (|로 구분)
+              </label>
+              <Input
+                value={formData.tags}
+                onChange={(val) => setFormData({ ...formData, tags: val })}
+                placeholder="태그1|태그2|태그3"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                레벨
+              </label>
+              <Select
+                value={formData.level}
+                onChange={(val) => setFormData({ ...formData, level: val })}
+              >
+                <option value="UG">학부</option>
+                <option value="GR">대학원</option>
+              </Select>
+            </div>
+            <div>
+              <label className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  checked={formData.crossRecognition}
+                  onChange={(e) => setFormData({ ...formData, crossRecognition: e.target.checked })}
+                  className="rounded border-gray-300"
+                />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  학부-대학원 상호인정
+                </span>
+              </label>
+            </div>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              type="submit"
+              className="px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700"
+            >
+              {editingId ? '수정' : '생성'}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={handleCreate}
+                className="px-4 py-2 bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-zinc-600"
+              >
+                취소
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+
+      {/* 과목 목록 */}
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">과목 목록</h2>
+          <div className="flex gap-2">
+            <Input
+              value={search}
+              onChange={(val) => {
+                setSearch(val);
+                setPage(1);
+              }}
+              placeholder="검색 (과목명, 코드)"
+              className="w-64"
+            />
+          </div>
+        </div>
+        {loading ? (
+          <div className="text-center py-8">로딩 중...</div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-zinc-700">
+                <thead className="bg-gray-50 dark:bg-zinc-800">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">코드</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">과목명</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">학과</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">카테고리</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">학점</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">AU</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">태그</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">레벨</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">작업</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-zinc-900 divide-y divide-gray-200 dark:divide-zinc-700">
+                  {courses.map((course) => (
+                    <tr key={course.id}>
+                      <td className="px-4 py-3 text-sm">{course.code}</td>
+                      <td className="px-4 py-3 text-sm">{course.title}</td>
+                      <td className="px-4 py-3 text-sm">{course.department}</td>
+                      <td className="px-4 py-3 text-sm">{course.category}</td>
+                      <td className="px-4 py-3 text-sm">{course.credit}</td>
+                      <td className="px-4 py-3 text-sm">{course.au}</td>
+                      <td className="px-4 py-3 text-sm">{course.tags.join(', ')}</td>
+                      <td className="px-4 py-3 text-sm">{course.level}</td>
+                      <td className="px-4 py-3 text-sm space-x-2">
+                        <button
+                          onClick={() => handleEdit(course)}
+                          className="text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
+                        >
+                          수정
+                        </button>
+                        <button
+                          onClick={() => handleDelete(course.id)}
+                          className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          삭제
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {courses.length === 0 && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                등록된 과목이 없습니다.
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className="flex justify-center items-center gap-2 mt-4">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                >
+                  이전
+                </button>
+                <span className="text-sm">
+                  {page} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-3 py-1 text-sm border rounded disabled:opacity-50"
+                >
+                  다음
+                </button>
+              </div>
+            )}
+          </>
         )}
-        <button
-          type="submit"
-          disabled={uploading || !file}
-          className="px-4 py-2 bg-violet-600 text-white rounded-md hover:bg-violet-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {uploading ? '업로드 중...' : '업로드'}
-        </button>
-      </form>
+      </div>
     </div>
   );
 }
@@ -962,7 +1334,7 @@ function SubstitutionsTab() {
           <h3 className="text-lg font-semibold mb-4">
             {editingId ? '대체과목 수정' : '새 대체과목 추가'}
           </h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">원본 과목 코드</label>
               <Input
@@ -1013,7 +1385,7 @@ function SubstitutionsTab() {
                 max="2100"
               />
             </div>
-            <div className="col-span-2">
+            <div className="col-span-3">
               <label className="block text-sm font-medium mb-1">설명 (선택)</label>
               <Input
                 type="text"
