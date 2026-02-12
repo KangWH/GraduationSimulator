@@ -4,6 +4,7 @@
     "title": "전공필수 학점",
     "description": "전공필수 18학점 이수",
     "value": 18,
+    "isExhaustive": true,
     "targets": [
       {
         "codes": ["EE.20001", "EE.20002", "EE.20004", "EE.20009", "EE.30005", "EE.40005"]

@@ -1,0 +1,24 @@
+[
+  {
+    "type": "MIN_CREDITS_REQUIRED",
+    "value": 3,
+    "title": "연구 학점",
+    "description": "연구 3학점 이상 이수",
+    "targets": [
+      {
+        "codes": ["MS.91000", "MS.91100", "MS.93000"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_COURSES_REQUIRED",
+    "value": 1,
+    "title": "졸업연구",
+    "description": "졸업연구 필수 이수",
+    "targets": [
+      {
+        "codes": ["MS.91000"]
+      }
+    ]
+  }
+]

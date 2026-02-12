@@ -1,0 +1,26 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "title": "전공 학점",
+    "description": "전공 18학점 이상 이수",
+    "value": 18,
+    "targets": [
+      {
+        "categories": ["MR", "ME"],
+        "departments": ["BCS"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_COURSES_AMONG",
+    "title": "전공필수 과목",
+    "description": "전공필수 1과목 이상 이수",
+    "value": 1,
+    "targets": [
+      {
+        "categories": ["MR"],
+        "departments": ["BCS"]
+      }
+    ]
+  }
+]
