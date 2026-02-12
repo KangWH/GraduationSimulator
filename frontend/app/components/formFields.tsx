@@ -35,7 +35,7 @@ export function Input({ id, name, value, onChange, type = 'text', inputMode = 't
       required={required}
       placeholder={placeholder}
       className={
-        "w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none min-h-[44px] sm:min-h-0 "
+        "w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none min-h-10 sm:min-h-0 "
         + fieldSizeClassNames[size] + (className ? " " + className : "")
       }
     />
@@ -63,7 +63,7 @@ export function NumberInput({ id, name, min = '0', max = '100', step = '1', valu
   return (
     <div
       className={
-        "flex flex-row w-full shadow-sm focus-within:ring-1 focus-within:ring-violet-500/50 rounded-md overflow-hidden min-h-[44px] sm:min-h-0 " + (disabled ? 'bg-gray-100 text-gray-500 disabled:bg-zinc-900 ' : 'bg-white dark:bg-black ') + (className ? className : "")
+        "flex flex-row w-full shadow-sm focus-within:ring-1 focus-within:ring-violet-500/50 rounded-md overflow-hidden min-h-10 sm:min-h-0 " + (disabled ? 'bg-gray-100 text-gray-500 disabled:bg-zinc-900 ' : 'bg-white dark:bg-black ') + (className ? className : "")
       }
     >
       <input
@@ -114,7 +114,7 @@ export function Select({ id, name, value, onChange, disabled = false, required =
         disabled={disabled}
         required={required}
         className={
-          "w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none pr-8 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-zinc-900 min-h-[44px] sm:min-h-0 "
+          "w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none pr-8 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-zinc-900 min-h-10 sm:min-h-0 "
           + fieldSizeClassNames[size]
           + (className ? " " + className : "")
         }
@@ -443,7 +443,7 @@ export function MultipleSelect({
         }}
         onKeyDown={handleTriggerKeyDown}
         className={
-          'w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none text-left flex items-center gap-2 min-h-[44px] sm:min-h-0 ' +
+          'w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none text-left flex items-center gap-2 min-h-10 sm:min-h-0 ' +
           fieldSizeClassNames[size]
           + " " + className
           + (isOpen ? ' ring-1 ring-violet-500/50' : '')
@@ -499,7 +499,7 @@ export function MultipleSelect({
                   <button
                     type="button"
                     onClick={allSelected ? handleDeselectAll : handleSelectAll}
-                    className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-[44px] sm:min-h-0 px-2 -mx-2 rounded-lg active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
+                    className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-10 sm:min-h-0 px-2 -mx-2 rounded-lg active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
                   >
                     {allSelected ? (lang === 'ko' ? '전체 취소' : 'Deselect all') : (lang === 'ko' ? '전체 선택' : 'Select all')}
                   </button>
@@ -546,7 +546,7 @@ export function MultipleSelect({
                           else handleToggle(item.value);
                         }}
                         onFocus={() => setFocusedIndex(index)}
-                        className={`flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-[44px] active:scale-90 active:rounded-md transition-all cursor-pointer ${isFocused ? 'ring-1 ring-inset ring-violet-500/50' : ''}`}
+                        className={`flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-10 active:scale-90 active:rounded-md transition-all cursor-pointer ${isFocused ? 'ring-1 ring-inset ring-violet-500/50' : ''}`}
                       >
                         <input
                           type="checkbox"
@@ -578,7 +578,7 @@ export function MultipleSelect({
                 <button
                   type="button"
                   onClick={allSelected ? handleDeselectAll : handleSelectAll}
-                  className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-[44px] sm:min-h-0 px-2 -mx-2 rounded active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
+                  className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-10 sm:min-h-0 px-2 -mx-2 rounded active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
                 >
                   {allSelected ? (lang === 'ko' ? '전체 취소' : 'Deselect all') : (lang === 'ko' ? '전체 선택' : 'Select all')}
                 </button>
@@ -613,7 +613,7 @@ export function MultipleSelect({
                         else handleToggle(item.value);
                       }}
                       onFocus={() => setFocusedIndex(index)}
-                      className={`flex items-center px-2 py-1 hover:bg-violet-600 hover:text-white select-none min-h-[44px] sm:min-h-0 active:scale-90 rounded-lg transition-all cursor-pointer outline-none ${isFocused ? 'ring-1 ring-inset ring-violet-500/50' : ''}`}
+                      className={`flex items-center px-2 py-1 hover:bg-violet-600 hover:text-white select-none min-h-10 sm:min-h-0 active:scale-90 rounded-lg transition-all cursor-pointer outline-none ${isFocused ? 'ring-1 ring-inset ring-violet-500/50' : ''}`}
                     >
                       <input
                         type="checkbox"

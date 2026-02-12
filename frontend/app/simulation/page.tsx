@@ -2565,7 +2565,7 @@ export default function SimulationPage() {
                   </div>
                 </div>
               )}
-              <h2 className="text-xl font-bold mb-4" style={{ fontFamily: 'var(--font-logo)' }}>전공 지정</h2>
+              <h2 className="text-xl font-bold mb-4">전공 지정</h2>
               <div className="space-y-6 px-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">

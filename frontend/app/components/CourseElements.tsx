@@ -246,7 +246,7 @@ export function CourseBar({
             <button
               type="button"
               role="menuitem"
-              className="w-full text-left px-2 py-1 transition-all active:scale-90 rounded-lg flex items-center gap-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white"
+              className="w-full text-left px-2 py-1 md:min-h-0 min-h-10 transition-all active:scale-90 rounded-lg flex items-center gap-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white"
               onClick={() => {
                 if (onClassificationChange) {
                   onClassificationChange(course, null);
@@ -276,7 +276,7 @@ export function CourseBar({
                   key={classificationKey}
                   type="button"
                   role="menuitem"
-                  className="w-full text-left px-2 py-1 transition-all active:scale-90 rounded-lg flex items-center gap-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white"
+                  className="w-full text-left px-2 py-1 md:min-h-0 min-h-10 transition-all active:scale-90 rounded-lg flex items-center gap-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white"
                   onClick={() => {
                     if (onClassificationChange) {
                       onClassificationChange(course, classification);

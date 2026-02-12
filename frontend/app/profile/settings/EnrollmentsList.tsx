@@ -468,7 +468,7 @@ export default function EnrollmentsList({
                   <button
                     type="button"
                     role="menuitem"
-                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    className="w-full text-left px-2 py-1 md:min-h-0 min-h-10 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
                     onClick={() => {
                       onRemove(e);
                       close();
@@ -489,7 +489,7 @@ export default function EnrollmentsList({
                   <button
                     type="button"
                     role="menuitem"
-                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    className="w-full text-left px-2 py-1 md:min-h-0 min-h-10 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
                     onClick={() => {
                       onMove(e, y - 1, s);
                       close();
@@ -505,7 +505,7 @@ export default function EnrollmentsList({
                   <button
                     type="button"
                     role="menuitem"
-                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    className="w-full text-left px-2 py-1 md:min-h-0 min-h-10 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
                     onClick={() => {
                       onMove(e, prevSameType.year, prevSameType.semester);
                       close();
@@ -517,7 +517,7 @@ export default function EnrollmentsList({
                   <button
                     type="button"
                     role="menuitem"
-                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    className="w-full text-left px-2 py-1 md:min-h-0 min-h-10 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
                     onClick={() => {
                       onMove(e, prevSem.year, prevSem.semester);
                       close();
@@ -529,7 +529,7 @@ export default function EnrollmentsList({
                   <button
                     type="button"
                     role="menuitem"
-                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    className="w-full text-left px-2 py-1 md:min-h-0 min-h-10 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
                     onClick={() => {
                       onMove(e, nextSem.year, nextSem.semester);
                       close();
@@ -545,7 +545,7 @@ export default function EnrollmentsList({
                   <button
                     type="button"
                     role="menuitem"
-                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    className="w-full text-left px-2 py-1 md:min-h-0 min-h-10 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
                     onClick={() => {
                       onMove(e, nextSameType.year, nextSameType.semester);
                       close();
@@ -557,7 +557,7 @@ export default function EnrollmentsList({
                   <button
                     type="button"
                     role="menuitem"
-                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    className="w-full text-left px-2 py-1 md:min-h-0 min-h-10 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
                     onClick={() => {
                       onMove(e, y + 1, s);
                       close();
@@ -570,7 +570,7 @@ export default function EnrollmentsList({
                   <button
                     type="button"
                     role="menuitem"
-                    className="w-full text-left px-2 py-1 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
+                    className="w-full text-left px-2 py-1 md:min-h-0 min-h-10 text-gray-700 dark:text-zinc-200 hover:bg-violet-600 hover:text-white transition-all active:scale-90 rounded-lg flex items-center gap-1"
                     onClick={() => {
                       onRemove(e);
                       close();
