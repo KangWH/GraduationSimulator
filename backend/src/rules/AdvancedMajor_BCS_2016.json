@@ -1,13 +1,14 @@
 [
   {
-    "type": "MIN_CREDITS_AMONG",
+    "type": "MIN_CREDITS_AMONG", 
     "title": "심화전공 학점",
     "description": "심화전공 12학점 이상 이수",
     "value": 12,
     "targets": [
       {
         "categories": ["ME", "MR"],
-        "departments": ["PH"]
+        "departments": ["BCS"], 
+        "firstdigits": [2, 3, 4]
       }
     ]
   }

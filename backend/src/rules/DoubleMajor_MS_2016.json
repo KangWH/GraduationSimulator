@@ -1,0 +1,38 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "value": 18,
+    "title": "전공필수 학점",
+    "description": "전공필수 18학점 이상 이수",
+    "isExhaustive": true,
+    "targets": [
+      {
+        "codes": ["MS.20012", "MS.20013", "MS.30010", "MS.30011", "MS.30021", "MS.30022"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "value": 40,
+    "title": "전공 학점",
+    "description": "전공 40학점 이상 이수",
+    "targets": [
+      {
+        "categories": ["MR", "ME"],
+        "departments": ["CoE", "MS"]
+      }
+    ],
+    "constraints": [
+      {
+        "type": "MAX_COURSES_AMONG",
+        "value": 2,
+        "targets": [
+          {
+            "categories": ["ME"],
+            "departments": ["CoE"]
+          }
+        ]
+      }
+    ]
+  }
+]

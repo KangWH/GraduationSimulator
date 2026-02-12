@@ -1,0 +1,24 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "value": 9,
+    "title": "연구 학점 총합",
+    "description": "연구 9학점 이상 이수",
+    "targets": [
+      {
+        "codes": ["BCS.91000", "BCS.91100", "BCS.93000"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "value": 4,
+    "title": "세미나(콜로퀴움) 학점",
+    "description": "세미나(콜로퀴움) 4학점 이상 이수",
+    "targets": [
+      {
+        "codes": ["BCS.93000"]
+      }
+    ]
+  }
+]

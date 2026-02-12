@@ -4,6 +4,7 @@
     "title": "전공필수 학점",
     "description": "전공필수 9학점 이상 이수",
     "value": 9,
+    "isExhaustive": true,
     "targets": [
       {
         "categories": ["MR"],

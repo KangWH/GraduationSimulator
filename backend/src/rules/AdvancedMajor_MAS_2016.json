@@ -4,6 +4,7 @@
     "title": "지정 과목 학점",
     "description": "지정 과목(해석학 II, 현대대수학 II, 조합적 위상수학, 편미분방정식개론) 13학점 이수",
     "value": 13,
+    "isExhaustive": true,
     "targets": [
       {
         "codes": ["MAS.20042", "MAS.30012", "MAS.40030", "MAS.40040"]
