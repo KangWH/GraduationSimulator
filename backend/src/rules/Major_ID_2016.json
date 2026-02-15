@@ -1,0 +1,38 @@
+[
+  {
+    "type": "MIN_CREDITS_REQUIRED",
+    "value": 15,
+    "title": "전공필수 학점",
+    "description": "전공필수 15학점 이상 이수",
+    "isExhaustive": true,
+    "targets": [
+      {
+        "categories": ["MR"],
+        "departments": ["ID"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_CREDITS_REQUIRED",
+    "value": 30,
+    "title": "전공선택 학점",
+    "description": "전공선택 30학점 이상 이수",
+    "targets": [
+      {
+        "categories": ["ME"],
+        "departments": ["ID", "CoE"]
+      }
+    ],
+    "constraints": [
+      {
+        "type": "MAX_COURSES_AMONG",
+        "value": 1,
+        "targets": [
+          {
+            "departments": ["CoE"]
+          }
+        ]
+      }
+    ]
+  }
+]

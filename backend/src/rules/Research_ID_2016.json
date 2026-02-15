@@ -1,0 +1,24 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "value": 3,
+    "title": "연구 학점",
+    "description": "연구 3학점 이상 이수",
+    "targets": [
+      {
+        "categories": ["RS"],
+        "department": ["ID"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "title": "졸업연구 필수 이수",
+    "targets": [
+      {
+        "codes": ["ID.91000"]
+      }
+    ]
+  }
+]

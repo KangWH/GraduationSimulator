@@ -1,0 +1,38 @@
+[
+  {
+    "type": "MIN_CREDITS_REQUIRED",
+    "value": 15,
+    "title": "전공필수 학점",
+    "description": "전공필수 15학점 이상 이수",
+    "isExhaustive": true,
+    "targets": [
+      {
+        "categories": ["MR"],
+        "departments": ["ID"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_CREDITS_REQUIRED",
+    "value": 25,
+    "title": "전공선택 학점",
+    "description": "전공선택 25학점 이상 이수",
+    "targets": [
+      {
+        "categories": ["ME"],
+        "departments": ["ID"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_COURSES_REQUIRED",
+    "value": 2,
+    "title": "학과 지정 과목",
+    "description": "졸업연구 디자인 스튜디오 I, 졸업연구 디자인 스튜디오 II 이수",
+    "targets": [
+      {
+        "codes": ["ID.40009", "ID.40014"]
+      }
+    ]
+  }
+]
