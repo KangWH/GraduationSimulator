@@ -1,12 +1,36 @@
 [
   {
     "type": "MIN_CREDITS_AMONG", 
-    "title": "연구 학점",
-    "description": "졸업연구(3), 항공우주시스템설계II(3), 개별연구(1) 중, 3학점 이상 이수. 단, 개별연구는 4학점까지만 연구학점으로 인정됨",
     "value": 3,
+    "title": "연구 학점",
+    "description": "연구 3학점 이상 이수",
+    "isKey": true,
     "targets": [
       {
-        "codes": ["AE.91000", "AE.91100", "AE.40001"]
+        "categories": ["RS"],
+        "departments": ["AE"]
+      }
+    ],
+    "constraints": [
+      {
+        "type": "MAX_CREDITS_AMONG",
+        "value": 4,
+        "targets": [
+          {
+            "codes": ["AE.91100"]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "MIN_COURSES_AMONG",
+    "value": 1,
+    "title": "졸업연구",
+    "description": "졸업연구 필수 이수",
+    "targets": [
+      {
+        "codes": ["AE.91000"]
       }
     ]
   }

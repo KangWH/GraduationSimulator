@@ -1,0 +1,25 @@
+[ 
+  {
+    "type": "MIN_CREDITS_AMONG", 
+    "value": 9,
+    "title": "기초선택 학점",
+    "description": "기초선택 9학점 이상 이수",
+    "isKey": true,
+    "targets": [
+      {
+        "categories": ["BE"]
+      }
+    ]
+  }, 
+  {
+    "type": "MIN_COURSES_AMONG", 
+    "value": 2,
+    "title": "소속학과 지정 과목",
+    "description": "항공우주공학과 지정 과목(MAS.10009, MAS.20001, MAS.20002) 중 2과목 이상 이수",
+    "targets": [
+      {
+        "codes": ["MAS.10009", "MAS.20001", "MAS.20002"]
+      }
+    ]
+  }
+]
