@@ -4,6 +4,7 @@
     "value": 6,
     "title": "기초선택 학점",
     "description": "기초선택 6학점 이상 이수",
+    "isKey": true,
     "targets": [
       {
         "categories": ["BE"]
@@ -13,8 +14,8 @@
   {
     "type": "MIN_COURSES_AMONG",
     "value": 1,
-    "title": "학과 지정 과목",
-    "description": "산업디자인학과 지정 과목(발상과 표현) 이수",
+    "title": "소속학과 지정 과목",
+    "description": "산업디자인학과 지정 과목(ID.20002) 이수",
     "targets": [
       {
         "codes": ["ID.20002"]

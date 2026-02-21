@@ -1,9 +1,10 @@
 [ 
   {
     "type": "MIN_CREDITS_AMONG",
+    "value": 9,
     "title": "기초선택 학점",
     "description": "기초선택 9학점 이상 이수",
-    "value": 9,
+    "isKey": true,
     "targets": [
       {
         "categories": ["BE"]
@@ -12,12 +13,12 @@
   }, 
   {
     "type": "MIN_COURSES_AMONG",
-    "title": "학과 지정 과목",
-    "description": "전산학부 지정 기초선택 과목(선형대수학개론)을 반드시 포함하여 이수",
+    "title": "소속학과 지정 과목",
+    "description": "전산학부 지정 과목(MAS.10009) 이수",
     "value": 1,
     "targets": [
       {
-        "codes": ["MAS.10009", "MAS.10010"]
+        "codes": ["MAS.10009"]
       }
     ]
   }
