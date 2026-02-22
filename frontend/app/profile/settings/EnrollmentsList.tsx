@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Select } from '../../components/formFields';
 import type { Enrollment, Semester, Grade } from './types';
@@ -173,16 +173,29 @@ export default function EnrollmentsList({
     return c ? (lang === 'en' && c.nameEn ? c.nameEn : c.name) : catId;
   };
 
-  const toggleSemester = (semesterKey: string) => {
+  const toggleSemester = (semesterKey: string, force?: boolean) => {
     setCollapsedSemesters((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(semesterKey)) {
+      if (force === false || (force === undefined && newSet.has(semesterKey))) {
         newSet.delete(semesterKey);
-      } else {
+      } else if (force === true || (force === undefined && !newSet.has(semesterKey))) {
         newSet.add(semesterKey);
       }
       return newSet;
     });
+  };
+
+  const keyboardToggleSemester = (e: KeyboardEvent<HTMLButtonElement>, semesterKey: string) => {
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        toggleSemester(semesterKey, true);
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        toggleSemester(semesterKey, false);
+        break;
+    }
   };
 
   const toggleSelection = (e: Enrollment) => {
@@ -295,7 +308,7 @@ export default function EnrollmentsList({
               onDrop(e, semesterKey);
             }}
           >
-            <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSemester(semesterKey)}>
+            <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSemester(semesterKey)} onTitleKeyDown={(e) => keyboardToggleSemester(e, semesterKey)}>
               <ACTitle>
                 <h3 className="font-medium text-base flex-1 text-gray-800 dark:text-gray-200">
                   {sectionTitle}

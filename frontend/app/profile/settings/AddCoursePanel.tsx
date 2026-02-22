@@ -355,67 +355,69 @@ export default function AddCoursePanel({
 
       {/* 추가 옵션 및 버튼 */}
       {selectedCourseIds.size > 0 && (
-        <div className="sticky bottom-0 z-10 -mx-6 px-6 pt-0 pb-4 bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent dark:from-zinc-900 dark:via-zinc-900/90 dark:to-transparent">
-          <div className="rounded-lg bg-violet-50 p-4 dark:bg-violet-950 shadow-lg">
-            {onAddAsPriorCreditChange && (
-              <label className="mb-3 flex cursor-pointer items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={addAsPriorCredit}
-                  onChange={(e) => onAddAsPriorCreditChange(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 dark:border-zinc-600 dark:bg-zinc-800"
-                />
-                <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Prior credit' : '기이수'}</span>
-              </label>
-            )}
-            <div className="flex items-end gap-3">
-              <div className="flex flex-col gap-2 basis-16 grow">
-                <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Year' : '수강 연도'}</label>
-                <NumberInput
-                  min="2000"
-                  max="2050"
-                  value={String(addYear)}
-                  onChange={(v) => onAddYearChange(parseInt(v) || new Date().getFullYear())}
-                  disabled={addAsPriorCredit}
-                  size="small"
-                />
-              </div>
-              <div className="flex flex-col gap-2 basis-16 grow">
-                <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Semester' : '학기'}</label>
-                <Select
-                  value={addSemester}
-                  onChange={(v) => onAddSemesterChange(v as Semester)}
-                  disabled={addAsPriorCredit}
-                  size="small"
+        <div className="sticky bottom-0 z-10 -mx-6 px-6 pt-0 pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent dark:from-zinc-900 dark:via-zinc-900/90 dark:to-transparent">
+          <div className="pb-24 md:pb-4">
+            <div className="rounded-lg bg-violet-50 p-4 dark:bg-violet-950 shadow-lg">
+              {onAddAsPriorCreditChange && (
+                <label className="mb-3 flex cursor-pointer items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={addAsPriorCredit}
+                    onChange={(e) => onAddAsPriorCreditChange(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 dark:border-zinc-600 dark:bg-zinc-800"
+                  />
+                  <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Prior credit' : '기이수'}</span>
+                </label>
+              )}
+              <div className="flex items-end gap-3">
+                <div className="flex flex-col gap-2 basis-16 grow">
+                  <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Year' : '수강 연도'}</label>
+                  <NumberInput
+                    min="2000"
+                    max="2050"
+                    value={String(addYear)}
+                    onChange={(v) => onAddYearChange(parseInt(v) || new Date().getFullYear())}
+                    disabled={addAsPriorCredit}
+                    size="small"
+                  />
+                </div>
+                <div className="flex flex-col gap-2 basis-16 grow">
+                  <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Semester' : '학기'}</label>
+                  <Select
+                    value={addSemester}
+                    onChange={(v) => onAddSemesterChange(v as Semester)}
+                    disabled={addAsPriorCredit}
+                    size="small"
+                  >
+                    {SEMESTER_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-2 basis-16 grow">
+                  <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Grade' : '성적'}</label>
+                  <Select
+                    value={addGrade}
+                    onChange={(v) => onAddGradeChange(v as Grade)}
+                    size="small"
+                  >
+                    {VALID_GRADES.map((grade) => (
+                      <option key={grade} value={grade}>
+                        {grade}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <button
+                  type="button"
+                  onClick={onAddSelected}
+                  className="shrink-0 rounded-lg bg-violet-600 px-4 py-2 font-medium text-white active:scale-90 transition-all hover:bg-violet-700"
                 >
-                  {SEMESTER_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </Select>
+                  {lang === 'en' ? `Add ${selectedCourseIds.size} course(s)` : `${selectedCourseIds.size}과목 추가`}
+                </button>
               </div>
-              <div className="flex flex-col gap-2 basis-16 grow">
-                <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Grade' : '성적'}</label>
-                <Select
-                  value={addGrade}
-                  onChange={(v) => onAddGradeChange(v as Grade)}
-                  size="small"
-                >
-                  {VALID_GRADES.map((grade) => (
-                    <option key={grade} value={grade}>
-                      {grade}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <button
-                type="button"
-                onClick={onAddSelected}
-                className="shrink-0 rounded-lg bg-violet-600 px-4 py-2 font-medium text-white active:scale-90 transition-all hover:bg-violet-700"
-              >
-                {lang === 'en' ? `Add ${selectedCourseIds.size} course(s)` : `${selectedCourseIds.size}과목 추가`}
-              </button>
             </div>
           </div>
         </div>

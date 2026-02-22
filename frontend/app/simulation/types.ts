@@ -42,9 +42,21 @@ export interface Requirement {
   type: string;
   value?: number;
   currentValue?: number;
+  isKey?: boolean;
+  isSecondaryKey?: boolean;
   targets?: CourseCondition[];
   targetTags?: string[];
   constraints?: any[];
   usedCourses?: CourseSimulation[];
   fulfilled: boolean;
+}
+
+export interface Filter {
+  requirementYear: number,
+  major: string,
+  doubleMajors: string[],
+  minors: string[],
+  advancedMajor: boolean,
+  individuallyDesignedMajor: boolean,
+  earlyGraduation: boolean,
 }

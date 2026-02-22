@@ -1,12 +1,13 @@
-import { Children, isValidElement } from 'react';
+import { Children, isValidElement, KeyboardEvent } from 'react';
 
 interface AccordionProps {
   isCollapsed?: boolean;
   onTitleClick: () => void;
+  onTitleKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => void;
   children: React.ReactNode;
 }
 
-export default function Accordion({ isCollapsed = false, onTitleClick, children }: AccordionProps) {
+export default function Accordion({ isCollapsed = false, onTitleClick, onTitleKeyDown, children }: AccordionProps) {
   let _title: React.ReactNode = null;
   let _body: React.ReactNode = null;
 
@@ -24,8 +25,10 @@ export default function Accordion({ isCollapsed = false, onTitleClick, children 
   return (
     <div className="px-3 py-4">
       <button
+        tabIndex={0}
         onClick={onTitleClick}
-        className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded"
+        onKeyDown={onTitleKeyDown}
+        className="px-1 flex w-full items-center gap-2 text-left hover:opacity-70 hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-96 transition-all rounded focus-visible:bg-gray-100 dark:focus-visible:bg-zinc-800 outline-none"
       >
         <svg
           className={`w-4 h-4 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}

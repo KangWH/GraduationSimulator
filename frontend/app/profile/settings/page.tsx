@@ -333,8 +333,8 @@ function ProfileSettingsContent() {
         </div>
 
         {/* 하단 내비게이션 */}
-        <div className="fixed bottom-0 left-0 right-0 z-30 px-2 pt-2 pb-1 flex justify-center pointer-events-none">
-          <nav className="p-1 flex flex-row backdrop-blur-md pointer-events-auto rounded-full bg-white/50 dark:bg-zinc-900/50 shadow-lg">
+        <div className="fixed bottom-0 left-0 right-0 z-30 p-4 flex justify-center pointer-events-none">
+          <nav className="p-1 flex flex-row backdrop-blur-sm pointer-events-auto rounded-full bg-gray-50/20 dark:bg-zinc-900/20 shadow-[0_0_40px_4px_rgba(0,0,0,0.1)] border border-black/10 dark:border-white/20">
             <button
               onClick={() => setTab('account')}
               className={`w-24 flex-1 flex flex-col items-center justify-center py-2 px-1 min-h-[60px] transition-all active:scale-85 rounded-full ${
