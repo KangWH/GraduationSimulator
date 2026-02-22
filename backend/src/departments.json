@@ -390,6 +390,7 @@
   {
     "id": "ID",
     "name": "산업디자인학과",
+    "nameEn": "Department of Industrial Design",
     "category": "공과대학",
     "majorable": true,
     "doubleMajorable": true,
@@ -529,6 +530,7 @@
   {
     "id": "MS",
     "name": "신소재공학과",
+    "nameEn": "Materials Science and Engineering",
     "category": "공과대학",
     "majorable": true,
     "doubleMajorable": true,

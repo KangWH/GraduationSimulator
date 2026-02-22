@@ -1,12 +1,18 @@
 [
   {
     "type": "MIN_CREDITS_AMONG", 
-    "title": "심화전공 학점",
-    "description": "항공우주공학과에서 지정한 심화전공 과목을 18학점 이상 추가 이수",
     "value": 18,
+    "title": "심화전공 학점",
+    "description": "심화전공 18학점 이상 이수",
+    "isKey": true,
     "targets": [
       {
         "codes": ["AE.32001", "AE.33001", "AE.40001", "AE.40005", "AE.40009", "AE.41000", "AE.42000", "AE.43005", "AE.45000", "AE.45005", "AE.48000", "AE.49902", "AE.49903"]
+      },
+      {
+        "categories": ["MR", "ME", "GE"],
+        "departments": ["AE"],
+        "firstDigits": [5, 6, 7, 8, 9]
       }
     ]
   }

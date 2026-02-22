@@ -1,9 +1,10 @@
 [
   {
     "type": "MIN_CREDITS_AMONG",
+    "value": 3,
     "title": "기초선택 학점",
     "description": "기초선택 3학점 이상 이수",
-    "value": 3,
+    "isKey": true,
     "targets": [
       {
         "categories": ["BE"]

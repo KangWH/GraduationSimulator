@@ -1,4 +1,4 @@
-[ 
+[
   {
     "type": "MIN_CREDITS_AMONG",
     "value": 9,
@@ -10,15 +10,15 @@
         "categories": ["BE"]
       }
     ]
-  }, 
+  },
   {
     "type": "MIN_COURSES_AMONG",
     "value": 1,
     "title": "소속학과 지정 과목",
-    "description": "물리학과 지정 과목(PH.10052) 이수",
+    "description": "산업디자인학과 지정 과목(ID.20002) 이수",
     "targets": [
       {
-        "codes": ["PH.10052"]
+        "codes": ["ID.20002"]
       }
     ]
   }

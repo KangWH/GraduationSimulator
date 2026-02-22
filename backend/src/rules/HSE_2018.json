@@ -1,8 +1,10 @@
 [
   {
-    "description": "21학점 이상 이수",
     "type": "MIN_CREDITS_AMONG",
     "value": 21,
+    "title": "인문사회선택 학점",
+    "description": "인문사회선택 21학점 이상 이수",
+    "isKey": true,
     "targets": [
       {
         "categories": ["HSE"]

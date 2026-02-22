@@ -1,0 +1,25 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "value": 18,
+    "title": "전공 학점",
+    "description": "전공과목 18학점 이상 이수",
+    "targets": [
+      {
+        "categories": ["MR", "ME"],
+        "departments": ["ID"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_COURSES_AMONG",
+    "value": 2,
+    "title": "학과 지정 과목",
+    "description": "제품디자인, 인터랙티브 제품 디자인 이수",
+    "targets": [
+      {
+        "codes": ["ID.20013", "ID.30001"]
+      }
+    ]
+  }
+]

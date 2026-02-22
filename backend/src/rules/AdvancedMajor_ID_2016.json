@@ -1,0 +1,26 @@
+[
+  {
+    "type": "MIN_CREDITS_AMONG",
+    "value": 12,
+    "title": "심화전공 학점",
+    "description": "심화전공 12학점 이상 이수",
+    "targets": [
+      {
+        "codes": ["ME"],
+        "departments": ["ID"]
+      }
+    ]
+  },
+  {
+    "type": "MIN_COURSES_REQUIRED",
+    "value": 2,
+    "title": "학과 지정 과목",
+    "description": "졸업연구 디자인 스튜디오 I, 졸업연구 디자인 스튜디오 II 이수",
+    "isExhaustive": true,
+    "targets": [
+      {
+        "codes": ["ID.40009", "ID.40014"]
+      }
+    ]
+  }
+]

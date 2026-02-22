@@ -4,6 +4,7 @@
     "title": "기초선택 학점",
     "description": "기초선택 9학점 이상 이수",
     "value": 9,
+    "isKey": true,
     "targets": [
       {
         "categories": ["BE"]
@@ -12,8 +13,8 @@
   },
   {
     "type": "MIN_COURSES_AMONG",
-    "title": "학과 지정 과목",
-    "description": "화학과 지정 과목(일반화학 II)을 포함하여 이수",
+    "title": "소속학과 지정 과목",
+    "description": "화학과 지정 과목(CH.10003) 이수",
     "value": 1,
     "targets": [
       {
