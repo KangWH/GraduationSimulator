@@ -44,6 +44,8 @@ export interface Requirement {
   currentValue?: number;
   isKey?: boolean;
   isSecondaryKey?: boolean;
+  /** true이면 배정 가능한 과목 비율과 관계없이 해당 카테고리에 우선 배정(주전공/복수전공 시 중복인정 고려) */
+  isExhaustive?: boolean;
   targets?: CourseCondition[];
   targetTags?: string[];
   constraints?: any[];

@@ -1015,9 +1015,17 @@ export function classifyCourses(
     // 희소성: 값 오름차순(점수 낮을수록 공급 부족 → 우선). 자유융합전공은 맨 뒤.
     const sortedByScore = Object.entries(requirementScores)
       .sort((a, b) => a[1] - b[1]);
+    // isExhaustive인 항목은 비율에 관계없이 현재 카테고리에 우선 배정(주전공/복수전공은 아래 5.4에서 중복인정 처리)
+    const withExhaustive = (entries: [string, number][]) => {
+      const normal = entries.filter(([k]) => !k.startsWith('INDIVIDUALLY_DESIGNED_MAJOR:')).map(([k]) => k);
+      const idm = entries.filter(([k]) => k.startsWith('INDIVIDUALLY_DESIGNED_MAJOR:')).map(([k]) => k);
+      return [...normal, ...idm];
+    };
+    const exhaustiveEntries = sortedByScore.filter(([k]) => resolveRequirementKey(k, requirements)?.requirement?.isExhaustive === true);
+    const nonExhaustiveEntries = sortedByScore.filter(([k]) => resolveRequirementKey(k, requirements)?.requirement?.isExhaustive !== true);
     const requirementKeysByPriority: string[] = [
-      ...sortedByScore.filter(([k]) => !k.startsWith('INDIVIDUALLY_DESIGNED_MAJOR:')).map(([k]) => k),
-      ...sortedByScore.filter(([k]) => k.startsWith('INDIVIDUALLY_DESIGNED_MAJOR:')).map(([k]) => k),
+      ...withExhaustive(exhaustiveEntries),
+      ...withExhaustive(nonExhaustiveEntries),
     ];
 
     let assigned = false;

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input } from "../components/formFields";
+import Button from "../components/Button";
 import { API } from "../lib/api";
 import Logo from "../components/Logo";
 
@@ -175,12 +176,15 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <button
+            <Button
               type="submit"
-              className="w-full rounded-md bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 active:scale-96 transition-all shadow-md"
+              style="prominent"
+              size="medium"
+              activeScale={96}
+              className="w-full"
             >
               로그인
-            </button>
+            </Button>
           </div>
 
           <div className="text-center">

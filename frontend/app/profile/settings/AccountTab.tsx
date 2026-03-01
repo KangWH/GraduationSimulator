@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Input } from '../../components/formFields';
+import Button from '../../components/Button';
 import { API } from '../../lib/api';
 
 interface AccountTabProps {
@@ -129,13 +130,14 @@ export default function AccountTab({ lang = 'ko', user, userId, onDeleteSuccess 
               placeholder={lang === 'ko' ? '새 비밀번호 다시 입력' : 'Re-enter new password'}
             />
           </div>
-          <button
+          <Button
             type="submit"
+            style="prominent"
+            size="medium"
             disabled={accountSubmitting}
-            className="rounded-lg bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 disabled:opacity-50 active:scale-90 transition-all"
           >
             {lang === 'ko' ? '비밀번호 변경' : 'Change password'}
-          </button>
+          </Button>
         </form>
       </section>
 
@@ -157,14 +159,15 @@ export default function AccountTab({ lang = 'ko', user, userId, onDeleteSuccess 
               placeholder={lang === 'ko' ? '비밀번호 입력' : 'Enter password'}
             />
           </div>
-          <button
+          <Button
             type="button"
-            onClick={handleDeleteAccount}
+            style="destructive"
+            size="medium"
             disabled={accountSubmitting}
-            className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50 active:scale-90 transition-all"
+            onClick={handleDeleteAccount}
           >
             {lang === 'ko' ? '회원 탈퇴' : 'Delete account'}
-          </button>
+          </Button>
         </div>
       </section>
     </div>

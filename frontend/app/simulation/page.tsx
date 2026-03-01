@@ -21,12 +21,16 @@ import {
   groupSections,
 } from './sectionBuilder';
 import Logo from '../components/Logo';
+import MobileTopBar from '../components/MobileTopBar';
 import Accordion, { ACBody, ACTitle } from '../components/Accordion';
 import { CourseBar, RequirementBar } from '../components/CourseElements';
 import { AnimatedNumber } from '../components/AnimatedNumber';
 import { RequirementsTable } from './ReportTable';
+import { formatYearSemester, getRemarks, computeSectionSubtotal } from './reportCourseListUtils';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import GraduationReportPDF from './ReportPDF';
+import DesktopTopBar from '../components/DesktopTopBar';
+import Button from '../components/Button';
 
 type Dept = { id: string; name: string };
 
@@ -40,18 +44,26 @@ export default function SimulationPage() {
   const [lang, setLang] = useState<'ko' | 'en'>('ko');
   // 데스크톱 사이드바 펼침 여부
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // 사이드바 활성 탭
+  const [sidebarTab, setSidebarTab] = useState<'addCourse' | 'selectMajors'>('addCourse')
+  // 이수 과목 그룹 방식
+  const [coursesGrouping, setCoursesGrouping] = useState<'bySemester' | 'byCategory'>('byCategory')
   // 모바일 탭 상태
   const [mobileTab, setMobileTab] = useState<'major' | 'courses' | 'credits' | 'requirements'>('requirements');
   // 모바일에서, 시나리오 선택 모달 표시 여부?
   const [isScenarioModalOpen, setIsScenarioModalOpen] = useState(false);
   // 모바일에서, 시나리오 선택 모달 애니메이션 제어용 변수?
   const [scenarioSheetVisible, setScenarioSheetVisible] = useState(false);
+  // 시나리오 시트 드래그로 내린 거리(px)
+  const [scenarioSheetDragY, setScenarioSheetDragY] = useState(0);
+  const scenarioTouchStartY = useRef(0);
+  const scenarioTouchStartTime = useRef(0);
   // 시나리오를 저장할 이름 필드
   const [saveName, setSaveName] = useState('');
   // 보고서 다이얼로그 표시 여부
   const [showReportDialog, setShowReportDialog] = useState(false);
   // 과목 추가/선택 모드
-  const [courseMode, setCourseMode] = useState<'add' | 'view'>('add');
+  const [courseMode, setCourseMode] = useState<'add' | 'view'>('view');
   // 시나리오 로드 중인지의 여부
   const [isLoadingSimulation, setIsLoadingSimulation] = useState(false);
   // 성적 숨김 모드
@@ -72,7 +84,6 @@ export default function SimulationPage() {
     id: string;
     name: string;
     date: string;
-    canGraduate?: boolean;
   }>>([]);
   // 대체 과목 데이터
   const [substitutionMap, setSubstitutionMap] = useState<SubstitutionMap | undefined>(undefined);
@@ -132,13 +143,47 @@ export default function SimulationPage() {
   const prevFiltersRef = useRef(filters);
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [profileEnrollmentsEmpty, setProfileEnrollmentsEmpty] = useState(false);
-  const [enrollmentPromptDismissed, setEnrollmentPromptDismissed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return sessionStorage.getItem('enrollmentPromptDismissed') === '1';
-  });
+  const [enrollmentPromptDismissed, setEnrollmentPromptDismissed] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('enrollmentPromptDismissed') === '1') {
+      setEnrollmentPromptDismissed(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const y = new Date().getFullYear();
+    setFilters((f) => ({ ...f, requirementYear: y }));
+    setAddYear(y);
+  }, []);
+
   const profileLinkDesktopRef = useRef<HTMLAnchorElement>(null);
   const profileLinkMobileRef = useRef<HTMLAnchorElement>(null);
+  const scenarioNameButtonRef = useRef<HTMLButtonElement>(null);
+  const [desktopScenarioPopoverOpen, setDesktopScenarioPopoverOpen] = useState(false);
+  const [scenarioPopoverAnchor, setScenarioPopoverAnchor] = useState<{ left: number; top: number; width: number } | null>(null);
   const [enrollmentPromptAnchor, setEnrollmentPromptAnchor] = useState<{ left: number; top: number; isMobile: boolean } | null>(null);
+
+  useEffect(() => {
+    if (!desktopScenarioPopoverOpen || typeof window === 'undefined') {
+      setScenarioPopoverAnchor(null);
+      return;
+    }
+    const update = () => {
+      const rect = scenarioNameButtonRef.current?.getBoundingClientRect();
+      if (rect) setScenarioPopoverAnchor({ left: rect.left, top: rect.bottom, width: rect.width });
+    };
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+    };
+  }, [desktopScenarioPopoverOpen]);
+
+  const currentSimulationName = currentSimulationId === null
+    ? (lang === 'ko' ? '새로운 시나리오' : 'New scenario')
+    : (previousSimulations.find((s) => s.id === currentSimulationId)?.name ?? (lang === 'ko' ? '새로운 시나리오' : 'New scenario'));
 
   // 과목 추가 추천 팝업 위치 (createPortal로 body에 렌더, clip 방지)
   useEffect(() => {
@@ -181,6 +226,29 @@ export default function SimulationPage() {
     setScenarioSheetVisible(false);
     window.setTimeout(() => setIsScenarioModalOpen(false), 200);
   }, []);
+
+  const SCENARIO_DRAG_CLOSE_THRESHOLD = 80;
+  const handleScenarioSheetTouchStart = useCallback((e: React.TouchEvent) => {
+    scenarioTouchStartY.current = e.touches[0].clientY;
+    scenarioTouchStartTime.current = Date.now();
+  }, []);
+  const handleScenarioSheetTouchMove = useCallback((e: React.TouchEvent) => {
+    if (typeof window === 'undefined' || window.innerWidth >= 640) return;
+    const dy = e.touches[0].clientY - scenarioTouchStartY.current;
+    if (dy > 0) setScenarioSheetDragY(dy);
+  }, []);
+  const handleScenarioSheetTouchEnd = useCallback(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 640) {
+      setScenarioSheetDragY(0);
+      return;
+    }
+    const elapsed = Date.now() - scenarioTouchStartTime.current;
+    const velocity = elapsed > 0 ? scenarioSheetDragY / elapsed : 0;
+    if (scenarioSheetDragY > SCENARIO_DRAG_CLOSE_THRESHOLD || velocity > 0.4) {
+      closeScenarioModal();
+    }
+    setScenarioSheetDragY(0);
+  }, [scenarioSheetDragY, closeScenarioModal]);
 
   const handleSaveSimulation = useCallback(async (name: string) => {
     if (!name.trim()) {
@@ -229,7 +297,6 @@ export default function SimulationPage() {
             id: sim.id,
             name: sim.title,
             date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
-            canGraduate: false,
           }));
           setPreviousSimulations(sims);
         }
@@ -420,143 +487,19 @@ export default function SimulationPage() {
               id: sim.id,
               name: sim.title,
               date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
-              canGraduate: false,
             }));
             setPreviousSimulations(sims);
           }
           setProfileLoaded(true);
           return;
         }
-        const simsList = simulationsRes.simulations || [];
-        return Promise.all(
-          simsList.map((sim: any) => {
-            let rawCourses: RawCourseSimulation[] = [];
-            if (sim.courses) {
-              if (Array.isArray(sim.courses)) {
-                rawCourses = sim.courses as RawCourseSimulation[];
-              } else if (typeof sim.courses === 'string') {
-                try {
-                  const parsed = JSON.parse(sim.courses);
-                  rawCourses = Array.isArray(parsed) ? (parsed as RawCourseSimulation[]) : [];
-                } catch {
-                  rawCourses = [];
-                }
-              }
-            }
-            const simFilters = {
-              requirementYear: sim.referenceYear || new Date().getFullYear(),
-              major: sim.major || '',
-              doubleMajors: Array.isArray(sim.doubleMajors) ? sim.doubleMajors : [],
-              minors: Array.isArray(sim.minors) ? sim.minors : [],
-              advancedMajor: sim.advancedMajor || false,
-              individuallyDesignedMajor: sim.individuallyDesignedMajor || false,
-              earlyGraduation: sim.earlyGraduation ?? false,
-            };
-            return convertRawSimulationsToCourseSimulations(rawCourses, p)
-              .then((courseSimulations) => {
-                const totalCredit = courseSimulations.filter(c => c.grade !== 'F' && c.grade !== 'U' && c.grade !== 'NR' && c.grade !== 'W').reduce((sum, c) => sum + (c.course.credit || 0), 0);
-                const totalAu = courseSimulations.filter(c => c.grade !== 'F' && c.grade !== 'U' && c.grade !== 'NR' && c.grade !== 'W').reduce((sum, c) => sum + (c.course.au || 0), 0);
-                let totalGradePoints = 0;
-                let totalCreditsForGPA = 0;
-                courseSimulations.forEach((c) => {
-                  const credit = c.course.credit || 0;
-                  if (credit > 0) {
-                    let gradeNum: number | null = null;
-                    switch (c.grade) {
-                      case 'A+': gradeNum = 4.3; break;
-                      case 'A0': gradeNum = 4.0; break;
-                      case 'A-': gradeNum = 3.7; break;
-                      case 'B+': gradeNum = 3.3; break;
-                      case 'B0': gradeNum = 3.0; break;
-                      case 'B-': gradeNum = 2.7; break;
-                      case 'C+': gradeNum = 2.3; break;
-                      case 'C0': gradeNum = 2.0; break;
-                      case 'C-': gradeNum = 1.7; break;
-                      case 'D+': gradeNum = 1.3; break;
-                      case 'D0': gradeNum = 1.0; break;
-                      case 'D-': gradeNum = 0.7; break;
-                      case 'F': gradeNum = 0.0; break;
-                      default: break;
-                    }
-                    if (gradeNum !== null) {
-                      totalGradePoints += credit * gradeNum;
-                      totalCreditsForGPA += credit;
-                    }
-                  }
-                });
-                const gpa = totalCreditsForGPA > 0 ? totalGradePoints / totalCreditsForGPA : 0;
-                const rulePromises: Promise<{ type: string; department?: string; data: Requirement[] }>[] = [
-                  fetch(`${API}/rules/general?year=${p.admissionYear}&type=BR`).then((r) => r.json()).then((data: any) => ({ type: 'basicRequired', data: (data.requirements || []) as Requirement[] })),
-                  fetch(`${API}/rules/major?year=${p.admissionYear}&department=${p.major}&type=${simFilters.doubleMajors.length > 0 ? 'BE_D' : 'BE'}`).then((r) => r.json()).then((data: any) => ({ type: 'basicElective', data: (data.requirements || []) as Requirement[] })),
-                ];
-                if (simFilters.major) {
-                  rulePromises.push(fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${simFilters.major}&type=Major`).then((r) => r.json()).then((data: any) => ({ type: 'major', data: (data.requirements || []) as Requirement[] })));
-                }
-                (simFilters.doubleMajors || []).forEach((d: string) => {
-                  rulePromises.push(fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${d}&type=DoubleMajor`).then((r) => r.json()).then((data: any) => ({ type: 'doubleMajor', department: d, data: (data.requirements || []) as Requirement[] })));
-                });
-                (simFilters.minors || []).forEach((d: string) => {
-                  rulePromises.push(fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${d}&type=Minor`).then((r) => r.json()).then((data: any) => ({ type: 'minor', department: d, data: (data.requirements || []) as Requirement[] })));
-                });
-                if (simFilters.advancedMajor) {
-                  rulePromises.push(fetch(`${API}/rules/major?year=${simFilters.requirementYear}&department=${simFilters.major}&type=AdvancedMajor`).then((r) => r.json()).then((data: any) => ({ type: 'advancedMajor', data: (data.requirements || []) as Requirement[] })));
-                }
-                rulePromises.push(fetch(`${API}/rules/major?year=${p.admissionYear}&department=${simFilters.major}&type=${simFilters.doubleMajors.length > 0 ? 'RS_D' : 'RS'}`).then((r) => r.json()).then((data: any) => ({ type: 'research', data: (data.requirements || []) as Requirement[] })));
-                if (simFilters.individuallyDesignedMajor) {
-                  rulePromises.push(fetch(`${API}/rules/general?year=${p.admissionYear}&type=IDM`).then((r) => r.json()).then((data: any) => ({ type: 'individuallyDesignedMajor', data: (data.requirements || []) as Requirement[] })));
-                }
-                rulePromises.push(fetch(`${API}/rules/general?year=${p.admissionYear}&type=MGC`).then((r) => r.json()).then((data: any) => ({ type: 'mandatoryGeneralCourses', data: (data.requirements || []) as Requirement[] })));
-                rulePromises.push(fetch(`${API}/rules/general?year=${p.admissionYear}&type=${simFilters.doubleMajors.length > 0 ? 'HSE_D' : 'HSE'}`).then((r) => r.json()).then((data: any) => ({ type: 'humanitiesSocietyElective', data: (data.requirements || []) as Requirement[] })));
-                return Promise.allSettled(rulePromises).then((results) => {
-                  let requirements: RequirementsProps = { basicRequired: [], basicElective: [], mandatoryGeneralCourses: [], humanitiesSocietyElective: [], major: [], doubleMajors: {}, minors: {} };
-                  results.forEach((result) => {
-                    if (result.status !== 'fulfilled') return;
-                    switch (result.value.type) {
-                      case 'basicRequired': requirements.basicRequired = result.value.data; break;
-                      case 'basicElective': requirements.basicElective = result.value.data; break;
-                      case 'mandatoryGeneralCourses': requirements.mandatoryGeneralCourses = result.value.data; break;
-                      case 'humanitiesSocietyElective': requirements.humanitiesSocietyElective = result.value.data; break;
-                      case 'major': requirements.major = result.value.data; break;
-                      case 'doubleMajor': if (!requirements.doubleMajors) requirements.doubleMajors = {}; requirements.doubleMajors[result.value.department!] = result.value.data; break;
-                      case 'minor': if (!requirements.minors) requirements.minors = {}; requirements.minors[result.value.department!] = result.value.data; break;
-                      case 'advancedMajor': requirements.advanced = result.value.data; break;
-                      case 'individuallyDesignedMajor': requirements.individuallyDesignedMajor = result.value.data; break;
-                      case 'research': requirements.research = result.value.data; break;
-                      default: break;
-                    }
-                  });
-                  const { enrolledCourses } = classifyCourses(courseSimulations, requirements, simFilters.major);
-                  const sectionFilters: SimulationSectionFilters = {
-                    major: simFilters.major,
-                    doubleMajors: simFilters.doubleMajors || [],
-                    minors: simFilters.minors || [],
-                    advancedMajor: simFilters.advancedMajor,
-                    individuallyDesignedMajor: simFilters.individuallyDesignedMajor,
-                  };
-                  const updatedSections = buildSectionsWithRequirements(enrolledCourses, requirements, sectionFilters, { includeOtherAndUnclassified: false });
-                  const requiredSections = updatedSections.filter(s => s.id !== 'OTHER_ELECTIVE' && s.id !== 'UNCLASSIFIED');
-                  const allSectionsFulfilled = requiredSections.length > 0 && requiredSections.every(s => s.fulfilled);
-                  const creditRequirementMet = totalCredit >= 138;
-                  const auRequirementMet = totalAu >= 4;
-                  const gpaRequirementMet = gpa >= (simFilters.earlyGraduation ? 3.0 : 2.0);
-                  const hasAdvancedMajor = simFilters.advancedMajor;
-                  const hasIndividuallyDesignedMajor = simFilters.individuallyDesignedMajor;
-                  const hasDoubleMajor = simFilters.doubleMajors && simFilters.doubleMajors.length > 0;
-                  const hasMinor = simFilters.minors && simFilters.minors.length > 0;
-                  const specializationRequirementMet = hasAdvancedMajor || hasIndividuallyDesignedMajor || hasDoubleMajor || hasMinor;
-                  const canGraduate = allSectionsFulfilled && creditRequirementMet && auRequirementMet && gpaRequirementMet && specializationRequirementMet;
-                  return { id: sim.id, name: sim.title, date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'), canGraduate };
-                });
-              })
-              .catch((error) => {
-                console.error(`Failed to calculate canGraduate for simulation ${sim.id}:`, error);
-                return { id: sim.id, name: sim.title, date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'), canGraduate: false };
-              });
-          })
-        ).then((simsWithCanGraduate) => {
-          if (simsWithCanGraduate != null) setPreviousSimulations(simsWithCanGraduate);
-          setProfileLoaded(true);
-        });
+        const sims = (simulationsRes.simulations || []).map((sim: any) => ({
+          id: sim.id,
+          name: sim.title,
+          date: new Date(sim.updatedAt).toLocaleDateString('ko-KR'),
+        }));
+        setPreviousSimulations(sims);
+        setProfileLoaded(true);
       })
       .catch(() => {
         router.push('/login');
@@ -1583,113 +1526,151 @@ export default function SimulationPage() {
   return (
     <>
       {/* 데스크톱 UI */}
-      <div className="h-screen bg-gray-50 dark:bg-zinc-900 select-none hidden md:flex">
-        {/* 사이드바 */}
-        <aside
-          className={`${
-            sidebarOpen ? 'w-64' : 'w-14'
-          } relative z-200 transition-all duration-300 bg-white dark:bg-black flex flex-col overflow-hidden flex-shrink-0 shadow-[0.1rem_0_1rem_rgba(0,0,0,0.1)] dark:shadow-[0.1rem_0_1rem_rgba(255,255,255,0.1)]`}
-        >
-          {/* 사이드바 토글 버튼 - 좌상단 햄버거 */}
-          <div
-            className={`flex items-center gap-2 overflow-hidden transition-all ${
-              sidebarOpen ? 'p-4' : 'px-3 py-3'
-            }`}
-          >
-            <button
+      <div className={`h-screen hidden md:flex md:flex-col bg-gray-50 dark:bg-zinc-900 select-none transition-all duration-300 overflow-hidden ${sidebarOpen ? 'pl-100' : ''}`}>
+        {/* 상단 바 */}
+        <DesktopTopBar
+          left={<>
+            <Button
+              size="small"
+              style="simple"
+              activeScale={85}
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-zinc-800 text-gray-600 dark:text-gray-400 flex-shrink-0 active:scale-90 transition-all"
               aria-label={sidebarOpen ? '메뉴 접기' : '메뉴 펼치기'}
+              className="flex-shrink-0"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
-            </button>
-            {sidebarOpen && (
-              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap min-w-0 truncate"><Logo /></h2>
-            )}
-          </div>
-
-          {/* 메인 메뉴 */}
-          <div
-            className={`flex-1 overflow-y-auto overflow-x-hidden space-y-2 transition-all ${
-              sidebarOpen ? 'px-4' : 'px-2'
-            }`}
-          >
-            {/* 새로운 시나리오 */}
-            <button
-              onClick={() => {
-                if (profile) {
-                  setCurrentSimulationId(null);
-                  setFilters((prev) => ({ ...prev, earlyGraduation: false }));
-                  initializeSimulationData(profile);
-                }
-              }}
-              className={`w-full flex items-center gap-2 rounded-lg active:scale-90 transition-all select-none hover:bg-gray-100 dark:hover:bg-zinc-800 ${
-                currentSimulationId === null
-                  ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300'
-                  : sidebarOpen
-                  ? 'text-gray-700 dark:text-gray-300'
-                  : ''
-              } ${sidebarOpen ? 'px-3 py-2' : 'justify-center p-2'}`}
+            </Button>
+            <div className="text-xl flex items-center gap-2">
+              <Logo language={lang} />
+              <button
+                ref={scenarioNameButtonRef}
+                type="button"
+                onClick={() => setDesktopScenarioPopoverOpen((v) => !v)}
+                className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors truncate max-w-[200px]"
+                title={currentSimulationName}
+              >
+                <span className="truncate">{currentSimulationName}</span>
+                <svg className={`w-4 h-4 flex-shrink-0 transition-transform ${desktopScenarioPopoverOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+          </>}
+          right={<>
+            <Button
+              size="small"
+              style="simple"
+              onClick={() => setShowReportDialog(true)}
             >
-              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              보고서 보기
+            </Button>
+            <Link
+              ref={profileLinkDesktopRef}
+              href="/profile/settings"
+              className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-zinc-700 transition-colors active:scale-90"
+              title={userName || '프로필 설정'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              {sidebarOpen && <span className="text-sm whitespace-nowrap min-w-0 truncate">새로운 시나리오</span>}
+              <span className="hidden lg:inline truncate max-w-[120px]">{userName || '프로필'}</span>
+            </Link>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await fetch(`${API}/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'include',
+                  });
+                } catch (error) {
+                  console.error('로그아웃 오류:', error);
+                }
+                router.push('/login');
+              }}
+              className="flex items-center justify-center p-2 rounded-lg hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-950/30 active:scale-90 transition-all"
+              title="로그아웃"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
             </button>
+          </>}
+        />
 
-            {/* 이전 시나리오 조회 */}
-            <div className={sidebarOpen ? 'mt-6' : 'mt-4'}>
-              {sidebarOpen && (
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 px-2 whitespace-nowrap min-w-0">
-                  저장된 시나리오
-                </h3>
-              )}
-              <div className="space-y-1">
+        {/* 데스크톱 시나리오 말풍선 팝업 */}
+        {desktopScenarioPopoverOpen && scenarioPopoverAnchor && typeof document !== 'undefined' && createPortal(
+          <>
+            <div
+              className="fixed inset-0 z-[60]"
+              aria-hidden
+              onClick={() => setDesktopScenarioPopoverOpen(false)}
+            />
+            <div
+              className="fixed z-[61] w-80 max-h-[min(70vh,400px)] flex flex-col rounded-xl shadow-xl border border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900 overflow-hidden"
+              style={{
+                left: scenarioPopoverAnchor.left,
+                top: scenarioPopoverAnchor.top + 8,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* 말풍선 꼬리 - 버튼 중앙에 맞춤 */}
+              <div
+                className="absolute w-3 h-3 rotate-45 bg-gray-50 dark:bg-zinc-900 border-l border-t border-gray-200 dark:border-zinc-700"
+                style={{
+                  left: Math.min(Math.max(scenarioPopoverAnchor.width / 2 - 6, 12), 296),
+                  top: -7,
+                }}
+              />
+              <div className="relative flex-1 overflow-y-auto p-3 flex flex-col gap-2">
+                <Button
+                  style="standard"
+                  isActive={currentSimulationId === null}
+                  onClick={() => {
+                    if (profile) {
+                      setCurrentSimulationId(null);
+                      setFilters((prev) => ({ ...prev, earlyGraduation: false }));
+                      initializeSimulationData(profile);
+                    }
+                    setDesktopScenarioPopoverOpen(false);
+                  }}
+                  className="w-full justify-start gap-2"
+                >
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span className="text-sm font-medium">{lang === 'ko' ? '새로운 시나리오' : 'New scenario'}</span>
+                </Button>
                 {previousSimulations.length === 0 ? (
-                  sidebarOpen && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400 px-2 py-2 truncate">저장된 시나리오가 없습니다.</p>
-                  )
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">{lang === 'ko' ? '저장된 시나리오가 없습니다.' : 'No saved scenarios.'}</p>
                 ) : (
-                  previousSimulations.map((sim) => (
-                    <div
-                      key={sim.id}
-                      onClick={() => currentSimulationId === sim.id ? null : loadSimulation(sim.id)}
-                      onMouseEnter={!sidebarOpen ? (e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setSidebarTooltipState({
-                          text: sim.name,
-                          x: rect.right + 8,
-                          y: rect.top + rect.height / 2,
-                        });
-                      } : undefined}
-                      onMouseLeave={!sidebarOpen ? () => setSidebarTooltipState(null) : undefined}
-                      className={`w-full flex items-center gap-3 rounded-lg text-left active:scale-90 transition-all cursor-pointer ${
-                        currentSimulationId === sim.id
-                          ? ('bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 transition-all' + (sidebarOpen ? '' : ' p-2 justify-center'))
-                          : sidebarOpen
-                          ? 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800 px-4 py-2'
-                          : 'justify-center p-2'
-                      } ${sidebarOpen ? 'px-4 py-2' : ''}`}
-                    >
-                      <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      {sidebarOpen && (
-                        <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="space-y-1">
+                    {previousSimulations.map((sim) => (
+                      <div
+                        key={sim.id}
+                        onClick={() => {
+                          if (currentSimulationId !== sim.id) loadSimulation(sim.id);
+                          setDesktopScenarioPopoverOpen(false);
+                        }}
+                        className={`flex items-center gap-2 rounded-lg p-2 cursor-pointer transition-all active:scale-[0.98] ${
+                          currentSimulationId === sim.id
+                            ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-zinc-800'
+                        }`}
+                      >
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{sim.name}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{sim.date}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                            {sim.canGraduate ? '졸업 가능' : '졸업 불가능'}
-                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{sim.date}</p>
                         </div>
-                      )}
-                      {sidebarOpen && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!confirm('정말 이 시나리오를 삭제하시겠습니까?')) return;
+                            if (!confirm(lang === 'ko' ? '정말 이 시나리오를 삭제하시겠습니까?' : 'Delete this scenario?')) return;
                             fetch(`${API}/simulation/${sim.id}`, {
                               method: 'DELETE',
                               credentials: 'include',
@@ -1700,132 +1681,242 @@ export default function SimulationPage() {
                                   setPreviousSimulations((prev) => prev.filter((s) => s.id !== sim.id));
                                   if (currentSimulationId === sim.id) {
                                     setCurrentSimulationId(null);
-                                    if (profile) {
-                                      initializeSimulationData(profile);
-                                    }
+                                    if (profile) initializeSimulationData(profile);
                                   }
                                 } else {
-                                  alert(data.message || '삭제에 실패했습니다.');
+                                  alert(data.message || (lang === 'ko' ? '삭제에 실패했습니다.' : 'Delete failed.'));
                                 }
                               })
                               .catch((error) => {
                                 console.error('삭제 오류:', error);
-                                alert('삭제 중 오류가 발생했습니다.');
+                                alert(lang === 'ko' ? '삭제 중 오류가 발생했습니다.' : 'An error occurred.');
                               });
                           }}
-                          className="flex-shrink-0 p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                          title="삭제"
+                          className="flex-shrink-0 p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          title={lang === 'ko' ? '삭제' : 'Delete'}
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
-                      )}
-                    </div>
-                  ))
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-            </div>
-
-            {/* 시나리오 저장 섹션 (모바일처럼 이름 필드 바로 노출) */}
-            {sidebarOpen && (
-              <div className="mt-4 pt-3">
-                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 px-2 whitespace-nowrap min-w-0">
-                  시나리오 저장
-                </h3>
-                <div className="flex gap-2 px-2">
+              <div className="p-3 border-t border-gray-200 dark:border-zinc-700">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{lang === 'ko' ? '시나리오 저장' : 'Save scenario'}</h3>
+                <div className="flex gap-2">
                   <Input
                     type="text"
                     value={saveName}
                     onChange={setSaveName}
-                    placeholder="시나리오 이름"
+                    placeholder={lang === 'ko' ? '시나리오 이름' : 'Scenario name'}
                     size="small"
                     className="flex-1 min-w-0"
                   />
-                  <button
-                    type="button"
+                  <Button
+                    style="prominent"
+                    size="small"
                     onClick={async () => {
                       const success = await handleSaveSimulation(saveName);
-                      if (success) {
-                        setSaveName('');
-                      }
+                      if (success) setDesktopScenarioPopoverOpen(false);
                     }}
-                    className="flex-shrink-0 px-3 bg-violet-600 hover:bg-violet-700 text-white text-sm rounded-md active:scale-85 transition-all font-medium shadow-sm whitespace-nowrap"
+                    innerClassName="whitespace-nowrap"
                   >
-                    저장
-                  </button>
+                    {lang === 'ko' ? '저장' : 'Save'}
+                  </Button>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          </>,
+          document.body
+        )}
 
-          {/* 하단 메뉴: 계정 이름 + 로그아웃 */}
+        {/* 사이드바 */}
+        <aside
+          className={`w-100 fixed top-12 bottom-0 left-0 z-30 p-2 transition-all duration-300 overflow-hidden ${sidebarOpen ? '' : '-translate-x-full'}`}
+        >
           <div
-            className={`overflow-hidden transition-all ${
-              sidebarOpen ? 'p-4 space-y-2' : 'px-2 py-3 space-y-2'
+            className={`flex-1 overflow-y-hidden overflow-x-hidden space-y-2 transition-all p-4 rounded-2xl bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-md border border-gray-200/50 dark:border-zinc-700/50 shadow-lg w-full h-full flex flex-col ${
+              sidebarOpen ? '' : ''
             }`}
           >
-            <div
-              className={`flex items-center gap-3 rounded-lg transition-all relative ${
-                sidebarOpen ? 'w-full' : 'justify-center'
-              }`}
-            >
-              <div className="relative flex-1 min-w-0">
-                <Link
-                  ref={profileLinkDesktopRef}
-                  href="/profile/settings"
-                  className={`flex items-center gap-3 rounded-lg w-full min-w-0 active:scale-90 hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all ${
-                    sidebarOpen
-                      ? 'text-gray-700 dark:text-gray-300 px-4 py-2'
-                      : 'justify-center p-2'
-                  }`}
-                  title={sidebarOpen ? undefined : userName || '프로필 설정'}
-                >
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  {sidebarOpen && (
-                    <span className="whitespace-nowrap min-w-0 truncate">
-                      {userName || '프로필 설정'}
-                    </span>
-                  )}
-                </Link>
-              </div>
-              {sidebarOpen && (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      await fetch(`${API}/auth/logout`, {
-                        method: 'POST',
-                        credentials: 'include',
-                      });
-                    } catch (error) {
-                      console.error('로그아웃 오류:', error);
-                    }
-                    router.push('/login');
-                  }}
-                  className="flex-shrink-0 p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-950/30 active:scale-90 transition-all"
-                  title="로그아웃"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </button>
+            <div className="flex flex-row gap-2">
+              <Button
+                style="simple"
+                size="small"
+                isActive={sidebarTab == 'addCourse'}
+                className="flex-1"
+                onClick={() => setSidebarTab('addCourse')}
+              >과목 추가</Button>
+              <Button
+                style="simple"
+                size="small"
+                isActive={sidebarTab == 'selectMajors'}
+                className="flex-1"
+                onClick={() => setSidebarTab('selectMajors')}
+              >시나리오 설정</Button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2 pt-0">
+              {sidebarTab === 'addCourse' && (
+                <AddCoursePanel
+                  searchQuery={courseSearchQuery}
+                  onSearchQueryChange={setCourseSearchQuery}
+                  searchResults={searchResults}
+                  isSearching={isSearching}
+                  selectedCourseIds={selectedCourseIds}
+                  onSelectionChange={updateSelectedCourseIds}
+                  addYear={addYear}
+                  onAddYearChange={setAddYear}
+                  addSemester={addSemester}
+                  onAddSemesterChange={setAddSemester}
+                  addGrade={addGrade}
+                  onAddGradeChange={setAddGrade}
+                  addAsPriorCredit={addAsPriorCredit}
+                  onAddAsPriorCreditChange={setAddAsPriorCredit}
+                  onAddSelected={handleAddSelected}
+                  onDragStart={(course) => setDraggedCourse(course)}
+                  filterDepartment={filterDepartment}
+                  onFilterDepartmentChange={setFilterDepartment}
+                  filterCategory={filterCategory}
+                  onFilterCategoryChange={setFilterCategory}
+                  enrolledCourseIds={simulationCourses.map((cs) => cs.courseId)}
+                />
+              )}
+
+              {sidebarTab === 'selectMajors' && (
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      주전공
+                    </label>
+                    <DepartmentDropdown
+                      lang={lang}
+                      value={filters.major}
+                      onChange={(newValue) => setFilters({ ...filters, major: newValue })}
+                      mode="major"
+                      size="small"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      복수전공
+                    </label>
+                    <MultipleDepartmentDropdown
+                      lang={lang}
+                      value={filters.doubleMajors}
+                      onChange={(newValues) => setFilters({ ...filters, doubleMajors: newValues })}
+                      mode="doubleMajor"
+                      size="small"
+                      className="min-w-40"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      부전공
+                    </label>
+                    <MultipleDepartmentDropdown
+                      lang={lang}
+                      value={filters.minors}
+                      onChange={(newValues) => setFilters({ ...filters, minors: newValues })}
+                      mode="minor"
+                      size="small"
+                      className="min-w-40"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="advancedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      심화전공
+                    </label>
+                    <Select
+                      id="advancedMajor"
+                      value={filters.advancedMajor ? 'true' : 'false'}
+                      onChange={(newValue) => setFilters({ ...filters, advancedMajor: newValue === 'true' })}
+                      size="small"
+                      className="min-w-16"
+                    >
+                      <option value="false">아니오</option>
+                      <option value="true">예</option>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="individuallyDesignedMajor" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      자유융합전공
+                    </label>
+                    <Select
+                      id="individuallyDesignedMajor"
+                      value={filters.individuallyDesignedMajor ? 'true' : 'false'}
+                      onChange={(newValue) => setFilters({ ...filters, individuallyDesignedMajor: newValue === 'true' })}
+                      size="small"
+                      className="min-w-16"
+                    >
+                      <option value="false">아니오</option>
+                      <option value="true">예</option>
+                    </Select>
+                  </div>
+
+                  <hr className="border-none h-px bg-gray-300 dark:bg-zinc-700" />
+
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      전공 이수 기준 연도
+                    </label>
+                    <div className="flex flex-row text-sm items-baseline gap-1">
+                      <NumberInput
+                        min="2016"
+                        max="2050"
+                        value={filters.requirementYear}
+                        onChange={(newValue) => setFilters({ ...filters, requirementYear: parseInt(newValue) })}
+                        size="small"
+                        className="flex-1"
+                      />
+                      <span>년</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="earlyGraduation" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      조기졸업
+                    </label>
+                    <Select
+                      id="earlyGraduation"
+                      value={filters.earlyGraduation ? 'true' : 'false'}
+                      onChange={(newValue) => setFilters({ ...filters, earlyGraduation: newValue === 'true' })}
+                      size="small"
+                      className="min-w-16"
+                    >
+                      <option value="false">아니오</option>
+                      <option value="true">예</option>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="honorStudent" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                      Honor Student
+                    </label>
+                    <Select
+                      id="honorStudent"
+                      // value={filters.individuallyDesignedMajor ? 'true' : 'false'}
+                      // onChange={(newValue) => setFilters({ ...filters, individuallyDesignedMajor: newValue === 'true' })}
+                      value={false}
+                      onChange={() => {}}
+                      size="small"
+                      className="min-w-16"
+                    >
+                      <option value="false">아니오</option>
+                      <option value="true">예</option>
+                    </Select>
+                  </div>
+                </div>
               )}
             </div>
           </div>
         </aside>
 
         {/* 메인 컨텐츠 */}
-        <div className="flex-1 flex flex-col overflow-y-auto gap-4">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden items-stretch px-4 gap-4">
           {/* 상단 바 */}
-          <div className="flex-shrink-0">
+          <div className="hidden flex-shrink-0">
             <div className="py-4 overflow-x-auto">
               <div className="px-6 flex items-center gap-4 min-w-max">
                 <div className="flex flex-col gap-1">
@@ -1940,220 +2031,42 @@ export default function SimulationPage() {
                     <option value="true">예</option>
                   </Select>
                 </div>
-                <button
-                  className="bg-white dark:bg-black shadow-sm rounded-md text-sm px-2 py-1 hover:bg-gray-50 dark:hover:bg-zinc-800 transition-all active:scale-90"
-                  onClick={() => setShowReportDialog(true)}
-                >
-                  보고서 보기
-                </button>
               </div>
             </div>
           </div>
 
-          {/* 3분할 래퍼 */}
-          <div className="flex-1 flex min-h-0 px-4 gap-4">
-            {/* 좌측: 시뮬레이션에서 추가·삭제할 과목 선택 */}
-            <div className={`${rightPanelOpen ? 'flex-1' : 'flex-0'} flex-shrink-0 flex flex-col overflow-hidden transition-all duration-300`}>
-              {rightPanelOpen && (
-                <>
-                  {/* 상단: 모드 전환 */}
-                  <div className="flex items-center flex-shrink-0 gap-2 mb-2 px-6">
-                    <button
-                      type="button"
-                      onClick={() => setRightPanelOpen(false)}
-                      tabIndex={0}
-                      className="flex-shrink-0 p-1 rounded-lg bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all shadow-sm"
-                      title="패널 접기"
-                    >
-                      <svg
-                        className="w-5 h-5 text-gray-600 dark:text-zinc-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCourseMode('add')}
-                      tabIndex={0}
-                      className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
-                        courseMode === 'add'
-                          ? 'text-black dark:text-white'
-                          : 'text-gray-400 dark:text-zinc-500'
-                      }`}
-                    >
-                      <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
-                        과목 추가
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCourseMode('view')}
-                      tabIndex={0}
-                      className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
-                        courseMode === 'view'
-                          ? 'text-black dark:text-white'
-                          : 'text-gray-400 dark:text-zinc-500'
-                      }`}
-                    >
-                      <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
-                        수강한 과목<span className="opacity-40 ml-2">{enrollmentsForList.length}</span>
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* 본문 영역 */}
-                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative">
-                    {isLoadingSimulation && (
-                      <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center">
-                        <div className="flex flex-col items-center gap-2">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
-                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로드 중...</p>
-                        </div>
-                      </div>
-                    )}
-                    <div className="px-4 pt-2 pb-8">
-                      {courseMode === 'add' ? (
-                        <AddCoursePanel
-                          searchQuery={courseSearchQuery}
-                          onSearchQueryChange={setCourseSearchQuery}
-                          searchResults={searchResults}
-                          isSearching={isSearching}
-                          selectedCourseIds={selectedCourseIds}
-                          onSelectionChange={updateSelectedCourseIds}
-                          addYear={addYear}
-                          onAddYearChange={setAddYear}
-                          addSemester={addSemester}
-                          onAddSemesterChange={setAddSemester}
-                          addGrade={addGrade}
-                          onAddGradeChange={setAddGrade}
-                          addAsPriorCredit={addAsPriorCredit}
-                          onAddAsPriorCreditChange={setAddAsPriorCredit}
-                          onAddSelected={handleAddSelected}
-                          onDragStart={(course) => setDraggedCourse(course)}
-                          filterDepartment={filterDepartment}
-                          onFilterDepartmentChange={setFilterDepartment}
-                          filterCategory={filterCategory}
-                          onFilterCategoryChange={setFilterCategory}
-                          enrolledCourseIds={simulationCourses.map((cs) => cs.courseId)}
-                        />
-                      ) : (
-                        <>
-                          <p className="text-sm text-center mb-6 px-4 text-gray-500 dark:text-zinc-400">
-                            시뮬레이션에 사용할 과목들을 지정합니다. 아직 듣지 않았지만 들을 예정인 과목을 추가하여 시뮬레이션을 진행할 수 있습니다.
-                          </p>
-                          <EnrollmentsList
-                            enrollments={enrollmentsForList}
-                            semesterGroups={semesterGroups}
-                            sortedSemesterKeys={sortedSemesterKeys}
-                            selectedEnrollmentKeys={selectedEnrollmentKeys}
-                            onSelectionChange={setSelectedEnrollmentKeys}
-                            onGradeChange={(enrollment, grade) => {
-                              const cs = simulationCourses.find(
-                                (c) =>
-                                  c.courseId === enrollment.courseId &&
-                                  c.enrolledYear === enrollment.enrolledYear &&
-                                  c.enrolledSemester === enrollment.enrolledSemester
-                              );
-                              if (cs) {
-                                handleGradeChange(cs, grade);
-                              }
-                            }}
-                            onMove={(enrollment, newYear, newSemester) => {
-                              const cs = simulationCourses.find(
-                                (c) =>
-                                  c.courseId === enrollment.courseId &&
-                                  c.enrolledYear === enrollment.enrolledYear &&
-                                  c.enrolledSemester === enrollment.enrolledSemester
-                              );
-                              if (cs) {
-                                handleMove(cs, newYear, newSemester);
-                              }
-                            }}
-                            onRemove={(enrollment) => {
-                              const cs = simulationCourses.find(
-                                (c) =>
-                                  c.courseId === enrollment.courseId &&
-                                  c.enrolledYear === enrollment.enrolledYear &&
-                                  c.enrolledSemester === enrollment.enrolledSemester
-                              );
-                              if (cs) {
-                                handleRemove(cs);
-                              }
-                            }}
-                            onRemoveSelected={() => {
-                              // simulation에서는 선택 삭제 기능 사용 안 함
-                              setSelectedEnrollmentKeys(new Set());
-                            }}
-                            onRemoveAll={() => {
-                              // simulation에서는 전체 삭제 기능 사용 안 함
-                              setSelectedEnrollmentKeys(new Set());
-                            }}
-                            onDragStart={(e, enrollment, semesterKey) => {
-                              const cs = simulationCourses.find(
-                                (c) =>
-                                  c.courseId === enrollment.courseId &&
-                                  c.enrolledYear === enrollment.enrolledYear &&
-                                  c.enrolledSemester === enrollment.enrolledSemester
-                              );
-                              if (cs) {
-                                handleDragStart(e, cs, semesterKey);
-                              }
-                            }}
-                            onDrop={handleDrop}
-                            onDropOutside={handleDropOutside}
-                            findNearestPastSemester={findNearestPastSemester}
-                          />
-                          <p className="text-sm text-center mt-6 px-4 text-gray-500 dark:text-zinc-400">
-                            이곳에서 과목을 추가하거나 삭제하더라도 프로필에 저장된 수강 내역은 변경되지 않습니다.
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-
+          {/* 2분할 래퍼 */}
+          <div className="flex-1 min-h-0 flex flex-row space-between justify-center overflow-hidden gap-4">
             {/* 가운데: 섹션별 요건 계산에 사용된 과목 */}
-            <div className={`${rightPanelOpen ? '' : 'ml-[-1rem]'} flex-1 flex-shrink-0 flex flex-col overflow-hidden transition-all duration-300`}>
+            <div className="max-w-160 w-160 min-h-0 flex flex-col overflow-hidden transition-all duration-300">
               {/* 제목 영역 */}
-              <div className="flex items-center justify-between mb-2 px-6">
-                <div className="flex gap-2">
-                  {!rightPanelOpen && (
-                    <button
-                      type="button"
-                      onClick={() => setRightPanelOpen(true)}
-                      className="flex-shrink-0 p-1 rounded-lg bg-white dark:bg-black hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all shadow-sm"
-                      title="패널 펼치기"
-                    >
-                      <svg
-                        className="w-5 h-5 text-gray-600 dark:text-zinc-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  )}
-                  <h2 className="text-xl font-bold">수업별 학점 인정 분야</h2>
-                </div>
-                <button
-                  onClick={() => setGradeBlindMode(!gradeBlindMode)}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg shadow-sm bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all"
-                  title={gradeBlindMode ? '성적 표시' : '성적 숨기기'}
-                >
-                  <span className="text-xs text-gray-600 dark:text-zinc-300">
+              <div className="flex items-center justify-between gap-4 mb-2 px-6">
+                <h2 className="text-lg font-bold shrink-0">이수한 과목</h2>
+                <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+                  <Button
+                    size="exsmall"
+                    style="standard"
+                    onClick={() => setGradeBlindMode(!gradeBlindMode)}
+                    title={gradeBlindMode ? '성적 표시' : '성적 숨기기'}
+                    className="shrink-0"
+                  >
                     {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
-                  </span>
-                </button>
+                  </Button>
+                  <div className="min-w-0 flex-1 max-w-40">
+                    <Select
+                      size="exsmall"
+                      value={coursesGrouping}
+                      onChange={(value) => setCoursesGrouping(value as 'bySemester' | 'byCategory')}
+                    >
+                      <option value="bySemester">학기별</option>
+                      <option value="byCategory">카테고리별</option>
+                    </Select>
+                  </div>
+                </div>
               </div>
 
               {/* 본문 영역 */}
-              <div className="flex-1 overflow-y-auto px-4 pb-8 relative">
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-8 relative">
                 <div className="sticky top-0 z-10 h-2 bg-gradient-to-t from-transparent via-gray-50/80 to-gray-50 dark:via-zinc-900/80 dark:to-zinc-900"></div>
 
                 {isLoadingSimulation && (
@@ -2165,72 +2078,89 @@ export default function SimulationPage() {
                   </div>
                 )}
 
-                <div>
-                  {sections.length === 0 ? (
-                    <p className="text-sm text-gray-500 dark:text-zinc-400 py-4">
-                      주전공을 선택하면 섹션이 구성됩니다.
-                    </p>
-                  ) : (
-                    <>
-                      {/* 기초과목 그룹 */}
-                      {groupedSections.basicGroup.length > 0 && (
-                        <div className="bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
-                          {groupedSections.basicGroup.map((s, i) => {
-                            const isCollapsed = collapsedSections.has(s.id);
-                            return (
-                              <div key={s.id}>
-                                <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
-                                  <ACTitle>
-                                    <h3 className="font-medium text-base flex-1 leading-tight">{s.title}</h3>
-                                    <p className="text-gray-600 dark:text-zinc-400 text-sm leading-tight">{calculateSectionCredits(s.courses)}</p>
-                                  </ACTitle>
-                                  <ACBody>
-                                    <div className="space-y-2">
-                                      {s.courses.length === 0 ? (
-                                        <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
-                                      ) : (
-                                        s.courses.map((c) => (
-                                          <CourseBar 
-                                            key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} 
-                                            course={c} 
-                                            gradeBlindMode={gradeBlindMode}
-                                            onClassificationChange={handleClassificationChange}
-                                            getDeptName={deptName}
-                                            substitutionMap={substitutionMap}
-                                            majorDepartment={filters.major}
-                                          />
-                                        ))
-                                      )}
-                                    </div>
-                                  </ACBody>
-                                </Accordion>
-                                {i < groupedSections.basicGroup.length - 1 && (
-                                  <div className="border-t border-gray-200 dark:border-zinc-700"></div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )} 
+                {coursesGrouping === 'bySemester' && (
+                  <EnrollmentsList
+                    enrollments={enrollmentsForList}
+                    semesterGroups={semesterGroups}
+                    sortedSemesterKeys={sortedSemesterKeys}
+                    selectedEnrollmentKeys={selectedEnrollmentKeys}
+                    onSelectionChange={setSelectedEnrollmentKeys}
+                    onGradeChange={(enrollment, grade) => {
+                      const cs = simulationCourses.find(
+                        (c) =>
+                          c.courseId === enrollment.courseId &&
+                          c.enrolledYear === enrollment.enrolledYear &&
+                          c.enrolledSemester === enrollment.enrolledSemester
+                      );
+                      if (cs) {
+                        handleGradeChange(cs, grade);
+                      }
+                    }}
+                    onMove={(enrollment, newYear, newSemester) => {
+                      const cs = simulationCourses.find(
+                        (c) =>
+                          c.courseId === enrollment.courseId &&
+                          c.enrolledYear === enrollment.enrolledYear &&
+                          c.enrolledSemester === enrollment.enrolledSemester
+                      );
+                      if (cs) {
+                        handleMove(cs, newYear, newSemester);
+                      }
+                    }}
+                    onRemove={(enrollment) => {
+                      const cs = simulationCourses.find(
+                        (c) =>
+                          c.courseId === enrollment.courseId &&
+                          c.enrolledYear === enrollment.enrolledYear &&
+                          c.enrolledSemester === enrollment.enrolledSemester
+                      );
+                      if (cs) {
+                        handleRemove(cs);
+                      }
+                    }}
+                    onRemoveSelected={() => {
+                      // simulation에서는 선택 삭제 기능 사용 안 함
+                      setSelectedEnrollmentKeys(new Set());
+                    }}
+                    onRemoveAll={() => {
+                      // simulation에서는 전체 삭제 기능 사용 안 함
+                      setSelectedEnrollmentKeys(new Set());
+                    }}
+                    onDragStart={(e, enrollment, semesterKey) => {
+                      const cs = simulationCourses.find(
+                        (c) =>
+                          c.courseId === enrollment.courseId &&
+                          c.enrolledYear === enrollment.enrolledYear &&
+                          c.enrolledSemester === enrollment.enrolledSemester
+                      );
+                      if (cs) {
+                        handleDragStart(e, cs, semesterKey);
+                      }
+                    }}
+                    onDrop={handleDrop}
+                    onDropOutside={handleDropOutside}
+                    findNearestPastSemester={findNearestPastSemester}
+                  />
+                )}
 
-                      {/* 주전공/심화전공/연구 그룹 */}
-                      {groupedSections.majorGroup.length > 0 && (
-                        <>
-                          <div className="mt-6 bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
-                            {groupedSections.majorGroup.map((s, idx) => {
+                {coursesGrouping === 'byCategory' && (
+                  <div>
+                    {sections.length === 0 ? (
+                      <p className="text-sm text-gray-500 dark:text-zinc-400 py-4">
+                        주전공을 선택하면 섹션이 구성됩니다.
+                      </p>
+                    ) : (
+                      <>
+                        {/* 기초과목 그룹 */}
+                        {groupedSections.basicGroup.length > 0 && (
+                          <div className="bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
+                            {groupedSections.basicGroup.map((s, i) => {
                               const isCollapsed = collapsedSections.has(s.id);
                               return (
                                 <div key={s.id}>
                                   <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
                                     <ACTitle>
-                                      <h3 className="font-medium text-base flex-1 leading-tight">
-                                        {s.titleElements.length > 1 ? (
-                                          <>
-                                            <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
-                                            <span>{s.titleElements.slice(1).join(' ')}</span>
-                                          </>
-                                        ) : s.titleElements[0]}
-                                      </h3>
+                                      <h3 className="font-medium text-base flex-1 leading-tight">{s.title}</h3>
                                       <p className="text-gray-600 dark:text-zinc-400 text-sm leading-tight">{calculateSectionCredits(s.courses)}</p>
                                     </ACTitle>
                                     <ACBody>
@@ -2245,6 +2175,7 @@ export default function SimulationPage() {
                                               gradeBlindMode={gradeBlindMode}
                                               onClassificationChange={handleClassificationChange}
                                               getDeptName={deptName}
+                                              substitutionMap={substitutionMap}
                                               majorDepartment={filters.major}
                                             />
                                           ))
@@ -2252,39 +2183,117 @@ export default function SimulationPage() {
                                       </div>
                                     </ACBody>
                                   </Accordion>
-                                  {idx < groupedSections.majorGroup.length - 1 && (
+                                  {i < groupedSections.basicGroup.length - 1 && (
                                     <div className="border-t border-gray-200 dark:border-zinc-700"></div>
                                   )}
                                 </div>
                               );
                             })}
                           </div>
-                        </>
-                      )}
-                      
-                      {/* 복전, 부전, 융전, 교필, 인선 */}
-                      {groupedSections.otherSections.map((s) => {
-                        const isCollapsed = collapsedSections.has(s.id);
-                        return (
-                          <div key={s.id} className="mt-6 bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
-                            <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
-                              <ACTitle>
-                                <h3 className="font-medium text-base flex-1 leading-tight">
-                                  {s.titleElements.length > 1 ? (
-                                    <>
-                                      <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
-                                      <span>{s.titleElements.slice(1).join(' ')}</span>
-                                    </>
-                                  ) : s.titleElements[0]}
-                                </h3>
-                                <p className="text-gray-600 dark:text-zinc-400 text-sm leading-tight">{calculateSectionCredits(s.courses)}</p>
-                              </ACTitle>
-                              <ACBody>
-                                <div className="space-y-2">
-                                  {s.courses.length === 0 ? (
-                                    <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
-                                  ) : (
-                                    s.courses.map((c) => (
+                        )} 
+
+                        {/* 주전공/심화전공/연구 그룹 */}
+                        {groupedSections.majorGroup.length > 0 && (
+                          <>
+                            <div className="mt-6 bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
+                              {groupedSections.majorGroup.map((s, idx) => {
+                                const isCollapsed = collapsedSections.has(s.id);
+                                return (
+                                  <div key={s.id}>
+                                    <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
+                                      <ACTitle>
+                                        <h3 className="font-medium text-base flex-1 leading-tight">
+                                          {s.titleElements.length > 1 ? (
+                                            <>
+                                              <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
+                                              <span>{s.titleElements.slice(1).join(' ')}</span>
+                                            </>
+                                          ) : s.titleElements[0]}
+                                        </h3>
+                                        <p className="text-gray-600 dark:text-zinc-400 text-sm leading-tight">{calculateSectionCredits(s.courses)}</p>
+                                      </ACTitle>
+                                      <ACBody>
+                                        <div className="space-y-2">
+                                          {s.courses.length === 0 ? (
+                                            <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
+                                          ) : (
+                                            s.courses.map((c) => (
+                                              <CourseBar 
+                                                key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} 
+                                                course={c} 
+                                                gradeBlindMode={gradeBlindMode}
+                                                onClassificationChange={handleClassificationChange}
+                                                getDeptName={deptName}
+                                                majorDepartment={filters.major}
+                                              />
+                                            ))
+                                          )}
+                                        </div>
+                                      </ACBody>
+                                    </Accordion>
+                                    {idx < groupedSections.majorGroup.length - 1 && (
+                                      <div className="border-t border-gray-200 dark:border-zinc-700"></div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                        
+                        {/* 복전, 부전, 융전, 교필, 인선 */}
+                        {groupedSections.otherSections.map((s) => {
+                          const isCollapsed = collapsedSections.has(s.id);
+                          return (
+                            <div key={s.id} className="mt-6 bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
+                              <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
+                                <ACTitle>
+                                  <h3 className="font-medium text-base flex-1 leading-tight">
+                                    {s.titleElements.length > 1 ? (
+                                      <>
+                                        <span className="text-gray-400 dark:text-zinc-500">{s.titleElements[0]}: </span>
+                                        <span>{s.titleElements.slice(1).join(' ')}</span>
+                                      </>
+                                    ) : s.titleElements[0]}
+                                  </h3>
+                                  <p className="text-gray-600 dark:text-zinc-400 text-sm leading-tight">{calculateSectionCredits(s.courses)}</p>
+                                </ACTitle>
+                                <ACBody>
+                                  <div className="space-y-2">
+                                    {s.courses.length === 0 ? (
+                                      <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">인정 과목 없음</p>
+                                    ) : (
+                                      s.courses.map((c) => (
+                                        <CourseBar
+                                          key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                          course={c}
+                                          gradeBlindMode={gradeBlindMode}
+                                          onClassificationChange={handleClassificationChange}
+                                          substitutionMap={substitutionMap}
+                                          majorDepartment={filters.major}
+                                        />
+                                      ))
+                                    )}
+                                  </div>
+                                </ACBody>
+                              </Accordion>
+                            </div>
+                          );
+                        })}
+
+                        {/* 자선, 미분류 */}
+                        {groupedSections.miscSections.map((s) => {
+                          const isCollapsed = collapsedSections.has(s.id);
+                          return s.courses.length === 0 ? null : (
+                            <div key={s.id} className="mt-6 bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
+                              <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
+                                <ACTitle>
+                                  <h3 className="font-medium text-base flex-1">{s.title}</h3>
+                                  <p className="text-gray-600 dark:text-zinc-400">{calculateSectionCredits(s.courses)}</p>
+                                </ACTitle>
+                                <ACBody>
+                                  <div className="space-y-2">
+                                    {s.courses.map((c) => (
                                       <CourseBar
                                         key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
                                         course={c}
@@ -2293,58 +2302,29 @@ export default function SimulationPage() {
                                         substitutionMap={substitutionMap}
                                         majorDepartment={filters.major}
                                       />
-                                    ))
-                                  )}
-                                </div>
-                              </ACBody>
-                            </Accordion>
-                          </div>
-                        );
-                      })}
-
-                      {/* 자선, 미분류 */}
-                      {groupedSections.miscSections.map((s) => {
-                        const isCollapsed = collapsedSections.has(s.id);
-                        return s.courses.length === 0 ? null : (
-                          <div key={s.id} className="mt-6 bg-white dark:bg-black rounded-lg overflow-hidden shadow-lg">
-                            <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
-                              <ACTitle>
-                                <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                                <p className="text-gray-600 dark:text-zinc-400">{calculateSectionCredits(s.courses)}</p>
-                              </ACTitle>
-                              <ACBody>
-                                <div className="space-y-2">
-                                  {s.courses.map((c) => (
-                                    <CourseBar
-                                      key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
-                                      course={c}
-                                      gradeBlindMode={gradeBlindMode}
-                                      onClassificationChange={handleClassificationChange}
-                                      substitutionMap={substitutionMap}
-                                      majorDepartment={filters.major}
-                                    />
-                                  ))}
-                                </div>
-                              </ACBody>
-                            </Accordion>
-                          </div>
-                        );
-                      })}
-                    </>
-                  )}
-                </div>
+                                    ))}
+                                  </div>
+                                </ACBody>
+                              </Accordion>
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
             {/* 우측: 섹션별 세부 요건 달성 여부 */}
-            <div className="flex-1 flex-shrink-0 flex flex-col overflow-hidden transition-all duration-300">
+            <div className="max-w-160 w-160 min-h-0 flex flex-col overflow-hidden transition-all duration-300">
               {/* 제목 영역 */}
               <div className="flex items-center justify-between mb-2 px-6">
-                <h2 className="text-xl font-bold">졸업 요건</h2>
+                <h2 className="text-lg font-bold">졸업 요건</h2>
               </div>
 
               {/* 본문 영역 */}
-              <div className="flex-1 overflow-y-auto px-4 relative">
+              <div className="flex-1 min-h-0 overflow-y-auto px-4 relative">
                 <div className="sticky top-0 z-10 h-2 bg-gradient-to-t from-transparent via-gray-50/80 to-gray-50 dark:via-zinc-900/80 dark:to-zinc-900"></div>
 
                 {isLoadingSimulation && (
@@ -2583,6 +2563,8 @@ export default function SimulationPage() {
                         sections={sections}
                         filters={filters}
                         getDeptName={getDeptName}
+                        substitutionMap={substitutionMap}
+                        getCategoryName={(id) => categories.find(c => c.id === id)?.name ?? id}
                       />
                     }
                     fileName={`졸업사정결과-${profile?.studentId}-${new Date().getFullYear().toString().padStart(4, '0')}${(new Date().getMonth() + 1).toString().padStart(2, '0')}${new Date().getDate().toString().padStart(2, '0')}${new Date().getHours().toString().padStart(2, '0')}${new Date().getMinutes().toString().padStart(2, '0')}${new Date().getSeconds().toString().padStart(2, '0')}.pdf`}
@@ -2592,12 +2574,14 @@ export default function SimulationPage() {
                       loading ? 'PDF 생성 중...' : 'PDF 다운로드'
                     }
                   </PDFDownloadLink>
-                  <button
-                    className="px-2 py-1 rounded-md shadow-sm bg-white dark:bg-black text-xs transition-all active:scale-85"
+                  <Button
+                    size="small"
+                    style="standard"
+                    activeScale={85}
                     onClick={() => setShowReportDialog(false)}
                   >
                     완료
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -2619,26 +2603,105 @@ export default function SimulationPage() {
 
                 <h3 className="font-bold text-lg mt-4 mb-2">요약</h3>
                 
-                <table className="my-2 w-full text-sm border-collapse border text-center">
+                <table className="my-2 w-full text-sm border-collapse border border-[#ccc] text-center">
                   <thead>
-                    <tr className="border">
-                      <th className="w-[15%] px-2 py-1 border">이수 학점</th>
-                      <th className="w-[15%] px-2 py-1 border">이수 AU</th>
-                      <th className="w-[15%] px-2 py-1 border">평점</th>
-                      <th className="w-[15%] px-2 py-1 border">졸업구분</th>
-                      <th className="w-[15%] px-2 py-1 border">시뮬레이션 결과</th>
+                    <tr className="border-b border-[#ccc] bg-[#f3f4f6] font-semibold">
+                      <th className="w-[15%] py-1.5 px-1 border-r border-[#ccc] last:border-r-0">이수 학점</th>
+                      <th className="w-[15%] py-1.5 px-1 border-r border-[#ccc] last:border-r-0">이수 AU</th>
+                      <th className="w-[15%] py-1.5 px-1 border-r border-[#ccc] last:border-r-0">평점</th>
+                      <th className="w-[15%] py-1.5 px-1 border-r border-[#ccc] last:border-r-0">졸업구분</th>
+                      <th className="w-[15%] py-1.5 px-1 border-r border-[#ccc] last:border-r-0">결과</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border">
-                      <td className="px-2 py-1 border">{totalStats.totalCredit}</td>
-                      <td className="px-2 py-1 border">{totalStats.totalAu}</td>
-                      <td className="px-2 py-1 border">{totalStats.gpa}</td>
-                      <td className="px-2 py-1 border">{filters.earlyGraduation ? '조기졸업' : '정규졸업'}</td>
-                      <td className="px-2 py-1 border">{canGraduate ? '졸업 가능' : '졸업 불가'}</td>
+                    <tr className="border-b border-[#ccc]">
+                      <td className="py-1.5 px-1 border-r border-[#ccc] last:border-r-0">{totalStats.totalCredit}</td>
+                      <td className="py-1.5 px-1 border-r border-[#ccc] last:border-r-0">{totalStats.totalAu}</td>
+                      <td className="py-1.5 px-1 border-r border-[#ccc] last:border-r-0">{totalStats.gpa}</td>
+                      <td className="py-1.5 px-1 border-r border-[#ccc] last:border-r-0">{filters.earlyGraduation ? '조기졸업' : '정규졸업'}</td>
+                      <td className={`py-1.5 px-1 border-r border-[#ccc] last:border-r-0 ${canGraduate ? 'text-[#059669]' : 'text-[#dc2626]'}`}>{canGraduate ? '졸업 가능' : '졸업 불가'}</td>
                     </tr>
                   </tbody>
                 </table>
+
+                <h3 className="font-bold text-lg mt-6 mb-2">이수 과목 목록</h3>
+                {(
+                  () => {
+                    const reportSectionOrder: { id: string; title: string }[] = [
+                      { id: 'MANDATORY_GENERAL_COURSES', title: '교양필수' },
+                      { id: 'HUMANITIES_SOCIETY_ELECTIVE', title: '인문사회선택' },
+                      { id: 'BASIC_REQUIRED', title: '기초필수' },
+                      { id: 'BASIC_ELECTIVE', title: '기초선택' },
+                      { id: `MAJOR_${filters.major}`, title: `전공: ${getDeptName(filters.major)}` },
+                      { id: sections.find(s => s.id.startsWith('RESEARCH'))?.id || '', title: '연구' },
+                      ...filters.doubleMajors.map(dept => ({ id: `DOUBLE_MAJOR_${dept}`, title: `복수전공: ${getDeptName(dept)}` })),
+                      ...filters.minors.map(dept => ({ id: `MINOR_${dept}`, title: `부전공: ${getDeptName(dept)}` })),
+                      ...(filters.advancedMajor ? [{ id: sections.find(s => s.id.startsWith('ADVANCED'))?.id || 'ADVANCED_MAJOR', title: '심화전공' }] : []),
+                      ...(filters.individuallyDesignedMajor ? [{ id: 'INDIVIDUALLY_DESIGNED_MAJOR', title: '자유융합전공' }] : []),
+                    ].filter(entry => entry.id);
+                    return reportSectionOrder.map(({ id, title }) => {
+                      const section = sections.find(s => s.id === id);
+                      if (!section || section.courses.length === 0) return null;
+                      const sortedCourses = [...section.courses].sort((a, b) => {
+                        if (a.enrolledYear !== b.enrolledYear) return a.enrolledYear - b.enrolledYear;
+                        const order = ['SPRING', 'SUMMER', 'FALL', 'WINTER'];
+                        return order.indexOf(a.enrolledSemester) - order.indexOf(b.enrolledSemester);
+                      });
+                      return (
+                        <div key={id} className="mb-4">
+                          <h4 className="font-semibold mt-4 mb-1">{title}</h4>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm border-collapse">
+                              <thead>
+                                <tr className="bg-[#f3f4f6] font-semibold border-b border-[#888]">
+                                  <th className="py-1 px-1 text-center whitespace-nowrap w-24">과목 코드</th>
+                                  <th className="py-1 px-1 text-center whitespace-nowrap">제목</th>
+                                  <th className="py-1 px-1 text-center whitespace-nowrap w-20">이수 학기</th>
+                                  <th className="py-1 px-1 text-center whitespace-nowrap w-24">과목 구분</th>
+                                  <th className="py-1 px-1 text-center whitespace-nowrap w-8">학점</th>
+                                  <th className="py-1 px-1 text-center whitespace-nowrap w-8">AU</th>
+                                  <th className="py-1 px-1 text-center whitespace-nowrap w-10">성적</th>
+                                  <th className="py-1 px-1 text-center whitespace-nowrap">비고</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {sortedCourses.map((cs) => {
+                                  const remarks = getRemarks(cs, substitutionMap, filters.major);
+                                  return (
+                                    <tr key={`${cs.courseId}-${cs.enrolledYear}-${cs.enrolledSemester}`} className="border-b border-[#eee]">
+                                      <td className="py-1 px-1 text-center">{cs.course.code}</td>
+                                      <td className="py-1 px-1 text-left">{cs.course.title}</td>
+                                      <td className="py-1 px-1 text-center">{formatYearSemester(cs.enrolledYear, cs.enrolledSemester)}</td>
+                                      <td className="py-1 px-1 text-center">{categories.find(c => c.id === cs.course.category)?.name ?? cs.course.category}</td>
+                                      <td className="py-1 px-1 text-center">{cs.course.credit}</td>
+                                      <td className="py-1 px-1 text-center">{cs.course.au || '-'}</td>
+                                      <td className="py-1 px-1 text-center">{cs.grade}</td>
+                                      <td className="py-1 px-1 text-center text-xs">{remarks.join(', ') || '-'}</td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                              <tfoot>
+                                {(() => {
+                                  const { creditSum, auSum, gpa } = computeSectionSubtotal(sortedCourses);
+                                  return (
+                                    <tr className="border-t-2 border-[#eee] bg-[#f9fafb] font-medium">
+                                      <td className="py-1 px-1 text-left" colSpan={4}>소계</td>
+                                      <td className="py-1 px-1 text-center">{creditSum}</td>
+                                      <td className="py-1 px-1 text-center">{auSum}</td>
+                                      <td className="py-1 px-1 text-center">{gpa}</td>
+                                      <td className="py-1 px-1"></td>
+                                    </tr>
+                                  );
+                                })()}
+                              </tfoot>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    });
+                  }
+                )()}
 
                 <h3 className="font-bold text-lg mt-4 mb-2">요건별 달성 여부</h3>
 
@@ -2712,22 +2775,26 @@ export default function SimulationPage() {
 
       {/* 모바일 UI */}
       <div className="min-h-screen md:hidden bg-gray-50 dark:bg-zinc-900 pb-24 select-none">
-        {/* 상단바 */}
-        <div className="sticky top-0 z-20 bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-md">
-          <div className="p-2 flex flex-row justify-between items-center">
-            <button
-              onClick={() => setIsScenarioModalOpen(true)}
-              className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-zinc-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-90 transition-all flex items-center gap-2"
-              aria-label="메뉴"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-            <div className="text-2xl">
-              <Logo />
-            </div>
-            <div className="relative">
+        <MobileTopBar
+          left={
+              <Button
+                style="simple"
+                size="small"
+                onClick={() => setIsScenarioModalOpen(true)}
+                aria-label="메뉴"
+                className="px-2 py-1.5 gap-2"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </Button>
+            }
+          center={
+              <div className="text-2xl">
+                <Logo />
+              </div>
+            }
+          right={
               <Link
                 ref={profileLinkMobileRef}
                 href="/profile/settings"
@@ -2737,33 +2804,32 @@ export default function SimulationPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </Link>
-            </div>
-          </div>
-
-          {/* 요약 */}
-          {mobileTab === 'requirements' && (
-            <div className="px-4 py-2 flex flex-row justify-between gap-3">
-              <div>
-                <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">이수 학점</span>
-                <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.totalCredit} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ 138</span></p>
+            }
+          below={
+            mobileTab === 'requirements' ? (
+              <div className="px-4 py-2 flex flex-row justify-between gap-3">
+                <div>
+                  <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">이수 학점</span>
+                  <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.totalCredit} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ 138</span></p>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">총 AU</span>
+                  <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.totalAu} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ 4</span></p>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">평점</span>
+                  <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.gpa} decimals={2} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ {filters.earlyGraduation ? '3.0' : '2.0'}</span></p>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">시뮬레이션 결과</span>
+                  <p className={`text-base sm:text-lg font-bold ${canGraduate ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                    졸업 {canGraduate ? '가능' : '불가'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">총 AU</span>
-                <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.totalAu} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ 4</span></p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">평점</span>
-                <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.gpa} decimals={2} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ {filters.earlyGraduation ? '3.0' : '2.0'}</span></p>
-              </div>
-              <div>
-                <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">시뮬레이션 결과</span>
-                <p className={`text-base sm:text-lg font-bold ${canGraduate ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                  졸업 {canGraduate ? '가능' : '불가'}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
+            ) : undefined
+          }
+        />
 
         {/* 본문 영역 */}
         <div>
@@ -2877,33 +2943,31 @@ export default function SimulationPage() {
           {mobileTab === 'courses' && (
             <div>
               {/* 모드 전환 */}
-              <div className="sticky top-[52px] backdrop-blur-md z-20 flex items-center gap-2 px-6 py-1">
-                <button
+              <div className="sticky top-[48px] backdrop-blur-md z-20 flex items-center gap-2 px-6 py-1">
+                <Button
                   type="button"
+                  size="medium"
+                  style="standard"
+                  isActive={courseMode === 'add'}
                   onClick={() => setCourseMode('add')}
-                  className={`flex-1 px-2 py-2 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
-                    courseMode === 'add'
-                      ? 'text-black dark:text-white'
-                      : 'text-gray-400 dark:text-zinc-500'
-                  }`}
+                  className="flex-1 truncate py-2"
                 >
-                  <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
+                  <span className={'px-2 py-1 border-b border-b-2 transition-colors ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
                     과목 추가
                   </span>
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="medium"
+                  style="standard"
+                  isActive={courseMode === 'view'}
                   onClick={() => setCourseMode('view')}
-                  className={`flex-1 px-2 py-2 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
-                    courseMode === 'view'
-                      ? 'text-black dark:text-white'
-                      : 'text-gray-400 dark:text-zinc-500'
-                  }`}
+                  className="flex-1 truncate py-2"
                 >
-                  <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
+                  <span className={'px-2 py-1 border-b border-b-2 transition-colors ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
                     수강한 과목<span className="opacity-40 ml-2">{enrollmentsForList.length}</span>
                   </span>
-                </button>
+                </Button>
               </div>
 
               {/* 본문 */}
@@ -3029,12 +3093,13 @@ export default function SimulationPage() {
               )}
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">수업별 학점 인정 분야</h2>
-                <button
+                <Button
+                  size="small"
+                  style="standard"
                   onClick={() => setGradeBlindMode(!gradeBlindMode)}
-                  className="px-3 py-1.5 text-sm rounded-lg shadow-sm bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-800 active:scale-90 transition-all"
                 >
                   {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
-                </button>
+                </Button>
               </div>
 
               {sections.length === 0 ? (
@@ -3421,26 +3486,43 @@ export default function SimulationPage() {
             }}
           >
             <div
-              className={`bg-gray-50 dark:bg-zinc-900 shadow-xl w-full sm:max-w-md sm:mx-4 mx-0 max-h-[80vh] flex flex-col rounded-t-2xl sm:rounded-xl transition-transform duration-200 ${
-                scenarioSheetVisible ? 'translate-y-0' : 'translate-y-full sm:translate-y-0'
+              className={`bg-gray-50 dark:bg-zinc-900 shadow-xl w-full sm:max-w-md sm:mx-4 mx-0 max-h-[80vh] flex flex-col rounded-t-2xl sm:rounded-xl ${scenarioSheetDragY > 0 ? 'transition-none' : 'transition-transform duration-200'} ${
+                scenarioSheetVisible && scenarioSheetDragY === 0 ? 'translate-y-0' : scenarioSheetVisible ? '' : 'translate-y-full sm:translate-y-0'
               }`}
+              style={{
+                ...(scenarioSheetVisible && scenarioSheetDragY > 0 && { transform: `translateY(${scenarioSheetDragY}px)` }),
+              }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-4 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">시나리오</h2>
-                {/* 닫기 버튼 */}
-                <button
-                  onClick={closeScenarioModal}
-                  className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+              {/* 드래그 가능한 상단바 영역 전체 (모바일) */}
+              <div
+                className="touch-none cursor-grab active:cursor-grabbing border-b border-gray-200 dark:border-zinc-700 sm:cursor-default sm:touch-auto"
+                onTouchStart={handleScenarioSheetTouchStart}
+                onTouchMove={handleScenarioSheetTouchMove}
+                onTouchEnd={handleScenarioSheetTouchEnd}
+              >
+                <div className="flex justify-center pt-2 pb-1 sm:hidden" aria-hidden>
+                  <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
+                </div>
+                <div className="p-4 flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">시나리오</h2>
+                  <Button
+                    size="small"
+                    style="simple"
+                    activeScale={85}
+                    onClick={closeScenarioModal}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </Button>
+                </div>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-4">
-                <button
+                <Button
+                  style="standard"
+                  isActive={currentSimulationId === null}
                   onClick={() => {
                     if (profile) {
                       setCurrentSimulationId(null);
@@ -3449,17 +3531,13 @@ export default function SimulationPage() {
                     }
                     closeScenarioModal();
                   }}
-                  className={`w-full flex items-center gap-3 rounded-lg p-3 mb-2 transition-all active:scale-95 shadow-md ${
-                    currentSimulationId === null
-                      ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300'
-                      : 'bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700'
-                  }`}
+                  className="w-full mb-2"
                 >
-                  <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                   </svg>
                   <span className="text-sm font-medium">새로운 시나리오</span>
-                </button>
+                </Button>
 
                 {previousSimulations.length === 0 ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">저장된 시나리오가 없습니다.</p>
@@ -3487,7 +3565,9 @@ export default function SimulationPage() {
                           <p className="text-sm font-medium truncate">{sim.name}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{sim.date}</p>
                         </div>
-                        <button
+                        <Button
+                          size="small"
+                          style="destructive"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!confirm('정말 이 시나리오를 삭제하시겠습니까?')) return;
@@ -3514,12 +3594,12 @@ export default function SimulationPage() {
                                 alert('삭제 중 오류가 발생했습니다.');
                               });
                           }}
-                          className="flex-shrink-0 p-1.5 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 active:scale-90 transition-all"
+                          className="flex-shrink-0 p-1.5"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>
@@ -3538,17 +3618,19 @@ export default function SimulationPage() {
                     size="medium"
                     className="flex-1"
                   />
-                  <button
+                  <Button
+                    style="prominent"
+                    size="medium"
                     onClick={async () => {
                       const success = await handleSaveSimulation(saveName);
                       if (success) {
                         closeScenarioModal();
                       }
                     }}
-                    className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-lg active:scale-90 transition-all font-medium whitespace-nowrap shadow-sm"
+                    innerClassName="whitespace-nowrap"
                   >
                     저장
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
