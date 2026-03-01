@@ -195,6 +195,95 @@ router.get('/:id', authenticate, async (req: Request, res: Response) => {
   }
 });
 
+// 시나리오(시뮬레이션) 이름 변경
+router.patch('/:id', authenticate, async (req: Request, res: Response) => {
+  try {
+    const idParam = req.params.id;
+    const id = typeof idParam === 'string' ? idParam : null;
+    const userId = req.userId;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: '인증이 필요합니다.' });
+    }
+    const { title } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: '시뮬레이션 ID가 필요합니다.',
+      });
+    }
+
+    if (title === undefined || title === null || typeof title !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: '변경할 시나리오 이름(title)을 입력해주세요.',
+      });
+    }
+
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      return res.status(400).json({
+        success: false,
+        message: '시나리오 이름은 비어 있을 수 없습니다.',
+      });
+    }
+
+    const profile = await prisma.profile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: '프로필을 찾을 수 없습니다.',
+      });
+    }
+
+    const simulation = await prisma.simulation.findUnique({
+      where: { id },
+    });
+
+    if (!simulation) {
+      return res.status(404).json({
+        success: false,
+        message: '시뮬레이션을 찾을 수 없습니다.',
+      });
+    }
+
+    if (simulation.profileId !== profile.id) {
+      return res.status(403).json({
+        success: false,
+        message: '이 시뮬레이션을 수정할 권한이 없습니다.',
+      });
+    }
+
+    const updated = await prisma.simulation.update({
+      where: { id },
+      data: {
+        title: trimmedTitle,
+        updatedAt: new Date(),
+      },
+    });
+
+    return res.json({
+      success: true,
+      message: '시나리오 이름이 변경되었습니다.',
+      simulation: {
+        id: updated.id,
+        title: updated.title,
+        updatedAt: updated.updatedAt,
+      },
+    });
+  } catch (error: any) {
+    console.error('시나리오 이름 변경 오류:', error);
+    return res.status(500).json({
+      success: false,
+      message: '시나리오 이름 변경 중 오류가 발생했습니다.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
 // 시뮬레이션 삭제
 router.delete('/:id', authenticate, async (req: Request, res: Response) => {
   try {

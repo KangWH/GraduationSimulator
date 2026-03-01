@@ -323,7 +323,7 @@ export function RequirementBar({ requirement, onMouseEnter, onMouseLeave }: { re
       />
       <div className="relative flex items-center justify-between">
         <p 
-          className="flex-1 font-medium text-sm truncate cursor-help leading-tight"
+          className="flex-1 font-medium text-sm truncate leading-tight"
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
         >

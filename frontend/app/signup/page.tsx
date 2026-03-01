@@ -8,7 +8,10 @@ import { DepartmentDropdown, MultipleDepartmentDropdown } from '../components/De
 import AddCoursePanel from '../profile/settings/AddCoursePanel';
 import EnrollmentsList, { enrollmentKey } from '../profile/settings/EnrollmentsList';
 import { API } from '../lib/api';
-import Logo from '../components/Logo';
+import DesktopTopBar from '../components/DesktopTopBar';
+import MobileTopBar from '../components/MobileTopBar';
+import LangToggle from '../components/LangToggle';
+import Button from '../components/Button';
 import { parseXlsxRows, applyXlsxParsedRows } from '../profile/settings/xlsxEnrollments';
 import type { Enrollment, RawEnrollment, Semester, Grade } from '../profile/settings/types';
 
@@ -525,50 +528,39 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-col md:min-h-screen bg-gray-50 dark:bg-zinc-900">
-      {/* 데스크톱 상단바 */}
-      <header className="sticky top-0 z-10 hidden h-14 shrink-0 select-none items-center justify-between bg-white px-6 text-lg shadow-lg dark:bg-black sm:flex">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-gray-800 dark:text-gray-100 hover:opacity-80 transition-opacity text-2xl">
-            <Logo language={lang} />
-          </Link>
-          <span className="font-medium text-gray-700 dark:text-gray-300">{lang === 'ko' ? '회원가입' : 'Sign up'}</span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setLang((l) => (l === 'ko' ? 'en' : 'ko'))}
-          className="flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-700 transition-colors"
-          aria-label={lang === 'ko' ? '한국어' : 'English'}
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
-          {lang === 'ko' ? '한국어' : 'English'}
-        </button>
-      </header>
-
-      {/* 모바일 상단바 */}
-      <header className="sticky top-0 z-10 flex h-14 shrink-0 select-none items-center justify-center bg-gray-50/50 px-4 text-lg dark:bg-zinc-900/50 backdrop-blur sm:hidden">
-        <div className="absolute left-2 top-1/2 -translate-y-1/2">
-          {step === 1 ? (
+      <DesktopTopBar
+        left={
+          <div className="flex items-center gap-2">
+            {step === 1 ? (
+              <Link href="/login" className="flex items-center justify-center w-10 h-10 rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-700 transition-all active:scale-85" aria-label={lang === 'ko' ? '취소' : 'Cancel'}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              </Link>
+            ) : (
+              <Button type="button" style="simple" size="small" activeScale={85} onClick={() => setStep(step - 1)} className="w-10 h-10 min-w-0 min-h-0 p-0" aria-label={lang === 'ko' ? '이전' : 'Previous'}>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+              </Button>
+            )}
+            <span className="font-medium text-gray-700 dark:text-gray-300">{lang === 'ko' ? '회원가입' : 'Sign up'}</span>
+          </div>
+        }
+        right={<LangToggle lang={lang} onToggle={() => setLang((l) => (l === 'ko' ? 'en' : 'ko'))} />}
+      />
+      <MobileTopBar
+        left={
+          step === 1 ? (
             <Link href="/login" className="flex items-center justify-center w-10 h-10 rounded-md text-gray-600 hover:bg-gray-200/50 dark:text-gray-400 dark:hover:bg-zinc-700/50 transition-all active:scale-85" aria-label={lang === 'ko' ? '취소' : 'Cancel'}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             </Link>
           ) : (
-            <button type="button" onClick={() => setStep(step - 1)} className="flex items-center justify-center w-10 h-10 rounded-md text-gray-600 hover:bg-gray-200/50 dark:text-gray-400 dark:hover:bg-zinc-700/50 transition-all active:scale-85" aria-label={lang === 'ko' ? '이전' : 'Previous'}>
+            <Button type="button" style="simple" size="small" activeScale={85} onClick={() => setStep(step - 1)} className="w-10 h-10 min-w-0 min-h-0 p-0" aria-label={lang === 'ko' ? '이전' : 'Previous'}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-            </button>
-          )}
-        </div>
-        <span className="font-medium text-gray-700 dark:text-zinc-300">{lang === 'ko' ? '회원가입' : 'Sign up'}</span>
-        <div className="absolute right-2 top-1/2 -translate-y-1/2">
-          <button
-            type="button"
-            onClick={() => setLang((l) => (l === 'ko' ? 'en' : 'ko'))}
-            className="flex items-center justify-center w-10 h-10 rounded-md text-gray-600 hover:bg-gray-200/50 dark:text-gray-400 dark:hover:bg-zinc-700/50 transition-all active:scale-85"
-            aria-label={lang === 'ko' ? '한국어' : 'English'}
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
-          </button>
-        </div>
-      </header>
+            </Button>
+          )
+        }
+        center={<span className="font-medium text-gray-700 dark:text-zinc-300">{lang === 'ko' ? '회원가입' : 'Sign up'}</span>}
+        right={<LangToggle lang={lang} onToggle={() => setLang((l) => (l === 'ko' ? 'en' : 'ko'))} />}
+        className="h-14 px-4"
+      />
 
       <div className={`w-full mx-auto flex-1 flex flex-col p-4 pb-20 sm:pb-4 ${step === 4 ? 'max-w-none px-4' : 'max-w-2xl px-4 justify-start sm:justify-center'}`}>
         {step === 1 && (
@@ -597,9 +589,9 @@ export default function SignupPage() {
                   <span key={s} className={`w-2 h-2 rounded-full ${s <= step ? 'bg-violet-600' : 'bg-gray-300 dark:bg-zinc-600'}`} />
                 ))}
               </div>
-              <button type="submit" disabled={isCheckingEmail} className="flex-shrink-0 flex items-center gap-1.5 rounded-md bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 active:scale-90 transition-all shadow-md disabled:opacity-50">
+              <Button type="submit" style="prominent" size="medium" disabled={isCheckingEmail} className="flex-shrink-0 gap-1.5">
                 {isCheckingEmail ? (lang === 'ko' ? '확인 중…' : 'Checking…') : (lang === 'ko' ? <>다음 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></> : <>Next <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></>)}
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -655,15 +647,15 @@ export default function SignupPage() {
               </div>
             </div>
             <div className="hidden sm:flex justify-between items-center gap-3">
-              <button type="button" onClick={() => setStep(1)} className="flex-shrink-0 flex items-center gap-1.5 rounded-md bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700 shadow-md active:scale-90 transition-all">
+              <Button type="button" style="standard" size="medium" onClick={() => setStep(1)} className="flex-shrink-0 gap-1.5">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg> {lang === 'ko' ? '이전' : 'Previous'}
-              </button>
+              </Button>
               <div className="flex justify-center gap-2 flex-1">
                 {[1, 2, 3, 4].map((s) => (
                   <span key={s} className={`w-2 h-2 rounded-full ${s <= step ? 'bg-violet-600' : 'bg-gray-300 dark:bg-zinc-600'}`} />
                 ))}
               </div>
-              <button type="submit" className="flex-shrink-0 flex items-center gap-1.5 rounded-md bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 active:scale-90 transition-all shadow-md">{lang === 'ko' ? '다음' : 'Next'} <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>
+              <Button type="submit" style="prominent" size="medium" className="flex-shrink-0 gap-1.5">{lang === 'ko' ? '다음' : 'Next'} <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></Button>
             </div>
           </form>
         )}
@@ -698,17 +690,17 @@ export default function SignupPage() {
               </div>
             </div>
             <div className="hidden sm:flex justify-between items-center gap-3">
-              <button type="button" onClick={() => setStep(2)} className="flex-shrink-0 flex items-center gap-1.5 rounded-md bg-white px-4 py-2 text-gray-700 hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-300 dark:hover:bg-zinc-700 shadow-md active:scale-90 transition-all">
+              <Button type="button" style="standard" size="medium" onClick={() => setStep(2)} className="flex-shrink-0 gap-1.5">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg> {lang === 'ko' ? '이전' : 'Previous'}
-              </button>
+              </Button>
               <div className="flex justify-center gap-2 flex-1">
                 {[1, 2, 3, 4].map((s) => (
                   <span key={s} className={`w-2 h-2 rounded-full ${s <= step ? 'bg-violet-600' : 'bg-gray-300 dark:bg-zinc-600'}`} />
                 ))}
               </div>
-              <button type="submit" className="flex-shrink-0 flex items-center gap-1.5 rounded-md bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 active:scale-90 transition-all shadow-md">
+              <Button type="submit" style="prominent" size="medium" className="flex-shrink-0 gap-1.5">
                 {lang === 'ko' ? '다음' : 'Next'} <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -777,28 +769,30 @@ export default function SignupPage() {
               {/* 좁은 화면: 탭 */}
               <div className="flex flex-col md:hidden flex-1 min-h-0 overflow-hidden">
                 <div className="bg-gradient-to-b from-gray-50 dark:from-black from-[70%] to-transparent flex items-center gap-2 p-3 pt-0 flex-shrink-0">
-                  <button
+                  <Button
                     type="button"
+                    size="small"
+                    style="standard"
+                    isActive={courseMode === 'add'}
                     onClick={() => setCourseMode('add')}
-                    className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
-                      courseMode === 'add' ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500'
-                    }`}
+                    className="flex-1 truncate"
                   >
                     <span className={`px-2 py-1 border-b border-b-2 transition-colors ${courseMode === 'add' ? 'border-violet-500' : 'border-transparent'}`}>
                       {lang === 'ko' ? '과목 추가' : 'Add Course'}
                     </span>
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    size="small"
+                    style="standard"
+                    isActive={courseMode === 'view'}
                     onClick={() => setCourseMode('view')}
-                    className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
-                      courseMode === 'view' ? 'text-black dark:text-white' : 'text-gray-400 dark:text-gray-500'
-                    }`}
+                    className="flex-1 truncate"
                   >
                     <span className={`px-2 py-1 border-b border-b-2 transition-colors ${courseMode === 'view' ? 'border-violet-500' : 'border-transparent'}`}>
                       {lang === 'ko' ? '수강한 과목' : 'Enrolled Courses'}<span className="opacity-40 ml-2">{enrollments.length}</span>
                     </span>
-                  </button>
+                  </Button>
                 </div>
                 <div className="flex-1 min-h-0 overflow-y-auto py-4 px-2">
                   {courseMode === 'add' ? (
@@ -855,9 +849,9 @@ export default function SignupPage() {
             </div>
             <div className="hidden sm:block h-20 flex-shrink-0" aria-hidden="true" />
             <div className="hidden sm:flex justify-between items-center gap-3 flex-shrink-0 py-4 fixed bottom-0 left-0 right-0 z-10 backdrop-blur px-4">
-              <button type="button" onClick={() => setStep(3)} className="flex-shrink-0 flex items-center gap-1.5 rounded-md bg-white dark:bg-zinc-800 px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-700 shadow-md active:scale-90 transition-all">
+              <Button type="button" style="standard" size="medium" onClick={() => setStep(3)} className="flex-shrink-0 gap-1.5">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg> {lang === 'ko' ? '이전' : 'Previous'}
-              </button>
+              </Button>
               <div className="flex justify-center gap-2 flex-1">
                 {[1, 2, 3, 4].map((s) => (
                   <span key={s} className={`w-2 h-2 rounded-full ${s <= step ? 'bg-violet-600' : 'bg-gray-300 dark:bg-zinc-600'}`} />
@@ -873,22 +867,26 @@ export default function SignupPage() {
                     <span className="text-sm text-gray-600 dark:text-gray-400">{lang === 'ko' ? '적용 중…' : 'Applying…'}</span>
                   </div>
                 ) : (
-                  <button
+                  <Button
                     type="button"
+                    style="standard"
+                    size="medium"
                     onClick={handleXlsxButtonClick}
-                    className="flex items-center justify-center gap-1.5 rounded-md bg-white dark:bg-zinc-800 px-4 h-10 text-sm hover:bg-gray-100 dark:hover:bg-zinc-700 shadow-md active:scale-90 transition-all min-w-[7rem]"
+                    className="gap-1.5 min-w-[7rem] h-10"
                   >
                     {lang === 'ko' ? '파일 업로드' : 'File Upload'}
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
                   type="button"
-                  onClick={handleStep4}
+                  style="prominent"
+                  size="medium"
                   disabled={isSubmitting}
-                  className="flex items-center justify-center gap-1.5 rounded-md bg-violet-600 px-4 h-10 text-white hover:bg-violet-700 disabled:opacity-50 shadow-md active:scale-90 transition-all min-w-[7rem]"
+                  onClick={handleStep4}
+                  className="gap-1.5 min-w-[7rem] h-10"
                 >
                   {isSubmitting ? (lang === 'ko' ? '가입 중…' : 'Signing up…') : (enrollments.length > 0 ? (lang === 'ko' ? <>확인 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></> : <>Confirm <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></>) : (lang === 'ko' ? <>건너뛰기 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></> : <>Skip <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></>))}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -900,16 +898,18 @@ export default function SignupPage() {
             <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{lang === 'ko' ? '파일 업로드' : 'File Upload'}</h3>
-                <button
+                <Button
                   type="button"
-                  onClick={handleXlsxDialogClose}
+                  size="small"
+                  style="simple"
                   disabled={xlsxLoading}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleXlsxDialogClose}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0 min-w-0 min-h-0"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
-                </button>
+                </Button>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 {lang === 'ko' ? <>‘<a href="https://erp.kaist.ac.kr" target="_blank" rel="noopener noreferrer" className="text-violet-500 font-medium hover:underline">ERP</a> → 학사 → 성적 → 성적조회’ 메뉴에서 내려받은 .xlsx 파일을 업로드하여 수강한 과목을 일괄 등록할 수 있습니다.</> : <>Upload an .xlsx file downloaded from the ‘<a href="https://erp.kaist.ac.kr" target="_blank" rel="noopener noreferrer" className="text-violet-500 font-medium hover:underline">ERP</a> → Academic&nbsp;Affairs → Grades → Grade&nbsp;Report’ menu to bulk register enrolled courses.</>}
@@ -948,32 +948,41 @@ export default function SignupPage() {
             ))}
           </div>
           {step === 1 && (
-            <button
+            <Button
               type="submit"
               form="signup-step1"
+              style="prominent"
+              size="large"
               disabled={isCheckingEmail}
-              className="w-full flex items-center justify-center gap-1.5 rounded-md bg-violet-600 px-4 py-3 text-white hover:bg-violet-700 active:scale-96 transition-all shadow-md disabled:opacity-50"
+              activeScale={96}
+              className="w-full gap-1.5 py-3"
             >
               {isCheckingEmail ? (lang === 'ko' ? '확인 중…' : 'Checking…') : (lang === 'ko' ? <>다음 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></> : <>Next <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></>)}
-            </button>
+            </Button>
           )}
           {step === 2 && (
-            <button
+            <Button
               type="submit"
               form="signup-step2"
-              className="w-full flex items-center justify-center gap-1.5 rounded-md bg-violet-600 px-4 py-3 text-white hover:bg-violet-700 active:scale-96 transition-all shadow-md"
+              style="prominent"
+              size="large"
+              activeScale={96}
+              className="w-full gap-1.5 py-3"
             >
               {lang === 'ko' ? '다음' : 'Next'} <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-            </button>
+            </Button>
           )}
           {step === 3 && (
-            <button
+            <Button
               type="submit"
               form="signup-step3"
-              className="w-full flex items-center justify-center gap-1.5 rounded-md bg-violet-600 px-4 py-3 text-white hover:bg-violet-700 active:scale-96 transition-all shadow-md"
+              style="prominent"
+              size="large"
+              activeScale={96}
+              className="w-full gap-1.5 py-3"
             >
               {lang === 'ko' ? '다음' : 'Next'} <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-            </button>
+            </Button>
           )}
           {step === 4 && (
             <div className="w-full flex items-center gap-2">
@@ -986,22 +995,28 @@ export default function SignupPage() {
                   <span className="text-sm text-gray-600 dark:text-gray-400">{lang === 'ko' ? '적용 중…' : 'Applying…'}</span>
                 </div>
               ) : (
-                <button
+                <Button
                   type="button"
+                  style="standard"
+                  size="large"
+                  activeScale={96}
                   onClick={handleXlsxButtonClick}
-                  className="flex-1 flex items-center justify-center rounded-md bg-white dark:bg-zinc-800 px-4 h-12 text-sm hover:bg-gray-100 dark:hover:bg-zinc-700 shadow-md active:scale-96 transition-all min-w-0"
+                  className="flex-1 h-12 min-w-0"
                 >
                   {lang === 'ko' ? '파일 업로드' : 'File Upload'}
-                </button>
+                </Button>
               )}
-              <button
+              <Button
                 type="button"
-                onClick={handleStep4}
+                style="prominent"
+                size="large"
                 disabled={isSubmitting}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-md bg-violet-600 px-4 h-12 text-white hover:bg-violet-700 disabled:opacity-50 active:scale-96 transition-all shadow-md min-w-0"
+                activeScale={96}
+                onClick={handleStep4}
+                className="flex-1 h-12 gap-1.5 min-w-0"
               >
                 {isSubmitting ? (lang === 'ko' ? '가입 중…' : 'Signing up…') : (enrollments.length > 0 ? (lang === 'ko' ? <>확인 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></> : <>Confirm <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></>) : (lang === 'ko' ? <>건너뛰기 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></> : <>Skip <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></>))}
-              </button>
+              </Button>
             </div>
           )}
         </div>

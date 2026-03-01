@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Input, NumberInput } from '../../components/formFields';
+import Button from '../../components/Button';
 import { DepartmentDropdown, MultipleDepartmentDropdown } from '../../components/DepartmentDropdown';
 import { API } from '../../lib/api';
 import type { Profile } from './types';
@@ -199,13 +200,14 @@ export default function ProfileTab({ lang = 'ko', profile, userId, onProfileUpda
             {lang === 'ko' ? '자유융합전공' : 'Individually designed major'}
           </label>
         </div>
-        <button
+        <Button
           type="submit"
+          style="prominent"
+          size="medium"
           disabled={profileSubmitting}
-          className="rounded-lg bg-violet-600 px-4 py-2 text-white hover:bg-violet-700 disabled:opacity-50 active:scale-90 transition-all"
         >
           {lang === 'ko' ? '저장하기' : 'Save'}
-        </button>
+        </Button>
       </form>
     </div>
   );

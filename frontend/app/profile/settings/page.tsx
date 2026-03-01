@@ -8,6 +8,10 @@ import AccountTab from './AccountTab';
 import ProfileTab from './ProfileTab';
 import CoursesTab from './CoursesTab';
 import { API } from '../../lib/api';
+import DesktopTopBar from '../../components/DesktopTopBar';
+import MobileTopBar from '../../components/MobileTopBar';
+import LangToggle from '../../components/LangToggle';
+import Button from '../../components/Button';
 
 function useIsDesktop() {
   const [isDesktop, setIsDesktop] = useState(false);
@@ -138,73 +142,74 @@ function ProfileSettingsContent() {
     <>
       {/* 데스크톱 버전 - courses 탭일 때는 h-screen으로 고정해 열별 스크롤 가능 */}
       {isDesktop && (
-      <div className={`flex flex-col bg-gray-50 dark:bg-zinc-900 overflow-x-hidden ${tab === 'courses' ? 'h-screen' : 'min-h-screen'}`}>
-        {/* 상단바 - 탭 네비게이션 중앙 */}
-        <header className="relative sticky top-0 z-10 flex h-14 shrink-0 select-none items-center bg-white px-4 text-lg shadow-lg dark:bg-black">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Link
-              href="/simulation"
-              className="flex items-center justify-center w-10 h-10 rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-700 transition-all active:scale-85"
-              aria-label={lang === 'ko' ? '돌아가기' : 'Back'}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </Link>
-            <span className="font-medium text-gray-700 dark:text-gray-300">{lang === 'ko' ? '프로필 설정' : 'Profile Settings'}</span>
-          </div>
-          <nav className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-1">
-            {menuItems.map(({ key, labelKo, labelEn }) => (
-              <button
-                key={key}
-                onClick={() => setTab(key)}
-                className={`px-4 py-2 text-sm font-medium transition-all active:scale-95 ${
-                  tab === key
-                    ? 'opacity-100 border-b-2 border-violet-500 text-gray-900 dark:text-white'
-                    : 'opacity-60 hover:opacity-80 text-gray-700 dark:text-gray-300'
-                }`}
+      <div className={`flex flex-col bg-gray-50 dark:bg-zinc-900 overflow-x-clip ${tab === 'courses' ? 'h-screen' : 'min-h-screen'}`}>
+        <DesktopTopBar
+          left={
+            <div className="flex items-center gap-2">
+              <Link
+                href="/simulation"
+                className="flex items-center justify-center w-10 h-10 rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-700 transition-all active:scale-85"
+                aria-label={lang === 'ko' ? '돌아가기' : 'Back'}
               >
-                {lang === 'ko' ? labelKo : labelEn}
-              </button>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
-            {tab === 'courses' && xlsxHeaderAction && (
-              <button
-                type="button"
-                onClick={xlsxHeaderAction.open}
-                disabled={xlsxHeaderAction.isApplying}
-                className="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </Link>
+              <span className="font-medium text-gray-700 dark:text-gray-300">{lang === 'ko' ? '프로필 설정' : 'Profile Settings'}</span>
+            </div>
+          }
+          center={
+            <nav className="flex items-center gap-1">
+              {menuItems.map(({ key, labelKo, labelEn }) => (
+                <Button
+                  key={key}
+                  size="small"
+                  style="simple"
+                  isActive={tab === key}
+                  onClick={() => setTab(key)}
+                  className={`px-4 py-2 ${tab === key ? 'border-b-2 border-violet-500' : ''}`}
+                >
+                  {lang === 'ko' ? labelKo : labelEn}
+                </Button>
+              ))}
+            </nav>
+          }
+          right={
+            <div className="flex items-center gap-2">
+              {tab === 'courses' && xlsxHeaderAction && (
+                <Button
+                  type="button"
+                  size="small"
+                  style="simple"
+                  disabled={xlsxHeaderAction.isApplying}
+                  onClick={xlsxHeaderAction.open}
+                >
+                  {xlsxHeaderAction.isApplying ? (
+                    lang === 'ko' ? '적용 중…' : 'Applying…'
+                  ) : (
+                    lang === 'ko' ? '파일 업로드' : 'File upload'
+                  )}
+                </Button>
+              )}
+              <LangToggle lang={lang} onToggle={() => setLang((l) => (l === 'ko' ? 'en' : 'ko'))} />
+              <Button
+                size="small"
+                style="simple"
+                onClick={handleLogout}
+                className="gap-1.5"
               >
-                {xlsxHeaderAction.isApplying ? (
-                  lang === 'ko' ? '적용 중…' : 'Applying…'
-                ) : (
-                  lang === 'ko' ? '파일 업로드' : 'File upload'
-                )}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setLang((l) => (l === 'ko' ? 'en' : 'ko'))}
-              className="rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-700 transition-colors"
-              aria-label={lang === 'ko' ? '한국어' : 'English'}
-            >
-              {lang === 'ko' ? '한국어' : 'English'}
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-700 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-              {lang === 'ko' ? '로그아웃' : 'Log out'}
-            </button>
-          </div>
-        </header>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                {lang === 'ko' ? '로그아웃' : 'Log out'}
+              </Button>
+            </div>
+          }
+          className="px-4"
+        />
 
         {/* 본문 */}
-        <main className={"flex-1 flex flex-col " + (tab === 'courses' ? 'min-h-0' : '')}>
+        <main className={"flex-1 flex flex-col pt-12 " + (tab === 'courses' ? 'min-h-0' : '')}>
           <div className={"mx-auto w-full max-w-2xl px-6 " + (tab === 'courses' ? 'flex-1 min-h-0 md:max-w-6xl flex flex-col pt-6 pb-0' : 'py-6')}>
             {tab === 'account' && (
               <AccountTab
@@ -240,28 +245,29 @@ function ProfileSettingsContent() {
 
       {/* 모바일 버전 */}
       {!isDesktop && (
-      <div className="bg-gray-50 dark:bg-black">
-        {/* 상단바 */}
-        <div className="sticky top-0 z-20 select-none backdrop-blur-md">
-          <div className="p-2 flex flex-row items-center">
-            <div className="w-28 shrink-0 flex justify-start">
-              <Link
-                href="/simulation"
-                className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-85 transition-all flex items-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </Link>
-            </div>
-            <h1 className="flex-1 text-center text-lg font-semibold text-gray-900 dark:text-gray-100 p-1">{lang === 'ko' ? '프로필 설정' : 'Profile Settings'}</h1>
-            <div className="w-28 shrink-0 flex items-center gap-1 justify-end">
+      <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-black">
+        <MobileTopBar
+          left={
+            <Link
+              href="/simulation"
+              className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-85 transition-all flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+          }
+          center={<h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{lang === 'ko' ? '프로필 설정' : 'Profile Settings'}</h1>}
+          right={
+            <div className="flex items-center gap-1">
               {tab === 'courses' && xlsxHeaderAction && (
-                <button
+                <Button
                   type="button"
-                  onClick={xlsxHeaderAction.open}
+                  size="small"
+                  style="simple"
                   disabled={xlsxHeaderAction.isApplying}
-                  className="flex items-center justify-center p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800 rounded-lg active:scale-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={xlsxHeaderAction.open}
+                  className="p-2"
                   aria-label={lang === 'ko' ? '파일 업로드' : 'File upload'}
                 >
                   {xlsxHeaderAction.isApplying ? (
@@ -276,32 +282,25 @@ function ProfileSettingsContent() {
                       <path d="M9 9l3-3 3 3" />
                     </svg>
                   )}
-                </button>
+                </Button>
               )}
-              <button
-                type="button"
-                onClick={() => setLang((l) => (l === 'ko' ? 'en' : 'ko'))}
-                className="flex items-center justify-center p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-zinc-800 rounded-lg active:scale-90 transition-colors"
-                aria-label={lang === 'ko' ? '한국어' : 'English'}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-                </svg>
-              </button>
-              <button
+              <LangToggle lang={lang} onToggle={() => setLang((l) => (l === 'ko' ? 'en' : 'ko'))} />
+              <Button
+                size="small"
+                style="simple"
                 onClick={handleLogout}
-                className="px-2 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 active:bg-gray-100 dark:active:bg-zinc-800 rounded-lg active:scale-90 transition-all"
+                className="px-2 py-1.5"
                 aria-label={lang === 'ko' ? '로그아웃' : 'Log out'}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          }
+        />
 
-        {/* 본문 영역 */}
+        {/* 본문 영역 - MobileTopBar의 pt-14로 상단바 공간 확보 */}
         <div className={'pt-2 pb-20 ' + (tab === 'courses' ? 'px-2' : 'px-4')}>
           {tab === 'account' && (
             <AccountTab

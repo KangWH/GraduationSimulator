@@ -3,8 +3,9 @@ import { ReactNode } from "react";
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 
-export type FieldSize = 'small' | 'medium' | 'large';
+export type FieldSize = 'exsmall' | 'small' | 'medium' | 'large';
 const fieldSizeClassNames: Record<FieldSize, string> = {
+  'exsmall': 'text-xs px-1.5 py-0.5',
   'small': 'text-sm px-2 py-1',
   'medium': 'text-md px-3 py-2',
   'large': 'text-lg px-4 py-3'
@@ -177,6 +178,9 @@ export function MultipleSelect({
   const [sheetVisible, setSheetVisible] = useState(false);
   const [popoverStyle, setPopoverStyle] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(0);
+  const [sheetDragY, setSheetDragY] = useState(0);
+  const touchStartY = useRef(0);
+  const touchStartTime = useRef(0);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -426,6 +430,24 @@ export function MultipleSelect({
     setFocusedIndex(index);
   };
 
+  const DRAG_CLOSE_THRESHOLD = 80;
+  const handleSheetTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchStartTime.current = Date.now();
+  };
+  const handleSheetTouchMove = (e: React.TouchEvent) => {
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) setSheetDragY(dy);
+  };
+  const handleSheetTouchEnd = () => {
+    const elapsed = Date.now() - touchStartTime.current;
+    const velocity = elapsed > 0 ? sheetDragY / elapsed : 0;
+    if (sheetDragY > DRAG_CLOSE_THRESHOLD || velocity > 0.4) {
+      closeWithAnimation();
+    }
+    setSheetDragY(0);
+  };
+
   return (
     <div className="relative w-full min-w-20">
       <button
@@ -488,37 +510,49 @@ export function MultipleSelect({
             >
               <div
                 ref={popoverRef}
-                className={`fixed left-0 right-0 bottom-0 z-[9999] bg-white dark:bg-zinc-900 rounded-t-xl shadow-lg overflow-y-auto overscroll-contain transition-transform duration-200 ${sheetVisible ? 'translate-y-0' : 'translate-y-full'}`}
+                className={`fixed left-0 right-0 bottom-0 z-[9999] bg-white dark:bg-zinc-900 rounded-t-xl shadow-lg overflow-y-auto overscroll-contain ${sheetDragY > 0 ? 'transition-none' : 'transition-transform duration-200'} ${sheetVisible && sheetDragY === 0 ? 'translate-y-0' : sheetVisible ? '' : 'translate-y-full'}`}
                 style={{
                   maxHeight: `${popoverStyle.maxHeight}px`,
+                  ...(sheetVisible && sheetDragY > 0 && { transform: `translateY(${sheetDragY}px)` }),
                 }}
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* 전체 선택/전체 취소 버튼 */}
-                <div className="sticky top-0 z-10 bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700 px-3 py-2 flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={allSelected ? handleDeselectAll : handleSelectAll}
-                    className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-10 sm:min-h-0 px-2 -mx-2 rounded-lg active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
-                  >
-                    {allSelected ? (lang === 'ko' ? '전체 취소' : 'Deselect all') : (lang === 'ko' ? '전체 선택' : 'Select all')}
-                  </button>
-                  <div className="flex items-center gap-2">
-                    {someSelected && (
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {value.length} / {options.length}
-                      </span>
-                    )}
+                <div
+                  className="sticky top-0 z-10 touch-none cursor-grab active:cursor-grabbing bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700"
+                  onTouchStart={handleSheetTouchStart}
+                  onTouchMove={handleSheetTouchMove}
+                  onTouchEnd={handleSheetTouchEnd}
+                >
+                  <div className="flex justify-center pt-2 pb-1" aria-hidden>
+                    <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
+                  </div>
+                  <div className="px-3 py-2 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={allSelected ? handleDeselectAll : handleSelectAll}
+                      className="group/btn text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-10 sm:min-h-0 px-2 -mx-2 rounded-lg active:bg-violet-50 dark:active:bg-violet-900/20 transition-all"
+                    >
+                      <span className="inline-block transition-transform duration-150 group-active/btn:scale-90">{allSelected ? (lang === 'ko' ? '전체 취소' : 'Deselect all') : (lang === 'ko' ? '전체 선택' : 'Select all')}</span>
+                    </button>
+                    <div className="flex items-center gap-2">
+                      {someSelected && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          {value.length} / {options.length}
+                        </span>
+                      )}
                     <button
                       type="button"
                       onClick={closeWithAnimation}
-                      className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 active:scale-85 transition-all"
+                      className="group/btn p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all"
                       aria-label="닫기"
                     >
+                      <span className="inline-block transition-transform duration-150 group-active/btn:scale-85">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
+                      </span>
                     </button>
+                  </div>
                   </div>
                 </div>
 
@@ -546,16 +580,18 @@ export function MultipleSelect({
                           else handleToggle(item.value);
                         }}
                         onFocus={() => setFocusedIndex(index)}
-                        className={`flex items-center px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none min-h-10 active:scale-90 active:rounded-md transition-all cursor-pointer ${isFocused ? 'ring-1 ring-inset ring-violet-500/50' : ''}`}
+                        className={`group/opt flex items-center min-h-10 rounded-md cursor-pointer ${isFocused ? 'ring-1 ring-inset ring-violet-500/50' : ''}`}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          readOnly
-                          tabIndex={-1}
-                          className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-3 flex-shrink-0 pointer-events-none"
-                        />
-                        <span className="text-sm flex-1 break-words">{item.label}</span>
+                        <span className="flex items-center w-full px-3 py-2 hover:bg-gray-50 dark:hover:bg-zinc-800 active:bg-gray-100 dark:active:bg-zinc-700 select-none transition-transform duration-150 group-active/opt:scale-90 group-active/opt:rounded-md">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            readOnly
+                            tabIndex={-1}
+                            className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-3 flex-shrink-0 pointer-events-none"
+                          />
+                          <span className="text-sm flex-1 break-words">{item.label}</span>
+                        </span>
                       </div>
                     );
                   })}
@@ -578,9 +614,9 @@ export function MultipleSelect({
                 <button
                   type="button"
                   onClick={allSelected ? handleDeselectAll : handleSelectAll}
-                  className="text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-10 sm:min-h-0 px-2 -mx-2 rounded active:bg-violet-50 active:scale-90 dark:active:bg-violet-900/20 transition-all"
+                  className="group/btn text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-10 sm:min-h-0 px-2 -mx-2 rounded active:bg-violet-50 dark:active:bg-violet-900/20 transition-all"
                 >
-                  {allSelected ? (lang === 'ko' ? '전체 취소' : 'Deselect all') : (lang === 'ko' ? '전체 선택' : 'Select all')}
+                  <span className="inline-block transition-transform duration-150 group-active/btn:scale-90">{allSelected ? (lang === 'ko' ? '전체 취소' : 'Deselect all') : (lang === 'ko' ? '전체 선택' : 'Select all')}</span>
                 </button>
                 {someSelected && (
                   <span className="text-xs text-gray-500 dark:text-gray-400">
@@ -613,16 +649,18 @@ export function MultipleSelect({
                         else handleToggle(item.value);
                       }}
                       onFocus={() => setFocusedIndex(index)}
-                      className={`flex items-center px-2 py-1 hover:bg-violet-600 hover:text-white select-none min-h-10 sm:min-h-0 active:scale-90 rounded-lg transition-all cursor-pointer outline-none ${isFocused ? 'ring-1 ring-inset ring-violet-500/50' : ''}`}
+                      className={`group/opt flex items-center min-h-10 sm:min-h-0 rounded-lg cursor-pointer outline-none overflow-hidden ${isFocused ? 'ring-1 ring-inset ring-violet-500/50' : ''}`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        readOnly
-                        tabIndex={-1}
-                        className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-2 flex-shrink-0 pointer-events-none"
-                      />
-                      <span className="text-sm flex-1 break-words">{item.label}</span>
+                      <span className="flex items-center w-full px-2 py-1 hover:bg-violet-600 hover:text-white select-none rounded-lg transition-all duration-150 group-active/opt:scale-90">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          readOnly
+                          tabIndex={-1}
+                          className="h-5 w-5 sm:h-4 sm:w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-2 mr-2 flex-shrink-0 pointer-events-none"
+                        />
+                        <span className="text-sm flex-1 break-words">{item.label}</span>
+                      </span>
                     </div>
                   );
                 })}
