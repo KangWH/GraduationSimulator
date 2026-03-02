@@ -72,6 +72,8 @@ export default function SimulationPage() {
   const [sidebarTooltipState, setSidebarTooltipState] = useState<{ text: string; x: number; y: number } | null>(null);
   // 툴팁(말풍선 팝업) 위치
   const [tooltipState, setTooltipState] = useState<{ text: string; x: number; y: number } | null>(null);
+  // 졸업요건 막대 호버 시 해당 요건 계산에 사용된 과목 키들 (이수한 과목 패널 강조용)
+  const [highlightedUsedCourseKeys, setHighlightedUsedCourseKeys] = useState<Set<string>>(new Set());
 
 
   /* 고정된 데이터 변수 */
@@ -1963,6 +1965,7 @@ export default function SimulationPage() {
                     semesterGroups={semesterGroups}
                     sortedSemesterKeys={sortedSemesterKeys}
                     selectedEnrollmentKeys={selectedEnrollmentKeys}
+                    highlightedEnrollmentKeys={highlightedUsedCourseKeys}
                     onSelectionChange={setSelectedEnrollmentKeys}
                     onGradeChange={(enrollment, grade) => {
                       const cs = simulationCourses.find(
@@ -2052,6 +2055,7 @@ export default function SimulationPage() {
                                               key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} 
                                               course={c} 
                                               gradeBlindMode={gradeBlindMode}
+                                              highlighted={highlightedUsedCourseKeys.has(`${c.courseId}-${c.enrolledYear}-${c.enrolledSemester}`)}
                                               onClassificationChange={handleClassificationChange}
                                               getDeptName={deptName}
                                               substitutionMap={substitutionMap}
@@ -2101,6 +2105,7 @@ export default function SimulationPage() {
                                                 key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`} 
                                                 course={c} 
                                                 gradeBlindMode={gradeBlindMode}
+                                                highlighted={highlightedUsedCourseKeys.has(`${c.courseId}-${c.enrolledYear}-${c.enrolledSemester}`)}
                                                 onClassificationChange={handleClassificationChange}
                                                 getDeptName={deptName}
                                                 majorDepartment={filters.major}
@@ -2147,6 +2152,7 @@ export default function SimulationPage() {
                                           key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
                                           course={c}
                                           gradeBlindMode={gradeBlindMode}
+                                          highlighted={highlightedUsedCourseKeys.has(`${c.courseId}-${c.enrolledYear}-${c.enrolledSemester}`)}
                                           onClassificationChange={handleClassificationChange}
                                           substitutionMap={substitutionMap}
                                           majorDepartment={filters.major}
@@ -2172,11 +2178,12 @@ export default function SimulationPage() {
                                 </ACTitle>
                                 <ACBody>
                                   <div className="space-y-2">
-                                    {s.courses.map((c) => (
+                                    {                                    s.courses.map((c) => (
                                       <CourseBar
                                         key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
                                         course={c}
                                         gradeBlindMode={gradeBlindMode}
+                                        highlighted={highlightedUsedCourseKeys.has(`${c.courseId}-${c.enrolledYear}-${c.enrolledSemester}`)}
                                         onClassificationChange={handleClassificationChange}
                                         substitutionMap={substitutionMap}
                                         majorDepartment={filters.major}
@@ -2246,6 +2253,7 @@ export default function SimulationPage() {
                                           key={reqIdx}
                                           requirement={req}
                                           onMouseEnter={(e) => {
+                                            setHighlightedUsedCourseKeys(new Set((req.usedCourses || []).map(c => `${c.courseId}-${c.enrolledYear}-${c.enrolledSemester}`)));
                                             if (req.title && req.title !== req.description && req.description !== undefined) {
                                               const rect = e.currentTarget.getBoundingClientRect();
                                               setTooltipState({
@@ -2255,7 +2263,10 @@ export default function SimulationPage() {
                                               });
                                             }
                                           }}
-                                          onMouseLeave={() => {setTooltipState(null)}}
+                                          onMouseLeave={() => {
+                                            setHighlightedUsedCourseKeys(new Set());
+                                            setTooltipState(null);
+                                          }}
                                         />
                                       ))}
                                     </div>
@@ -2305,6 +2316,7 @@ export default function SimulationPage() {
                                           key={reqIdx}
                                           requirement={req}
                                           onMouseEnter={(e) => {
+                                            setHighlightedUsedCourseKeys(new Set((req.usedCourses || []).map(c => `${c.courseId}-${c.enrolledYear}-${c.enrolledSemester}`)));
                                             if (req.title && req.title !== req.description && req.description !== undefined) {
                                               const rect = e.currentTarget.getBoundingClientRect();
                                               setTooltipState({
@@ -2314,7 +2326,10 @@ export default function SimulationPage() {
                                               });
                                             }
                                           }}
-                                          onMouseLeave={() => {setTooltipState(null)}}
+                                          onMouseLeave={() => {
+                                            setHighlightedUsedCourseKeys(new Set());
+                                            setTooltipState(null);
+                                          }}
                                         />
                                       ))}
                                     </div>
@@ -2362,6 +2377,7 @@ export default function SimulationPage() {
                                       key={reqIdx}
                                       requirement={req}
                                       onMouseEnter={(e) => {
+                                        setHighlightedUsedCourseKeys(new Set((req.usedCourses || []).map(c => `${c.courseId}-${c.enrolledYear}-${c.enrolledSemester}`)));
                                         if (req.title && req.title !== req.description && req.description !== undefined) {
                                           const rect = e.currentTarget.getBoundingClientRect();
                                           setTooltipState({
@@ -2371,7 +2387,10 @@ export default function SimulationPage() {
                                           });
                                         }
                                       }}
-                                      onMouseLeave={() => {setTooltipState(null)}}
+                                      onMouseLeave={() => {
+                                        setHighlightedUsedCourseKeys(new Set());
+                                        setTooltipState(null);
+                                      }}
                                     />
                                   ))}
                                 </div>
@@ -2888,6 +2907,7 @@ export default function SimulationPage() {
                       semesterGroups={semesterGroups}
                       sortedSemesterKeys={sortedSemesterKeys}
                       selectedEnrollmentKeys={selectedEnrollmentKeys}
+                      highlightedEnrollmentKeys={highlightedUsedCourseKeys}
                       onSelectionChange={setSelectedEnrollmentKeys}
                       onGradeChange={(enrollment, grade) => {
                         const cs = simulationCourses.find(
@@ -3141,6 +3161,7 @@ export default function SimulationPage() {
                                           key={reqIdx}
                                           requirement={req}
                                           onMouseEnter={(e) => {
+                                            setHighlightedUsedCourseKeys(new Set((req.usedCourses || []).map(c => `${c.courseId}-${c.enrolledYear}-${c.enrolledSemester}`)));
                                             if (req.title && req.title !== req.description && req.description !== undefined) {
                                               const rect = e.currentTarget.getBoundingClientRect();
                                               setTooltipState({
@@ -3150,7 +3171,10 @@ export default function SimulationPage() {
                                               });
                                             }
                                           }}
-                                          onMouseLeave={() => {setTooltipState(null)}}
+                                          onMouseLeave={() => {
+                                            setHighlightedUsedCourseKeys(new Set());
+                                            setTooltipState(null);
+                                          }}
                                         />
                                       ))}
                                     </div>
@@ -3198,38 +3222,42 @@ export default function SimulationPage() {
                                   {requirements.length > 0 ? (
                                     <div className="space-y-2">
                                       {requirements.map((req, reqIdx) => (
-                                        <RequirementBar
-                                          key={reqIdx}
-                                          requirement={req}
-                                          onMouseEnter={(e) => {
-                                            if (req.title && req.title !== req.description && req.description !== undefined) {
-                                              const rect = e.currentTarget.getBoundingClientRect();
-                                              setTooltipState({
-                                                text: req.description,
-                                                x: rect.left + rect.width / 2,
-                                                y: rect.top - 8
-                                              });
-                                            }
-                                          }}
-                                          onMouseLeave={() => {setTooltipState(null)}}
-                                        />
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">요건 없음</p>
-                                  )}
-                                </ACBody>
-                              </Accordion>
-                              {i < groupedSections.majorGroup.length - 1 && (
-                                <div className="border-t border-gray-200 dark:border-zinc-700"></div>
+                                    <RequirementBar
+                                      key={reqIdx}
+                                      requirement={req}
+                                      onMouseEnter={(e) => {
+                                        setHighlightedUsedCourseKeys(new Set((req.usedCourses || []).map(c => `${c.courseId}-${c.enrolledYear}-${c.enrolledSemester}`)));
+                                        if (req.title && req.title !== req.description && req.description !== undefined) {
+                                          const rect = e.currentTarget.getBoundingClientRect();
+                                          setTooltipState({
+                                            text: req.description,
+                                            x: rect.left + rect.width / 2,
+                                            y: rect.top - 8
+                                          });
+                                        }
+                                      }}
+                                      onMouseLeave={() => {
+                                        setHighlightedUsedCourseKeys(new Set());
+                                        setTooltipState(null);
+                                      }}
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-500 dark:text-zinc-400 leading-tight">요건 없음</p>
                               )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            </ACBody>
+                          </Accordion>
+                          {i < groupedSections.majorGroup.length - 1 && (
+                            <div className="border-t border-gray-200 dark:border-zinc-700"></div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
 
-                    {/* 복전, 부전, 융전, 교필, 인선 */}
+                {/* 복전, 부전, 융전, 교필, 인선 */}
                     {groupedSections.otherSections.map((s) => {
                       const requirements = s.requirements || [];
                       const isCollapsed = collapsedSections.has(`center-${s.id}`);
@@ -3261,6 +3289,7 @@ export default function SimulationPage() {
                                       key={reqIdx}
                                       requirement={req}
                                       onMouseEnter={(e) => {
+                                        setHighlightedUsedCourseKeys(new Set((req.usedCourses || []).map(c => `${c.courseId}-${c.enrolledYear}-${c.enrolledSemester}`)));
                                         if (req.title && req.title !== req.description && req.description !== undefined) {
                                           const rect = e.currentTarget.getBoundingClientRect();
                                           setTooltipState({
@@ -3270,7 +3299,10 @@ export default function SimulationPage() {
                                           });
                                         }
                                       }}
-                                      onMouseLeave={() => {setTooltipState(null)}}
+                                      onMouseLeave={() => {
+                                        setHighlightedUsedCourseKeys(new Set());
+                                        setTooltipState(null);
+                                      }}
                                     />
                                   ))}
                                 </div>

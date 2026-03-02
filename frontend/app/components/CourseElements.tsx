@@ -58,6 +58,7 @@ function clampMenuAnchor(rect: DOMRect): {
 export function CourseBar({ 
   course, 
   gradeBlindMode,
+  highlighted,
   onClassificationChange,
   getDeptName,
   substitutionMap,
@@ -65,6 +66,8 @@ export function CourseBar({
 }: { 
   course: CourseSimulation;
   gradeBlindMode: boolean;
+  /** 졸업요건 막대 호버 시 해당 요건 계산에 사용된 과목일 때 true */
+  highlighted?: boolean;
   onClassificationChange?: (course: CourseSimulation, classification: CreditType) => void;
   getDeptName?: (id: string) => string;
   substitutionMap?: SubstitutionMap;
@@ -157,7 +160,7 @@ export function CourseBar({
 
   return (
     <>
-      <div className="flex items-baseline justify-between p-2 rounded bg-gray-50 dark:bg-zinc-900 leading-tight">
+      <div className={`flex items-baseline justify-between p-2 rounded leading-tight transition-colors ${highlighted ? 'bg-gray-200 dark:bg-zinc-700' : 'bg-gray-50 dark:bg-zinc-900'}`}>
         {/* 좌측: 과목명 */}
         <div className="flex items-baseline gap-1.5 flex-1 min-w-0">
           <p className="font-medium text-sm leading-tight truncate">{course.course.title}</p>

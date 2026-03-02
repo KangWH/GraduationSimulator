@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DepartmentDropdown } from '@/app/components/DepartmentDropdown';
 import { Input, NumberInput, Select } from '../../components/formFields';
 import type { Semester, Grade } from './types';
@@ -116,6 +116,11 @@ export default function AddCoursePanel({
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const [addSheetOpenInternal, setAddSheetOpenInternal] = useState(false);
   const [addSheetVisible, setAddSheetVisible] = useState(false);
+  const [sheetDragY, setSheetDragY] = useState(0);
+  const touchStartY = useRef(0);
+  const touchStartTime = useRef(0);
+  const sheetDragYRef = useRef(0);
+  sheetDragYRef.current = sheetDragY;
 
   const isControlled = addSheetOpenProp !== undefined;
   const addSheetOpen = isControlled ? addSheetOpenProp! : addSheetOpenInternal;
@@ -134,6 +139,47 @@ export default function AddCoursePanel({
     setAddSheetVisible(false);
     window.setTimeout(() => setAddSheetOpen(false), 200);
   }, [setAddSheetOpen]);
+
+  const SHEET_DRAG_CLOSE_THRESHOLD = 80;
+  const handleSheetTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchStartTime.current = Date.now();
+  }, []);
+  const handleSheetTouchMove = useCallback((e: React.TouchEvent) => {
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) setSheetDragY(dy);
+  }, []);
+  const handleSheetTouchEnd = useCallback(() => {
+    const currentDrag = sheetDragYRef.current;
+    const elapsed = Date.now() - touchStartTime.current;
+    const velocity = elapsed > 0 ? currentDrag / elapsed : 0;
+    if (currentDrag > SHEET_DRAG_CLOSE_THRESHOLD || velocity > 0.4) {
+      closeSheet();
+    }
+    setSheetDragY(0);
+  }, [closeSheet]);
+
+  const handleSheetMouseDown = useCallback((e: React.MouseEvent) => {
+    touchStartY.current = e.clientY;
+    touchStartTime.current = Date.now();
+    const onMove = (ev: MouseEvent) => {
+      const dy = ev.clientY - touchStartY.current;
+      if (dy > 0) setSheetDragY(dy);
+    };
+    const onUp = () => {
+      const currentDrag = sheetDragYRef.current;
+      const elapsed = Date.now() - touchStartTime.current;
+      const velocity = elapsed > 0 ? currentDrag / elapsed : 0;
+      if (currentDrag > SHEET_DRAG_CLOSE_THRESHOLD || velocity > 0.4) {
+        closeSheet();
+      }
+      setSheetDragY(0);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [closeSheet]);
 
   useEffect(() => {
     if (addSheetOpen) {
@@ -448,14 +494,25 @@ export default function AddCoursePanel({
             aria-hidden
           />
           <div
-            className={`relative transition-transform duration-200 ${
-              addSheetVisible ? 'translate-y-0' : 'translate-y-full'
+            className={`relative ${sheetDragY > 0 ? 'transition-none' : 'transition-transform duration-200'} ${
+              addSheetVisible ? (sheetDragY === 0 ? 'translate-y-0' : '') : 'translate-y-full'
             }`}
+            style={{
+              ...(addSheetVisible && sheetDragY > 0 && { transform: `translateY(${sheetDragY}px)` }),
+            }}
           >
             <div
-              className="bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-lg rounded-t-xl shadow-lg p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] w-full max-w-2xl mx-auto border border-gray-200/50"
+              className="bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-lg rounded-t-xl shadow-lg p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] w-full max-w-2xl mx-auto border border-gray-200/50 cursor-grab active:cursor-grabbing"
               onClick={(e) => e.stopPropagation()}
+              onTouchStart={handleSheetTouchStart}
+              onTouchMove={handleSheetTouchMove}
+              onTouchEnd={handleSheetTouchEnd}
+              onMouseDown={handleSheetMouseDown}
             >
+            {/* 드래그 핸들 (모바일만 표시) */}
+            <div className="flex justify-center -mt-2 mb-2 sm:hidden" aria-hidden>
+              <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
+            </div>
             {/* 상단: 취소 버튼 + 제목 */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
