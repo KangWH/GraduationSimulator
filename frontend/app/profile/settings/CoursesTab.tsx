@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { API } from '../../lib/api';
 import type { Profile, Enrollment, RawEnrollment, Semester, Grade } from './types';
-import AddCoursePanel from './AddCoursePanel';
+import AddCoursePanel, { AddCoursePanelFooter } from './AddCoursePanel';
 import EnrollmentsList, { enrollmentKey } from './EnrollmentsList';
 
 const VALID_GRADES: Grade[] = ['A+', 'A0', 'A-', 'B+', 'B0', 'B-', 'C+', 'C0', 'C-', 'D+', 'D0', 'D-', 'F', 'S', 'U', 'P', 'NR', 'W'];
@@ -191,6 +191,7 @@ export default function CoursesTab({ lang = 'ko', profile, userId, onProfileUpda
   const [xlsxDialogOpen, setXlsxDialogOpen] = useState(false);
   const [xlsxApplying, setXlsxApplying] = useState(false);
   const [xlsxShouldApply, setXlsxShouldApply] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
   const xlsxInputRef = useRef<HTMLInputElement>(null);
 
   // 수강 내역 로드 및 변환
@@ -871,85 +872,97 @@ export default function CoursesTab({ lang = 'ko', profile, userId, onProfileUpda
   return (
     <>
       {/* 1열: 모바일/태블릿 탭 */}
-      <div className="flex flex-col md:hidden h-full overflow-y-auto overflow-x-hidden">
-        {/* 상단: 모드 전환 */}
-        <div className="md:sticky md:top-0 md:z-20 bg-gradient-to-b from-gray-50 dark:from-black from-[70%] to-transparent flex items-center gap-2 p-3 pt-0 mb-2">
-          <button
-            type="button"
-            onClick={() => setCourseMode('add')}
-            className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
-              courseMode === 'add'
-                ? 'text-black dark:text-white'
-                : 'text-gray-400 dark:text-gray-500'
-            }`}
-          >
-            <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
-              {lang === 'ko' ? '과목 추가' : 'Add Course'}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setCourseMode('view')}
-            className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
-              courseMode === 'view'
-                ? 'text-black dark:text-white'
-                : 'text-gray-400 dark:text-gray-500'
-            }`}
-          >
-            <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
-              {lang === 'ko' ? '수강한 과목' : 'Enrolled Courses'}<span className="opacity-40 ml-2">{enrollments.length}</span>
-            </span>
-          </button>
-        </div>
+      <div className="flex flex-col md:hidden h-full min-h-0">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+          {/* 상단: 모드 전환 */}
+          <div className="md:sticky md:top-0 md:z-20 bg-gradient-to-b from-gray-50 dark:from-black from-[70%] to-transparent flex items-center gap-2 p-3 pt-0 mb-2">
+            <button
+              type="button"
+              onClick={() => setCourseMode('add')}
+              className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
+                courseMode === 'add'
+                  ? 'text-black dark:text-white'
+                  : 'text-gray-400 dark:text-gray-500'
+              }`}
+            >
+              <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'add' ? 'border-violet-500' : 'border-transparent')}>
+                {lang === 'ko' ? '과목 추가' : 'Add Course'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCourseMode('view')}
+              className={`flex-1 px-2 py-1 text-sm font-medium transition-all rounded-lg truncate hover:bg-gray-200 dark:hover:bg-zinc-700 active:scale-90 ${
+                courseMode === 'view'
+                  ? 'text-black dark:text-white'
+                  : 'text-gray-400 dark:text-gray-500'
+              }`}
+            >
+              <span className={'px-2 py-1 border-b border-b-2 transition-color ' + (courseMode === 'view' ? 'border-violet-500' : 'border-transparent')}>
+                {lang === 'ko' ? '수강한 과목' : 'Enrolled Courses'}<span className="opacity-40 ml-2">{enrollments.length}</span>
+              </span>
+            </button>
+          </div>
 
-        {/* 본문 영역 */}
-        <div className="px-2 pt-2 pb-4">
-          {courseMode === 'add' ? (
-            <AddCoursePanel
-              lang={lang}
-              searchQuery={courseSearchQuery}
-              onSearchQueryChange={setCourseSearchQuery}
-              searchResults={searchResults}
-              isSearching={isSearching}
-              selectedCourseIds={selectedCourseIds}
-              onSelectionChange={updateSelectedCourseIds}
-              addYear={addYear}
-              onAddYearChange={setAddYear}
-              addSemester={addSemester}
-              onAddSemesterChange={setAddSemester}
-              addGrade={addGrade}
-              onAddGradeChange={setAddGrade}
-              addAsPriorCredit={addAsPriorCredit}
-              onAddAsPriorCreditChange={setAddAsPriorCredit}
-              onAddSelected={handleAddSelected}
-              onDragStart={(course) => setDraggedCourse(course)}
-              filterDepartment={filterDepartment}
-              onFilterDepartmentChange={setFilterDepartment}
-              filterCategory={filterCategory}
-              onFilterCategoryChange={setFilterCategory}
-              stickyTopOffset="3.25rem"
-              enrolledCourseIds={enrollments.map((e) => e.courseId)}
-            />
-          ) : (
-            <EnrollmentsList
-              lang={lang}
-              enrollments={enrollments}
-              semesterGroups={semesterGroups}
-              sortedSemesterKeys={sortedSemesterKeys}
-              selectedEnrollmentKeys={selectedEnrollmentKeys}
-              onSelectionChange={setSelectedEnrollmentKeys}
-              onGradeChange={handleGradeChange}
-              onMove={handleMove}
-              onRemove={handleRemove}
-              onRemoveSelected={handleRemoveSelected}
-              onRemoveAll={handleRemoveAll}
-              onDragStart={handleDragStart}
-              onDrop={handleDrop}
-              onDropOutside={handleDropOutside}
-              findNearestPastSemester={findNearestPastSemester}
-            />
-          )}
+          {/* 본문 영역 */}
+          <div className="px-2 pt-2 pb-4">
+            {courseMode === 'add' ? (
+              <AddCoursePanel
+                lang={lang}
+                searchQuery={courseSearchQuery}
+                onSearchQueryChange={setCourseSearchQuery}
+                searchResults={searchResults}
+                isSearching={isSearching}
+                selectedCourseIds={selectedCourseIds}
+                onSelectionChange={updateSelectedCourseIds}
+                addYear={addYear}
+                onAddYearChange={setAddYear}
+                addSemester={addSemester}
+                onAddSemesterChange={setAddSemester}
+                addGrade={addGrade}
+                onAddGradeChange={setAddGrade}
+                addAsPriorCredit={addAsPriorCredit}
+                onAddAsPriorCreditChange={setAddAsPriorCredit}
+                onAddSelected={handleAddSelected}
+                onDragStart={(course) => setDraggedCourse(course)}
+                filterDepartment={filterDepartment}
+                onFilterDepartmentChange={setFilterDepartment}
+                filterCategory={filterCategory}
+                onFilterCategoryChange={setFilterCategory}
+                stickyTopOffset="3.25rem"
+                enrolledCourseIds={enrollments.map((e) => e.courseId)}
+                addSheetOpen={addSheetOpen}
+                onAddSheetOpenChange={setAddSheetOpen}
+              />
+            ) : (
+              <EnrollmentsList
+                lang={lang}
+                enrollments={enrollments}
+                semesterGroups={semesterGroups}
+                sortedSemesterKeys={sortedSemesterKeys}
+                selectedEnrollmentKeys={selectedEnrollmentKeys}
+                onSelectionChange={setSelectedEnrollmentKeys}
+                onGradeChange={handleGradeChange}
+                onMove={handleMove}
+                onRemove={handleRemove}
+                onRemoveSelected={handleRemoveSelected}
+                onRemoveAll={handleRemoveAll}
+                onDragStart={handleDragStart}
+                onDrop={handleDrop}
+                onDropOutside={handleDropOutside}
+                findNearestPastSemester={findNearestPastSemester}
+              />
+            )}
+          </div>
         </div>
+        {courseMode === 'add' && (
+          <AddCoursePanelFooter
+            lang={lang}
+            selectedCount={selectedCourseIds.size}
+            disabled={selectedCourseIds.size === 0}
+            onOpen={() => setAddSheetOpen(true)}
+          />
+        )}
       </div>
 
       {/* 2열: 넓은 화면 - 열별로 독립 스크롤 */}
@@ -984,9 +997,17 @@ export default function CoursesTab({ lang = 'ko', profile, userId, onProfileUpda
                 onFilterCategoryChange={setFilterCategory}
                 stickyTopOffset="2.5rem"
                 enrolledCourseIds={enrollments.map((e) => e.courseId)}
+                addSheetOpen={addSheetOpen}
+                onAddSheetOpenChange={setAddSheetOpen}
               />
             </div>
           </div>
+          <AddCoursePanelFooter
+            lang={lang}
+            selectedCount={selectedCourseIds.size}
+            disabled={selectedCourseIds.size === 0}
+            onOpen={() => setAddSheetOpen(true)}
+          />
         </div>
         <div
           className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden"

@@ -289,7 +289,7 @@ export default function EnrollmentsList({
         return (
           <div
             key={semesterKey}
-            className="rounded-lg bg-white dark:bg-black overflow-hidden transition-colors shadow-lg"
+            className="rounded-xl bg-white dark:bg-black overflow-hidden transition-colors shadow-lg"
             onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();

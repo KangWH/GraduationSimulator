@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Input, NumberInput, Select } from '../components/formFields';
 import { DepartmentDropdown, MultipleDepartmentDropdown } from '../components/DepartmentDropdown';
-import AddCoursePanel from '../profile/settings/AddCoursePanel';
+import AddCoursePanel, { AddCoursePanelFooter } from '../profile/settings/AddCoursePanel';
 import EnrollmentsList, { enrollmentKey } from '../profile/settings/EnrollmentsList';
 import { API } from '../lib/api';
 import DesktopTopBar from '../components/DesktopTopBar';
@@ -117,6 +117,7 @@ export default function SignupPage() {
   const [xlsxLoading, setXlsxLoading] = useState(false);
   const [xlsxApplying, setXlsxApplying] = useState(false);
   const [xlsxDialogOpen, setXlsxDialogOpen] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
   const xlsxInputRef = useRef<HTMLInputElement>(null);
 
   const updateSelectedCourseIds = useCallback((newIds: Set<string>) => {
@@ -714,31 +715,41 @@ export default function SignupPage() {
             <div className="flex-1 flex flex-col min-h-0 md:flex-row md:gap-6">
               {/* 넓은 화면: 2열 */}
               <div className="hidden md:flex flex-1 gap-6 min-h-0 overflow-hidden">
-                <div className="flex-1 min-w-0 overflow-y-auto space-y-4 px-2">
-                  <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{lang === 'ko' ? '과목 추가' : 'Add Course'}</h2>
-                  <AddCoursePanel
+                <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">
+                  <div className="flex-1 min-h-0 overflow-y-auto space-y-4 px-2">
+                    <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{lang === 'ko' ? '과목 추가' : 'Add Course'}</h2>
+                    <AddCoursePanel
+                      lang={lang}
+                      searchQuery={courseSearchQuery}
+                      onSearchQueryChange={setCourseSearchQuery}
+                      searchResults={searchResults}
+                      isSearching={isSearching}
+                      selectedCourseIds={selectedCourseIds}
+                      onSelectionChange={updateSelectedCourseIds}
+                      addYear={addYear}
+                      onAddYearChange={setAddYear}
+                      addSemester={addSemester}
+                      onAddSemesterChange={setAddSemester}
+                      addGrade={addGrade}
+                      onAddGradeChange={setAddGrade}
+                      addAsPriorCredit={addAsPriorCredit}
+                      onAddAsPriorCreditChange={setAddAsPriorCredit}
+                      onAddSelected={handleAddSelected}
+                      onDragStart={(c) => setDraggedCourse(c)}
+                      filterDepartment={filterDepartment}
+                      onFilterDepartmentChange={setFilterDepartment}
+                      filterCategory={filterCategory}
+                      onFilterCategoryChange={setFilterCategory}
+                      enrolledCourseIds={enrollments.map((e) => e.courseId)}
+                      addSheetOpen={addSheetOpen}
+                      onAddSheetOpenChange={setAddSheetOpen}
+                    />
+                  </div>
+                  <AddCoursePanelFooter
                     lang={lang}
-                    searchQuery={courseSearchQuery}
-                    onSearchQueryChange={setCourseSearchQuery}
-                    searchResults={searchResults}
-                    isSearching={isSearching}
-                    selectedCourseIds={selectedCourseIds}
-                    onSelectionChange={updateSelectedCourseIds}
-                    addYear={addYear}
-                    onAddYearChange={setAddYear}
-                    addSemester={addSemester}
-                    onAddSemesterChange={setAddSemester}
-                    addGrade={addGrade}
-                    onAddGradeChange={setAddGrade}
-                    addAsPriorCredit={addAsPriorCredit}
-                    onAddAsPriorCreditChange={setAddAsPriorCredit}
-                    onAddSelected={handleAddSelected}
-                    onDragStart={(c) => setDraggedCourse(c)}
-                    filterDepartment={filterDepartment}
-                    onFilterDepartmentChange={setFilterDepartment}
-                    filterCategory={filterCategory}
-                    onFilterCategoryChange={setFilterCategory}
-                    enrolledCourseIds={enrollments.map((e) => e.courseId)}
+                    selectedCount={selectedCourseIds.size}
+                    disabled={selectedCourseIds.size === 0}
+                    onOpen={() => setAddSheetOpen(true)}
                   />
                 </div>
                 <div
@@ -819,6 +830,8 @@ export default function SignupPage() {
                       filterCategory={filterCategory}
                       onFilterCategoryChange={setFilterCategory}
                       enrolledCourseIds={enrollments.map((e) => e.courseId)}
+                      addSheetOpen={addSheetOpen}
+                      onAddSheetOpenChange={setAddSheetOpen}
                     />
                   ) : (
                     <div
@@ -845,6 +858,14 @@ export default function SignupPage() {
                     </div>
                   )}
                 </div>
+                {courseMode === 'add' && (
+                  <AddCoursePanelFooter
+                    lang={lang}
+                    selectedCount={selectedCourseIds.size}
+                    disabled={selectedCourseIds.size === 0}
+                    onOpen={() => setAddSheetOpen(true)}
+                  />
+                )}
               </div>
             </div>
             <div className="hidden sm:block h-20 flex-shrink-0" aria-hidden="true" />
