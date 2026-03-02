@@ -91,6 +91,8 @@ interface EnrollmentsListProps {
   semesterGroups: Map<string, Enrollment[]>;
   sortedSemesterKeys: string[];
   selectedEnrollmentKeys: Set<string>;
+  /** 졸업요건 막대 호버 시 해당 요건에 사용된 과목 강조용 (enrollmentKey 집합) */
+  highlightedEnrollmentKeys?: Set<string>;
   onSelectionChange: (keys: Set<string>) => void;
   onGradeChange: (enrollment: Enrollment, grade: Grade) => void;
   onMove: (enrollment: Enrollment, newYear: number, newSemester: Semester) => void;
@@ -109,6 +111,7 @@ export default function EnrollmentsList({
   semesterGroups,
   sortedSemesterKeys,
   selectedEnrollmentKeys,
+  highlightedEnrollmentKeys,
   onSelectionChange,
   onGradeChange,
   onMove,
@@ -289,7 +292,7 @@ export default function EnrollmentsList({
         return (
           <div
             key={semesterKey}
-            className="rounded-lg bg-white dark:bg-black overflow-hidden transition-colors shadow-lg"
+            className="rounded-xl bg-white dark:bg-black overflow-hidden transition-colors shadow-lg"
             onDragOver={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -341,6 +344,7 @@ export default function EnrollmentsList({
 
                       const key = enrollmentKey(enrollment);
                       const isSelected = selectedEnrollmentKeys.has(key);
+                      const isHighlighted = highlightedEnrollmentKeys?.has(key);
                       return <div
                         key={menuKey}
                         draggable
@@ -356,8 +360,8 @@ export default function EnrollmentsList({
                           if ((e.target as HTMLElement).closest('select, [role="menu"], button')) return;
                           toggleSelection(enrollment);
                         }}
-                        className={`flex items-center justify-between gap-4 rounded-md p-2 cursor-move border ${
-                          isSelected ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-500/50' : 'bg-gray-50 dark:bg-zinc-900 border-transparent'
+                        className={`flex items-center justify-between gap-4 rounded-md p-2 cursor-move border transition-colors ${
+                          isSelected ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-500/50' : isHighlighted ? 'bg-violet-100/80 dark:bg-violet-900/40 border-transparent' : 'bg-gray-50 dark:bg-zinc-900 border-transparent'
                         }`}
                       >
                         <input

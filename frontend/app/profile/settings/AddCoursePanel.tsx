@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { DepartmentDropdown } from '@/app/components/DepartmentDropdown';
 import { Input, NumberInput, Select } from '../../components/formFields';
 import type { Semester, Grade } from './types';
 import { CourseCategoryDropdown } from '@/app/components/CourseCategoryDropdown';
 import { API } from '../../lib/api';
+import Button from '@/app/components/Button';
 
 const VALID_GRADES: Grade[] = ['A+', 'A0', 'A-', 'B+', 'B0', 'B-', 'C+', 'C0', 'C-', 'D+', 'D0', 'D-', 'F', 'S', 'U', 'P', 'NR', 'W'];
 
@@ -47,6 +48,38 @@ interface AddCoursePanelProps {
   stickyTopOffset?: string;
   /** 이미 수강한 과목 ID 목록 (검색 결과에서 수강함 표시용). profile/settings는 프로필 수강 목록, simulation은 시뮬레이션 과목 목록 */
   enrolledCourseIds?: string[];
+  /** controlled: 시트 열림 상태 (버튼을 스크롤 영역 바깥에 둘 때 사용) */
+  addSheetOpen?: boolean;
+  onAddSheetOpenChange?: (open: boolean) => void;
+}
+
+/** 스크롤 영역 바깥에 둘 과목 추가 버튼 (controlled 모드용) */
+export function AddCoursePanelFooter({
+  lang = 'ko',
+  selectedCount,
+  disabled,
+  onOpen,
+}: {
+  lang?: 'ko' | 'en';
+  selectedCount: number;
+  disabled: boolean;
+  onOpen: () => void;
+}) {
+  return (
+    <div className="flex-shrink-0 px-4 py-3 border-t border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900">
+      <button
+        type="button"
+        onClick={() => !disabled && onOpen()}
+        disabled={disabled}
+        className="w-full rounded-lg bg-violet-600 px-4 py-3 font-medium text-white active:scale-[0.98] transition-all hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-violet-600 disabled:active:scale-100"
+      >
+        {lang === 'en' ? 'Add Course' : '과목 추가'}
+        {selectedCount > 0 && (
+          <span className="ml-2 opacity-90">({selectedCount})</span>
+        )}
+      </button>
+    </div>
+  );
 }
 
 export default function AddCoursePanel({
@@ -73,12 +106,89 @@ export default function AddCoursePanel({
   onFilterCategoryChange,
   stickyTopOffset = '0',
   enrolledCourseIds = [],
+  addSheetOpen: addSheetOpenProp,
+  onAddSheetOpenChange,
 }: AddCoursePanelProps) {
   const SEMESTER_OPTIONS = lang === 'en' ? SEMESTER_OPTIONS_EN : SEMESTER_OPTIONS_KO;
   const enrolledSet = new Set(enrolledCourseIds);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [departments, setDepartments] = useState<Array<{ id: string; name: string; nameEn?: string }>>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
+  const [addSheetOpenInternal, setAddSheetOpenInternal] = useState(false);
+  const [addSheetVisible, setAddSheetVisible] = useState(false);
+  const [sheetDragY, setSheetDragY] = useState(0);
+  const touchStartY = useRef(0);
+  const touchStartTime = useRef(0);
+  const sheetDragYRef = useRef(0);
+  sheetDragYRef.current = sheetDragY;
+
+  const isControlled = addSheetOpenProp !== undefined;
+  const addSheetOpen = isControlled ? addSheetOpenProp! : addSheetOpenInternal;
+  const setAddSheetOpen = useCallback(
+    (open: boolean) => {
+      if (isControlled) {
+        onAddSheetOpenChange?.(open);
+      } else {
+        setAddSheetOpenInternal(open);
+      }
+    },
+    [isControlled, onAddSheetOpenChange]
+  );
+
+  const closeSheet = useCallback(() => {
+    setAddSheetVisible(false);
+    window.setTimeout(() => setAddSheetOpen(false), 200);
+  }, [setAddSheetOpen]);
+
+  const SHEET_DRAG_CLOSE_THRESHOLD = 80;
+  const handleSheetTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+    touchStartTime.current = Date.now();
+  }, []);
+  const handleSheetTouchMove = useCallback((e: React.TouchEvent) => {
+    const dy = e.touches[0].clientY - touchStartY.current;
+    if (dy > 0) setSheetDragY(dy);
+  }, []);
+  const handleSheetTouchEnd = useCallback(() => {
+    const currentDrag = sheetDragYRef.current;
+    const elapsed = Date.now() - touchStartTime.current;
+    const velocity = elapsed > 0 ? currentDrag / elapsed : 0;
+    if (currentDrag > SHEET_DRAG_CLOSE_THRESHOLD || velocity > 0.4) {
+      closeSheet();
+    }
+    setSheetDragY(0);
+  }, [closeSheet]);
+
+  const handleSheetMouseDown = useCallback((e: React.MouseEvent) => {
+    touchStartY.current = e.clientY;
+    touchStartTime.current = Date.now();
+    const onMove = (ev: MouseEvent) => {
+      const dy = ev.clientY - touchStartY.current;
+      if (dy > 0) setSheetDragY(dy);
+    };
+    const onUp = () => {
+      const currentDrag = sheetDragYRef.current;
+      const elapsed = Date.now() - touchStartTime.current;
+      const velocity = elapsed > 0 ? currentDrag / elapsed : 0;
+      if (currentDrag > SHEET_DRAG_CLOSE_THRESHOLD || velocity > 0.4) {
+        closeSheet();
+      }
+      setSheetDragY(0);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }, [closeSheet]);
+
+  useEffect(() => {
+    if (addSheetOpen) {
+      setAddSheetVisible(false);
+      const t = window.setTimeout(() => setAddSheetVisible(true), 10);
+      return () => window.clearTimeout(t);
+    }
+    setAddSheetVisible(false);
+  }, [addSheetOpen]);
 
   useEffect(() => {
     Promise.all([
@@ -134,9 +244,9 @@ export default function AddCoursePanel({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full">
       {/* 검색 창 */}
-      <div className={`sticky z-10 -mx-4 px-4 pt-0 pb-4 bg-gradient-to-b from-gray-50 via-gray-50/90 to-trasparent dark:from-zinc-900 dark:via-zinc-900/90`} style={{ top: stickyTopOffset }}>
+      <div className={`-mx-2 px-4 pt-2 pb-4 bg-gradient-to-b from-gray-50 via-gray-50/90 to-trasparent dark:from-zinc-900 dark:via-zinc-900/90`} style={{ top: stickyTopOffset }}>
         <div className="space-y-2">
           <div className="relative flex items-center gap-2">
             <div className="relative flex-1">
@@ -233,7 +343,7 @@ export default function AddCoursePanel({
       {/* 검색 결과 */}
       {searchResults.length > 0 && (
         <>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between px-2">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
               {lang === 'en' ? 'Results' : '검색 결과'} <span className="text-gray-500 dark:text-gray-400 font-normal">{searchResults.length}</span>
               {isSearching && (
@@ -253,7 +363,11 @@ export default function AddCoursePanel({
               {selectedCourseIds.size === searchResults.length ? (lang === 'en' ? 'Deselect all' : '전체 해제') : (lang === 'en' ? 'Select all' : '전체 선택')}
             </button>
           </div>
-          <div className="space-y-2">
+
+          {/* 교과목 항목 */}
+          <div className="flex-1 overflow-y-auto space-y-2 px-2">
+            <div className="-mb-2 h-4 sticky top-0 bg-gradient-to-b from-gray-50 to-transparent z-10"></div>
+
             {searchResults.map((course, index) => {
               // 선택 시에는 고유 ID 사용 (검색은 code로 하지만 저장은 id로)
               const courseId = course.id || course.code || String(course.id || course.code || Math.random());
@@ -295,7 +409,7 @@ export default function AddCoursePanel({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className="min-w-0 flex-1 flex items-center gap-2">
-                        <p className={`truncate font-medium min-w-0 ${
+                        <p className={`truncate font-medium text-sm min-w-0 ${
                           isEnrolled 
                             ? 'text-gray-500 dark:text-zinc-500' 
                             : 'text-gray-900 dark:text-white'
@@ -303,7 +417,7 @@ export default function AddCoursePanel({
                           {course.title || course.name}
                         </p>
                         {course.code && (
-                          <span className={`text-sm font-normal shrink-0 ${
+                          <span className={`text-xs font-normal shrink-0 ${
                             isEnrolled 
                               ? 'text-gray-400 dark:text-zinc-600' 
                               : 'text-gray-500 dark:text-zinc-400'
@@ -328,7 +442,7 @@ export default function AddCoursePanel({
                         </div>
                       )}
                     </div>
-                    <p className={`text-sm mt-0.5 ${
+                    <p className={`text-xs mt-0.5 ${
                       isEnrolled 
                         ? 'text-gray-400 dark:text-zinc-600' 
                         : 'text-gray-500 dark:text-zinc-400'
@@ -341,6 +455,8 @@ export default function AddCoursePanel({
                 </div>
               );
             })}
+
+            <div className="-mt-2 h-4 sticky bottom-0 bg-gradient-to-t from-gray-50 to-transparent z-10"></div>
           </div>
         </>
       )}
@@ -353,13 +469,69 @@ export default function AddCoursePanel({
         <p className="py-4 text-center text-sm text-gray-500 dark:text-zinc-400">{lang === 'en' ? 'Enter a search term.' : '검색어를 입력하세요.'}</p>
       )}
 
-      {/* 추가 옵션 및 버튼 */}
-      {selectedCourseIds.size > 0 && (
-        <div className="sticky bottom-0 z-10 -mx-6 px-6 pt-0 pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-gray-50 via-gray-50/90 to-transparent dark:from-zinc-900 dark:via-zinc-900/90 dark:to-transparent">
-          <div className="pb-24 md:pb-4">
-            <div className="rounded-lg bg-violet-50 p-4 dark:bg-violet-950 shadow-lg">
+      {/* 하단 고정 과목 추가 버튼 (uncontrolled 모드에서만) */}
+      {!isControlled && (
+        <>
+          <div className="mt-4 px-2 pb-[env(safe-area-inset-bottom)] flex flex-col">
+            <Button
+              style="prominent"
+              disabled={selectedCourseIds.size === 0}
+              onClick={() => selectedCourseIds.size > 0 && setAddSheetOpen(true)}
+            >
+              {lang === 'en' ? (selectedCourseIds.size > 1 ? `Add ${selectedCourseIds.size} courses` : selectedCourseIds.size > 0 ? 'Add 1 course' : 'Add course') : (selectedCourseIds.size > 0 ? `${selectedCourseIds.size}과목 추가` : '과목 추가')}
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* 학기/성적 선택 시트 */}
+      {addSheetOpen && (
+        <div className="fixed inset-0 z-[102] flex flex-col justify-end">
+          {/* 시트 바깥 터치 시 닫기 */}
+          <div
+            className="absolute inset-0"
+            onClick={closeSheet}
+            aria-hidden
+          />
+          <div
+            className={`relative ${sheetDragY > 0 ? 'transition-none' : 'transition-transform duration-200'} ${
+              addSheetVisible ? (sheetDragY === 0 ? 'translate-y-0' : '') : 'translate-y-full'
+            }`}
+            style={{
+              ...(addSheetVisible && sheetDragY > 0 && { transform: `translateY(${sheetDragY}px)` }),
+            }}
+          >
+            <div
+              className="bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-lg rounded-t-xl shadow-lg p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] w-full max-w-2xl mx-auto border border-gray-200/50 cursor-grab active:cursor-grabbing"
+              onClick={(e) => e.stopPropagation()}
+              onTouchStart={handleSheetTouchStart}
+              onTouchMove={handleSheetTouchMove}
+              onTouchEnd={handleSheetTouchEnd}
+              onMouseDown={handleSheetMouseDown}
+            >
+            {/* 드래그 핸들 (모바일만 표시) */}
+            <div className="flex justify-center -mt-2 mb-2 sm:hidden" aria-hidden>
+              <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
+            </div>
+            {/* 상단: 취소 버튼 + 제목 */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                {lang === 'en' ? 'Add courses' : '과목 추가'}
+              </h3>
+              <button
+                type="button"
+                onClick={closeSheet}
+                className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-zinc-800 transition-colors"
+                aria-label={lang === 'en' ? 'Close' : '닫기'}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-4">
               {onAddAsPriorCreditChange && (
-                <label className="mb-3 flex cursor-pointer items-center gap-2">
+                <label className="flex cursor-pointer items-center gap-2">
                   <input
                     type="checkbox"
                     checked={addAsPriorCredit}
@@ -369,9 +541,9 @@ export default function AddCoursePanel({
                   <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Prior credit' : '기이수'}</span>
                 </label>
               )}
-              <div className="flex items-end gap-3">
-                <div className="flex flex-col gap-2 basis-16 grow">
-                  <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Year' : '수강 연도'}</label>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Year' : '수강 연도'}</label>
                   <NumberInput
                     min="2000"
                     max="2050"
@@ -381,8 +553,8 @@ export default function AddCoursePanel({
                     size="small"
                   />
                 </div>
-                <div className="flex flex-col gap-2 basis-16 grow">
-                  <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Semester' : '학기'}</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Semester' : '학기'}</label>
                   <Select
                     value={addSemester}
                     onChange={(v) => onAddSemesterChange(v as Semester)}
@@ -396,8 +568,8 @@ export default function AddCoursePanel({
                     ))}
                   </Select>
                 </div>
-                <div className="flex flex-col gap-2 basis-16 grow">
-                  <label className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Grade' : '성적'}</label>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Grade' : '성적'}</label>
                   <Select
                     value={addGrade}
                     onChange={(v) => onAddGradeChange(v as Grade)}
@@ -410,17 +582,21 @@ export default function AddCoursePanel({
                     ))}
                   </Select>
                 </div>
-                <button
-                  type="button"
-                  onClick={onAddSelected}
-                  className="shrink-0 rounded-lg bg-violet-600 px-4 py-2 font-medium text-white active:scale-90 transition-all hover:bg-violet-700"
-                >
-                  {lang === 'en' ? `Add ${selectedCourseIds.size} course(s)` : `${selectedCourseIds.size}과목 추가`}
-                </button>
               </div>
+              <Button
+                style="prominent"
+                onClick={() => {
+                  onAddSelected();
+                  closeSheet();
+                }}
+                className="w-full"
+              >
+                {lang === 'en' ? `Add ${selectedCourseIds.size} course(s)` : `${selectedCourseIds.size}과목 추가`}
+              </Button>
             </div>
           </div>
         </div>
+      </div>
       )}
     </div>
   );
