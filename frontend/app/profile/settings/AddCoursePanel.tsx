@@ -8,6 +8,7 @@ import { CourseCategoryDropdown } from '@/app/components/CourseCategoryDropdown'
 import { API } from '../../lib/api';
 import Button from '@/app/components/Button';
 import BottomSheet from '@/app/components/BottomSheet';
+import AddCourseSearchResults from './AddCourseSearchResults';
 
 const VALID_GRADES: Grade[] = ['A+', 'A0', 'A-', 'B+', 'B0', 'B-', 'C+', 'C0', 'C-', 'D+', 'D0', 'D-', 'F', 'S', 'U', 'P', 'NR', 'W'];
 
@@ -28,8 +29,8 @@ interface AddCoursePanelProps {
   lang?: 'ko' | 'en';
   searchQuery: string;
   onSearchQueryChange: (v: string) => void;
-  searchResults: { id: string; code?: string; title?: string; name?: string; department?: string; category?: string; credit?: number; au?: number; tags?: string[] }[];
-  isSearching?: boolean;
+  /** 검색 결과가 변경될 때 호출 (handleAddSelected 등에서 course 객체 조회용) */
+  onSearchResultsChange?: (results: { id: string; code?: string; title?: string; name?: string; department?: string; category?: string; credit?: number; au?: number; tags?: string[] }[]) => void;
   selectedCourseIds: Set<string>;
   onSelectionChange: (ids: Set<string>) => void;
   addYear: number;
@@ -87,8 +88,7 @@ export default function AddCoursePanel({
   lang = 'ko',
   searchQuery,
   onSearchQueryChange,
-  searchResults,
-  isSearching = false,
+  onSearchResultsChange,
   selectedCourseIds,
   onSelectionChange,
   addYear,
@@ -111,7 +111,6 @@ export default function AddCoursePanel({
   onAddSheetOpenChange,
 }: AddCoursePanelProps) {
   const SEMESTER_OPTIONS = lang === 'en' ? SEMESTER_OPTIONS_EN : SEMESTER_OPTIONS_KO;
-  const enrolledSet = new Set(enrolledCourseIds);
   const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [departments, setDepartments] = useState<Array<{ id: string; name: string; nameEn?: string }>>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
@@ -141,47 +140,6 @@ export default function AddCoursePanel({
       console.error('Failed to load departments/categories:', error);
     });
   }, []);
-
-  const getDepartmentName = (deptId: string | undefined): string => {
-    if (!deptId) return '';
-    const dept = departments.find((d) => d.id === deptId);
-    return dept ? (lang === 'en' && dept.nameEn ? dept.nameEn : dept.name) : deptId;
-  };
-
-  const getCategoryName = (catId: string | undefined): string => {
-    if (!catId) return '';
-    const cat = categories.find((c) => c.id === catId);
-    const c = cat as { id: string; name: string; nameEn?: string } | undefined;
-    return c ? (lang === 'en' && c.nameEn ? c.nameEn : c.name) : catId;
-  };
-  const toggleSelection = (courseId: string) => {
-    const newSet = new Set(selectedCourseIds);
-    if (newSet.has(courseId)) {
-      newSet.delete(courseId);
-    } else {
-      newSet.add(courseId);
-    }
-    onSelectionChange(newSet);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedCourseIds.size === searchResults.length) {
-      onSelectionChange(new Set());
-    } else {
-      onSelectionChange(
-        new Set(
-          searchResults.map((c) => {
-            const id = c.id || c.code;
-            if (!id) {
-              console.warn('Course without id or code:', c);
-              return '';
-            }
-            return id;
-          }).filter((id) => id !== '')
-        )
-      );
-    }
-  };
 
   return (
     <div className="flex flex-col h-full">
@@ -267,147 +225,20 @@ export default function AddCoursePanel({
         </div>
       </div>
 
-      {/* 검색 중 표시 */}
-      {isSearching && searchResults.length === 0 && (
-        <div className="py-8 text-center">
-          <div className="inline-flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>{lang === 'en' ? 'Searching...' : '검색 중...'}</span>
-          </div>
-        </div>
-      )}
-
       {/* 검색 결과 */}
-      {searchResults.length > 0 && (
-        <>
-          <div className="flex items-center justify-between px-2">
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-              {lang === 'en' ? 'Results' : '검색 결과'} <span className="text-gray-500 dark:text-gray-400 font-normal">{searchResults.length}</span>
-              {isSearching && (
-                <span className="ml-2 inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
-                  <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                </span>
-              )}
-            </h3>
-            <button
-              type="button"
-              onClick={toggleSelectAll}
-              className="text-xs font-medium text-violet-600 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 transition-colors"
-            >
-              {selectedCourseIds.size === searchResults.length ? (lang === 'en' ? 'Deselect all' : '전체 해제') : (lang === 'en' ? 'Select all' : '전체 선택')}
-            </button>
-          </div>
-
-          {/* 교과목 항목 */}
-          <div className="flex-1 overflow-y-auto space-y-2 px-2">
-            <div className="-mb-2 h-4 sticky top-0 bg-gradient-to-b from-gray-50 to-transparent z-10"></div>
-
-            {searchResults.map((course, index) => {
-              // 선택 시에는 고유 ID 사용 (검색은 code로 하지만 저장은 id로)
-              const courseId = course.id || course.code || String(course.id || course.code || Math.random());
-              const isSelected = selectedCourseIds.has(courseId);
-              const isEnrolled = enrolledSet.has(course.id || '') || enrolledSet.has(course.code || '');
-              const validTags = ['사회', '인문', '문학예술', '일반', '핵심', '융합'];
-              const tagList = (course.tags || []).filter((tag: string) => validTags.includes(tag));
-              return (
-                <div
-                  key={courseId}
-                  draggable
-                  onDragStart={(e) => {
-                    onDragStart(course);
-                    e.dataTransfer.effectAllowed = 'copy';
-                  }}
-                  onClick={() => toggleSelection(courseId)}
-                  className={`flex items-center gap-3 rounded-lg border px-3 py-2 cursor-pointer active:scale-96 transition-all animate-slide-up shadow ${
-                    isSelected
-                      ? 'border-violet-500 bg-violet-50 dark:border-violet-400 dark:bg-violet-900/20'
-                      : isEnrolled
-                        ? 'border-gray-200 dark:border-zinc-700 bg-gray-50 dark:bg-zinc-900/50'
-                        : 'border-transparent bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-800'
-                  }`}
-                  style={{
-                    animationDelay: `${index * 0.05}s`,
-                    opacity: 0,
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => toggleSelection(courseId)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleSelection(courseId);
-                    }}
-                    className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 focus:ring-offset-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="min-w-0 flex-1 flex items-center gap-2">
-                        <p className={`truncate font-medium text-sm min-w-0 ${
-                          isEnrolled 
-                            ? 'text-gray-500 dark:text-zinc-500' 
-                            : 'text-gray-900 dark:text-white'
-                        }`}>
-                          {course.title || course.name}
-                        </p>
-                        {course.code && (
-                          <span className={`text-xs font-normal shrink-0 ${
-                            isEnrolled 
-                              ? 'text-gray-400 dark:text-zinc-600' 
-                              : 'text-gray-500 dark:text-zinc-400'
-                          }`}>
-                            {course.code}
-                          </span>
-                        )}
-                        {isEnrolled && (
-                          <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-gray-200 text-gray-700 dark:bg-zinc-700 dark:text-zinc-300 shrink-0">{lang === 'en' ? 'Enrolled' : '수강함'}</span>
-                        )}
-                      </div>
-                      {tagList.length > 0 && (
-                        <div className="flex items-center gap-1 flex-wrap shrink-0">
-                          {tagList.map((tag: string) => (
-                            <span
-                              key={tag}
-                              className="px-1.5 py-0.5 text-xs font-medium rounded bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300 shrink-0"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <p className={`text-xs mt-0.5 ${
-                      isEnrolled 
-                        ? 'text-gray-400 dark:text-zinc-600' 
-                        : 'text-gray-500 dark:text-zinc-400'
-                    }`}>
-                      {course.department && getDepartmentName(course.department)}
-                      {course.category && ` · ${getCategoryName(course.category)}`}
-                      {course.au !== undefined && course.au > 0 ? ` · ${course.au}AU` : course.credit ? ` · ${course.credit}${lang === 'en' ? (course.credit === 1 ? ' credit' : ' credits') : '학점'}` : ''}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-
-            <div className="-mt-2 h-4 sticky bottom-0 bg-gradient-to-t from-gray-50 to-transparent z-10"></div>
-          </div>
-        </>
-      )}
-
-      {!isSearching && searchResults.length === 0 && searchQuery && (
-        <p className="py-4 text-center text-sm text-gray-500 dark:text-zinc-400">{lang === 'en' ? 'No results found.' : '검색 결과가 없습니다.'}</p>
-      )}
-
-      {!isSearching && searchResults.length === 0 && !searchQuery && (
-        <p className="py-4 text-center text-sm text-gray-500 dark:text-zinc-400">{lang === 'en' ? 'Enter a search term.' : '검색어를 입력하세요.'}</p>
-      )}
+      <AddCourseSearchResults
+        lang={lang}
+        searchQuery={searchQuery}
+        filterDepartment={filterDepartment}
+        filterCategory={filterCategory}
+        selectedCourseIds={selectedCourseIds}
+        onSelectionChange={onSelectionChange}
+        onSearchResultsChange={onSearchResultsChange}
+        onDragStart={onDragStart}
+        enrolledCourseIds={enrolledCourseIds}
+        departments={departments}
+        categories={categories}
+      />
 
       {/* 하단 고정 과목 추가 버튼 (uncontrolled 모드에서만) */}
       {!isControlled && (

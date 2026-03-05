@@ -99,6 +99,8 @@ interface EnrollmentsListProps {
   onRemove: (enrollment: Enrollment) => void;
   onRemoveSelected: () => void;
   onRemoveAll: () => void;
+  /** 성적 숨김 모드일 때 성적 변경 드롭다운 숨김 (시뮬레이션용) */
+  gradeBlindMode?: boolean;
   onDragStart: (e: React.DragEvent, enrollment: Enrollment, semesterKey: string) => void;
   onDrop: (e: React.DragEvent, semesterKey: string) => void;
   onDropOutside: (e: React.DragEvent) => void;
@@ -118,6 +120,7 @@ export default function EnrollmentsList({
   onRemove,
   onRemoveSelected,
   onRemoveAll,
+  gradeBlindMode = false,
   onDragStart,
   onDrop,
   onDropOutside,
@@ -250,8 +253,8 @@ export default function EnrollmentsList({
 
   return (
     <div className="space-y-6">
-      {/* 선택 삭제 / 전체 삭제 툴바 */}
-      <div className="flex flex-wrap justify-end items-stretch mb-4 text-xs gap-2">
+      {/* 선택 삭제 / 전체 삭제 툴바 - 모바일에서는 숨김 (하단 메뉴에서 제공) */}
+      <div className="hidden md:flex flex-wrap justify-end items-stretch mb-4 text-xs gap-2">
         <button
           type="button"
           onClick={toggleSelectAll}
@@ -392,18 +395,20 @@ export default function EnrollmentsList({
                           </p>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
-                          <Select
-                            value={enrollment.grade}
-                            onChange={(v) => onGradeChange(enrollment, v as Grade)}
-                            size="small"
-                            className="w-24"
-                          >
-                            {VALID_GRADES.map((grade) => (
-                              <option key={grade} value={grade}>
-                                {grade}
-                              </option>
-                            ))}
-                          </Select>
+                          {!gradeBlindMode && (
+                            <Select
+                              value={enrollment.grade}
+                              onChange={(v) => onGradeChange(enrollment, v as Grade)}
+                              size="small"
+                              className="w-24"
+                            >
+                              {VALID_GRADES.map((grade) => (
+                                <option key={grade} value={grade}>
+                                  {grade}
+                                </option>
+                              ))}
+                            </Select>
+                          )}
                           <div className="relative">
                             <button
                               type="button"

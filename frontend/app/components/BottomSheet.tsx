@@ -55,6 +55,12 @@ export interface BottomSheetProps {
   showCloseButton?: boolean;
   /** 시트 본문에 padding 적용 (기본 true, header가 전체 영역을 차지할 때 false) */
   padded?: boolean;
+  /** 시트 본문에 overflow-y-auto 적용 여부. false면 overflow-y-hidden, 직접 스크롤 영역 구성 (기본 true) */
+  contentScroll?: boolean;
+  /** 콘텐츠 높이에 맞춤. true면 스크롤 영역이 flex-1 대신 콘텐츠 높이만 사용해 하단 여백 제거 (기본 false) */
+  contentFit?: boolean;
+  /** 시트가 열린 뒤(애니메이션 종료 후) 호출. 모바일에서 포커스 등에 사용 */
+  onAfterOpen?: () => void;
 }
 
 export default function BottomSheet({
@@ -72,6 +78,9 @@ export default function BottomSheet({
   dimmed = true,
   showCloseButton = true,
   padded = true,
+  contentScroll = true,
+  contentFit = false,
+  onAfterOpen,
 }: BottomSheetProps) {
   const [mounted, setMounted] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -146,15 +155,19 @@ export default function BottomSheet({
     if (open) {
       setIsClosing(false);
       setSheetVisible(false);
-      const t = window.setTimeout(() => setSheetVisible(true), 10);
-      return () => window.clearTimeout(t);
+      const t1 = window.setTimeout(() => setSheetVisible(true), 10);
+      const t2 = window.setTimeout(() => onAfterOpen?.(), 10 + ANIMATION_DURATION);
+      return () => {
+        window.clearTimeout(t1);
+        window.clearTimeout(t2);
+      };
     } else {
       setSheetVisible(false);
       setIsClosing(true);
       const t = window.setTimeout(() => setIsClosing(false), ANIMATION_DURATION);
       return () => window.clearTimeout(t);
     }
-  }, [open]);
+  }, [open, onAfterOpen]);
 
   // 바텀시트 열림 시 스크롤 잠금
   useEffect(() => {
@@ -174,7 +187,7 @@ export default function BottomSheet({
   // 데스크톱 desktopCenter: 닫을 때 translate 대신 opacity 페이드아웃 (sm:translate-y-0가 translate-y-full을 덮어써서 슬라이드가 안 됨)
   const isDesktopClose = desktopCenter && isClosing;
   const sheetPanelClasses = [
-    'bg-gray-50 dark:bg-zinc-900 shadow-xl w-full sm:max-w-md sm:mx-4 mx-0 flex flex-col rounded-t-2xl sm:rounded-xl overflow-hidden',
+    'bg-gray-50 dark:bg-zinc-900 shadow-xl w-full sm:max-w-md sm:mx-4 mx-0 flex flex-col rounded-t-2xl sm:rounded-xl overflow-hidden min-h-0',
     sheetDragY > 0 ? 'transition-none' : 'transition-all duration-200',
     isDesktopClose ? 'sm:opacity-0' : '', // 데스크톱에서만 페이드, 모바일은 슬라이드 유지
     sheetVisible && sheetDragY === 0 ? 'translate-y-0' : sheetVisible ? '' : 'translate-y-full' + (desktopCenter ? ' sm:translate-y-0' : ''),
@@ -185,6 +198,7 @@ export default function BottomSheet({
     <div
       className={sheetPanelClasses}
       style={{
+        height: maxHeight,
         maxHeight,
         ...(sheetVisible && sheetDragY > 0 && { transform: `translateY(${sheetDragY}px)` }),
       }}
@@ -205,7 +219,7 @@ export default function BottomSheet({
             <div className="flex justify-center pt-2 pb-1 sm:hidden" aria-hidden>
               <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
             </div>
-            <div className="p-4 flex items-center justify-between">
+            <div className="p-4 pb-2 flex items-center justify-between">
               {title && (
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {title}
@@ -229,7 +243,7 @@ export default function BottomSheet({
       </div>
 
       <div className={`flex-1 flex flex-col min-h-0 overflow-hidden ${padded ? 'p-4' : ''}`}>
-        <div className="flex-1 overflow-y-auto overscroll-contain min-h-0">
+        <div className={`min-h-0 ${contentFit ? 'self-start max-h-full' : 'flex-1'} ${contentScroll ? 'overflow-y-auto overscroll-contain' : 'overflow-y-hidden'}`}>
           {children}
         </div>
         {footer && (

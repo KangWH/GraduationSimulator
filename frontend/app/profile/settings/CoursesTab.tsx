@@ -163,7 +163,6 @@ export default function CoursesTab({ lang = 'ko', profile, userId, onProfileUpda
   const [courseMode, setCourseMode] = useState<'add' | 'view'>('add');
   const [courseSearchQuery, setCourseSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
   const selectedCourseIdsRef = useRef<Set<string>>(new Set());
   
@@ -249,77 +248,6 @@ export default function CoursesTab({ lang = 'ko', profile, userId, onProfileUpda
       cancelled = true;
     };
   }, [initialLoadDone]);
-
-  // 서버 검색
-  useEffect(() => {
-    const hasQuery = !!courseSearchQuery.trim();
-    const hasDept = !!(filterDepartment && filterDepartment !== 'none');
-    const hasCat = !!(filterCategory && filterCategory !== 'none');
-
-    if (!hasQuery && !hasDept && !hasCat) {
-      setSearchResults([]);
-      setIsSearching(false);
-      if (selectedCourseIdsRef.current.size > 0) {
-        updateSelectedCourseIds(new Set());
-      }
-      return;
-    }
-
-    setIsSearching(true);
-    const timeoutId = setTimeout(() => {
-      const params = new URLSearchParams();
-      if (hasQuery) {
-        params.append('query', courseSearchQuery.trim());
-      }
-      if (hasDept) {
-        params.append('department', filterDepartment);
-      }
-      if (hasCat) {
-        params.append('category', filterCategory);
-      }
-
-      fetch(`${API}/courses?${params.toString()}`)
-        .then((r) => {
-          if (!r.ok) {
-            throw new Error(`HTTP error! status: ${r.status}`);
-          }
-          return r.json();
-        })
-        .then((courses) => {
-          const newResults = Array.isArray(courses) ? courses : [];
-          setSearchResults(newResults);
-          setIsSearching(false);
-          
-          // 검색 결과가 변경되면, 화면에서 사라진 항목은 선택 해제
-          const currentSelected = selectedCourseIdsRef.current;
-          if (currentSelected.size > 0) {
-            const availableCourseIds = new Set(
-              newResults.map((c) => c.id || c.code || '').filter((id) => id !== '')
-            );
-            const filteredSelected = new Set(
-              Array.from(currentSelected).filter((id) => availableCourseIds.has(id))
-            );
-            if (filteredSelected.size !== currentSelected.size) {
-              updateSelectedCourseIds(filteredSelected);
-            }
-          }
-        })
-        .catch((error) => {
-          console.error('Error fetching courses:', error);
-          setSearchResults([]);
-          setIsSearching(false);
-          // 에러 발생 시 선택 해제
-          if (selectedCourseIdsRef.current.size > 0) {
-            updateSelectedCourseIds(new Set());
-          }
-        });
-    }, 500); // 디바운스
-
-    return () => {
-      clearTimeout(timeoutId);
-      setIsSearching(false);
-    };
-  }, [courseSearchQuery, filterDepartment, filterCategory]);
 
   // 서버에 저장
   const saveEnrollments = useCallback(
@@ -911,8 +839,7 @@ export default function CoursesTab({ lang = 'ko', profile, userId, onProfileUpda
                 lang={lang}
                 searchQuery={courseSearchQuery}
                 onSearchQueryChange={setCourseSearchQuery}
-                searchResults={searchResults}
-                isSearching={isSearching}
+                onSearchResultsChange={setSearchResults}
                 selectedCourseIds={selectedCourseIds}
                 onSelectionChange={updateSelectedCourseIds}
                 addYear={addYear}
@@ -977,8 +904,7 @@ export default function CoursesTab({ lang = 'ko', profile, userId, onProfileUpda
                 lang={lang}
                 searchQuery={courseSearchQuery}
                 onSearchQueryChange={setCourseSearchQuery}
-                searchResults={searchResults}
-                isSearching={isSearching}
+                onSearchResultsChange={setSearchResults}
                 selectedCourseIds={selectedCourseIds}
                 onSelectionChange={updateSelectedCourseIds}
                 addYear={addYear}
