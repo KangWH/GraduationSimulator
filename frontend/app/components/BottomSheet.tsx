@@ -257,7 +257,7 @@ export default function BottomSheet({
 
   const overlay = (
     <div
-      className={`fixed inset-0 flex items-end sm:items-center justify-center transition-opacity duration-200 ${isClosing ? 'opacity-0' : 'opacity-100'} ${dimmed ? 'bg-black/50 dark:bg-black/70' : ''} ${backdropClassName}`}
+      className={`fixed inset-0 flex items-end sm:items-center justify-center transition-opacity duration-200 ${isClosing ? 'opacity-0 pointer-events-none' : 'opacity-100'} ${dimmed ? 'bg-black/50 dark:bg-black/70' : ''} ${backdropClassName}`}
       style={{ zIndex: overlayZ }}
       onClick={(e) => {
         if (e.target === e.currentTarget) closeSheet();

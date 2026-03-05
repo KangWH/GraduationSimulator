@@ -80,7 +80,6 @@ export default function MobileTopBar({ left, center, right, below, className = '
         }`}
       >
         <div className="relative min-h-[4rem] flex items-center py-3">
-          {/* 콘텐츠 - py-3로 그림자 여유 확보 */}
           <div className="relative z-10 px-2 flex flex-row justify-between items-center w-full">
             <div className="flex items-center shrink-0">{left}</div>
             <div className="flex items-center justify-center flex-1 min-w-0">{center}</div>

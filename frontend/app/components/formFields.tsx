@@ -7,10 +7,10 @@ import BottomSheet from './BottomSheet';
 // Button과 동일한 패딩·글꼴·모서리·모바일 최소높이 (shadow-sm 공통)
 export type FieldSize = 'exsmall' | 'small' | 'medium' | 'large';
 const fieldSizeRoundedMinH: Record<FieldSize, string> = {
-  exsmall: 'rounded min-h-6',
-  small: 'rounded-md min-h-7',
-  medium: 'rounded-lg min-h-9',
-  large: 'rounded-xl min-h-11',
+  exsmall: 'rounded-md min-h-6',
+  small: 'rounded-lg min-h-7',
+  medium: 'rounded-xl min-h-9',
+  large: 'rounded-2xl min-h-11',
 };
 const fieldSizeTextPadding: Record<FieldSize, string> = {
   exsmall: 'text-xs px-2 py-1',
@@ -19,10 +19,10 @@ const fieldSizeTextPadding: Record<FieldSize, string> = {
   large: 'text-lg px-4 py-3',
 };
 const fieldSizeClassNames: Record<FieldSize, string> = {
-  exsmall: 'text-xs px-2 py-1 rounded min-h-6',
-  small: 'text-sm px-2 py-1 rounded-md min-h-7',
-  medium: 'text-base px-3 py-2 rounded-lg min-h-9',
-  large: 'text-lg px-4 py-3 rounded-xl min-h-11',
+  exsmall: 'text-xs px-2 py-1 rounded-md min-h-6',
+  small: 'text-sm px-2 py-1 rounded-lg min-h-7',
+  medium: 'text-base px-3 py-2 rounded-xl min-h-9',
+  large: 'text-lg px-4 py-3 rounded-2xl min-h-11',
 };
 
 interface InputProps {
