@@ -100,7 +100,6 @@ export default function SignupPage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [courseSearchQuery, setCourseSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [selectedCourseIds, setSelectedCourseIds] = useState<Set<string>>(new Set());
   const selectedCourseIdsRef = useRef<Set<string>>(new Set());
   const [addYear, setAddYear] = useState(new Date().getFullYear());
@@ -138,26 +137,6 @@ export default function SignupPage() {
       .catch(() => setStep(1))
       .finally(() => setIsCheckingAuth(false));
   }, [router]);
-
-  useEffect(() => {
-    if (courseSearchQuery.trim() || (filterDepartment && filterDepartment !== 'none') || (filterCategory && filterCategory !== 'none')) {
-      setIsSearching(true);
-      const params = new URLSearchParams();
-      if (courseSearchQuery.trim()) params.append('query', courseSearchQuery.trim());
-      if (filterDepartment && filterDepartment !== 'none') params.append('department', filterDepartment);
-      if (filterCategory && filterCategory !== 'none') params.append('category', filterCategory);
-      const t = setTimeout(() => {
-        fetch(`${API}/courses?${params.toString()}`)
-          .then((r) => r.json())
-          .then((courses) => setSearchResults(Array.isArray(courses) ? courses : []))
-          .catch(() => setSearchResults([]))
-          .finally(() => setIsSearching(false));
-      }, 500);
-      return () => clearTimeout(t);
-    }
-    setSearchResults([]);
-    setIsSearching(false);
-  }, [courseSearchQuery, filterDepartment, filterCategory]);
 
   const handleAddSelected = useCallback(() => {
     if (selectedCourseIds.size === 0) {
@@ -722,8 +701,7 @@ export default function SignupPage() {
                       lang={lang}
                       searchQuery={courseSearchQuery}
                       onSearchQueryChange={setCourseSearchQuery}
-                      searchResults={searchResults}
-                      isSearching={isSearching}
+                      onSearchResultsChange={setSearchResults}
                       selectedCourseIds={selectedCourseIds}
                       onSelectionChange={updateSelectedCourseIds}
                       addYear={addYear}
@@ -811,8 +789,7 @@ export default function SignupPage() {
                       lang={lang}
                       searchQuery={courseSearchQuery}
                       onSearchQueryChange={setCourseSearchQuery}
-                      searchResults={searchResults}
-                      isSearching={isSearching}
+                      onSearchResultsChange={setSearchResults}
                       selectedCourseIds={selectedCourseIds}
                       onSelectionChange={updateSelectedCourseIds}
                       addYear={addYear}

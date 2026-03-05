@@ -5,12 +5,13 @@ import { ReactNode, ButtonHTMLAttributes } from 'react';
 export type ButtonSize = 'exsmall' | 'small' | 'medium' | 'large' | 'exlarge';
 export type ButtonStyle = 'simple' | 'standard' | 'prominent' | 'destructive';
 
+// Select/Input(formFields)와 동일한 패딩·글꼴·모서리·모바일 최소높이
 const sizeClassNames: Record<ButtonSize, string> = {
-  exsmall: 'text-xs px-2 py-1 rounded',
-  small: 'text-sm px-2 py-1 rounded-md',
-  medium: 'text-base px-3 py-2 rounded-lg',
-  large: 'text-lg px-4 py-3 rounded-xl',
-  exlarge: 'text-xl px-5 py-3.5 rounded-2xl',
+  exsmall: 'text-xs px-2 py-1',
+  small: 'text-sm px-2 py-1',
+  medium: 'text-base px-3 py-2',
+  large: 'text-lg px-4 py-3',
+  exlarge: 'text-xl px-5 py-3.5',
 };
 
 const roundedClassNames: Record<ButtonSize, string> = {
@@ -22,11 +23,11 @@ const roundedClassNames: Record<ButtonSize, string> = {
 };
 
 const minHeightClass: Record<ButtonSize, string> = {
-  exsmall: 'min-h-0',
-  small: 'min-h-0',
-  medium: 'min-h-0',
-  large: 'min-h-0',
-  exlarge: 'min-h-0',
+  exsmall: 'min-h-6',
+  small: 'min-h-7',
+  medium: 'min-h-9',
+  large: 'min-h-11',
+  exlarge: 'min-h-12',
 };
 
 const activeScaleClass = {
