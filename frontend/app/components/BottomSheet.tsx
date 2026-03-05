@@ -4,6 +4,7 @@ import { ReactNode, useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 const DRAG_CLOSE_THRESHOLD = 80;
+const ANIMATION_DURATION = 200;
 
 let scrollLockCount = 0;
 
@@ -72,6 +73,7 @@ export default function BottomSheet({
   showCloseButton = true,
   padded = true,
 }: BottomSheetProps) {
+  const [mounted, setMounted] = useState(false);
   const [sheetVisible, setSheetVisible] = useState(false);
   const [sheetDragY, setSheetDragY] = useState(0);
   const [isClosing, setIsClosing] = useState(false);
@@ -80,13 +82,17 @@ export default function BottomSheet({
   const sheetDragYRef = useRef(0);
   sheetDragYRef.current = sheetDragY;
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const closeSheet = useCallback(() => {
     setSheetVisible(false);
     setIsClosing(true);
     window.setTimeout(() => {
       onOpenChange(false);
       setIsClosing(false);
-    }, 200);
+    }, ANIMATION_DURATION);
   }, [onOpenChange]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -145,7 +151,7 @@ export default function BottomSheet({
     } else {
       setSheetVisible(false);
       setIsClosing(true);
-      const t = window.setTimeout(() => setIsClosing(false), 200);
+      const t = window.setTimeout(() => setIsClosing(false), ANIMATION_DURATION);
       return () => window.clearTimeout(t);
     }
   }, [open]);
@@ -160,14 +166,17 @@ export default function BottomSheet({
     }
   }, [open, isClosing]);
 
-  if ((!open && !isClosing) || typeof document === 'undefined') return null;
+  if (!mounted || (!open && !isClosing) || typeof document === 'undefined') return null;
 
   const overlayZ = zIndex;
   const sheetZ = zIndex + 1;
 
+  // 데스크톱 desktopCenter: 닫을 때 translate 대신 opacity 페이드아웃 (sm:translate-y-0가 translate-y-full을 덮어써서 슬라이드가 안 됨)
+  const isDesktopClose = desktopCenter && isClosing;
   const sheetPanelClasses = [
     'bg-gray-50 dark:bg-zinc-900 shadow-xl w-full sm:max-w-md sm:mx-4 mx-0 flex flex-col rounded-t-2xl sm:rounded-xl overflow-hidden',
-    sheetDragY > 0 ? 'transition-none' : 'transition-transform duration-200',
+    sheetDragY > 0 ? 'transition-none' : 'transition-all duration-200',
+    isDesktopClose ? 'sm:opacity-0' : '', // 데스크톱에서만 페이드, 모바일은 슬라이드 유지
     sheetVisible && sheetDragY === 0 ? 'translate-y-0' : sheetVisible ? '' : 'translate-y-full' + (desktopCenter ? ' sm:translate-y-0' : ''),
     contentClassName,
   ].filter(Boolean).join(' ');
@@ -234,7 +243,7 @@ export default function BottomSheet({
 
   const overlay = (
     <div
-      className={`fixed inset-0 flex items-end sm:items-center justify-center ${dimmed ? 'bg-black/50 dark:bg-black/70' : ''} ${backdropClassName}`}
+      className={`fixed inset-0 flex items-end sm:items-center justify-center transition-opacity duration-200 ${isClosing ? 'opacity-0' : 'opacity-100'} ${dimmed ? 'bg-black/50 dark:bg-black/70' : ''} ${backdropClassName}`}
       style={{ zIndex: overlayZ }}
       onClick={(e) => {
         if (e.target === e.currentTarget) closeSheet();

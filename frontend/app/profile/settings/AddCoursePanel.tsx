@@ -424,14 +424,16 @@ export default function AddCoursePanel({
         </>
       )}
 
-      {/* 학기/성적 선택 시트 */}
+      {/* 학기/성적 선택 시트: 모바일=하단 시트, 데스크톱=중앙 모달 */}
       <BottomSheet
         open={addSheetOpen}
         onOpenChange={setAddSheetOpen}
         title={lang === 'en' ? 'Add courses' : '과목 추가'}
+        desktopCenter
         dimmed={false}
         zIndex={102}
-        contentClassName="bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-lg border border-gray-200/50 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+        maxHeight="min(400px, 80vh)"
+        contentClassName="border border-gray-200 dark:border-zinc-700 pb-[calc(1rem+env(safe-area-inset-bottom))]"
       >
         <div className="space-y-4">
           {onAddAsPriorCreditChange && (
