@@ -1485,7 +1485,7 @@ export default function SimulationPage() {
   return (
     <>
       {/* 데스크톱 UI */}
-      <div className={`h-screen hidden md:flex md:flex-col bg-gray-50 dark:bg-zinc-900 select-none transition-all duration-300 overflow-hidden ${sidebarOpen ? 'pl-100' : ''}`}>
+      <div className={`h-screen hidden md:flex md:flex-col bg-gray-50 dark:bg-zinc-900 select-none transition-all duration-300 overflow-hidden ${sidebarOpen ? 'pl-[min(25rem,30%)]' : ''}`}>
         {/* 상단 바 */}
         <DesktopTopBar
           left={<>
@@ -1694,7 +1694,7 @@ export default function SimulationPage() {
 
         {/* 사이드바 */}
         <aside
-          className={`w-100 fixed top-12 bottom-0 left-0 z-30 p-2 transition-all duration-300 overflow-hidden ${sidebarOpen ? '' : '-translate-x-full'}`}
+          className={`w-[min(25rem,30%)] fixed top-12 bottom-0 left-0 z-30 p-2 transition-all duration-300 overflow-hidden ${sidebarOpen ? '' : '-translate-x-full'}`}
         >
           <div
             className={`flex-1 overflow-y-hidden overflow-x-hidden space-y-2 transition-all p-4 rounded-2xl bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-md border border-gray-200/50 dark:border-zinc-700/50 shadow-lg w-full h-full flex flex-col ${
@@ -1880,15 +1880,13 @@ export default function SimulationPage() {
               <div className="flex items-center justify-between gap-4 mb-2 px-6">
                 <h2 className="text-lg font-bold shrink-0">이수한 과목</h2>
                 <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
-                  {coursesGrouping === 'byCategory' && (
-                    <Button
-                      size="exsmall"
-                      style="standard"
-                      onClick={() => setGradeBlindMode(!gradeBlindMode)}
-                    >
-                      {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
-                    </Button>
-                  )}
+                  <Button
+                    size="exsmall"
+                    style="standard"
+                    onClick={() => setGradeBlindMode(!gradeBlindMode)}
+                  >
+                    {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
+                  </Button>
                   <div className="min-w-0 flex-1 max-w-40">
                     <Select
                       size="exsmall"
@@ -2373,10 +2371,12 @@ export default function SimulationPage() {
                         <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1/2">총 AU</span>
                         <p className="text-lg font-semibold"><AnimatedNumber value={totalStats.totalAu} duration={380} /> <span className="text-xs text-gray-500 dark:text-zinc-400">/ 4</span></p>
                       </div>
-                      <div>
-                        <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1/2">평점</span>
-                        <p className="text-lg font-semibold"><AnimatedNumber value={totalStats.gpa} decimals={2} duration={380} /> <span className="text-xs text-gray-500 dark:text-zinc-400">/ {filters.earlyGraduation ? '3.0' : '2.0'}</span></p>
-                      </div>
+                      {gradeBlindMode || (
+                        <div>
+                          <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1/2">평점</span>
+                          <p className="text-lg font-semibold"><AnimatedNumber value={totalStats.gpa} decimals={2} duration={380} /> <span className="text-xs text-gray-500 dark:text-zinc-400">/ {filters.earlyGraduation ? '3.0' : '2.0'}</span></p>
+                        </div>
+                      )}
                     </div>
                     <div className="text-right">
                       <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1/2">시뮬레이션 결과</span>

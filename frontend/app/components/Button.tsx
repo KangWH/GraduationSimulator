@@ -15,11 +15,11 @@ const sizeClassNames: Record<ButtonSize, string> = {
 };
 
 const roundedClassNames: Record<ButtonSize, string> = {
-  exsmall: 'rounded',
-  small: 'rounded-md',
-  medium: 'rounded-lg',
-  large: 'rounded-xl',
-  exlarge: 'rounded-2xl',
+  exsmall: 'rounded-md',
+  small: 'rounded-lg',
+  medium: 'rounded-xl',
+  large: 'rounded-2xl',
+  exlarge: 'rounded-3xl',
 };
 
 const minHeightClass: Record<ButtonSize, string> = {

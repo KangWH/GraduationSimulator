@@ -312,13 +312,15 @@ interface PseudoRequirement {
   currentValue?: number;
 }
 
-export function RequirementBar({ requirement, onMouseEnter, onMouseLeave }: { requirement: PseudoRequirement,  onMouseEnter: MouseEventHandler<HTMLParagraphElement>, onMouseLeave: () => void }) {
+export function RequirementBar({ requirement, onMouseEnter, onMouseLeave }: { requirement: PseudoRequirement,  onMouseEnter: MouseEventHandler<HTMLDivElement>, onMouseLeave: () => void }) {
   const currentValue = requirement.currentValue || 0;
   const targetValue = requirement.value || 0;
   const percentage = targetValue > 0 ? Math.min(100, (currentValue / targetValue) * 100) : 0;
   return (
     <div
       className="relative p-2 rounded bg-gray-50 dark:bg-zinc-900 overflow-hidden"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <div
         className="absolute inset-0 bg-violet-100 dark:bg-violet-900/50 transition-all duration-300"
@@ -327,8 +329,6 @@ export function RequirementBar({ requirement, onMouseEnter, onMouseLeave }: { re
       <div className="relative flex items-center justify-between">
         <p 
           className="flex-1 font-medium text-sm truncate leading-tight"
-          onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
         >
           {requirement.title || requirement.description || ''}
         </p>
