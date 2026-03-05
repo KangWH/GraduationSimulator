@@ -2,13 +2,27 @@ import { ReactNode } from "react";
 
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import BottomSheet from './BottomSheet';
 
+// Button과 동일한 패딩·글꼴·모서리·모바일 최소높이 (shadow-sm 공통)
 export type FieldSize = 'exsmall' | 'small' | 'medium' | 'large';
+const fieldSizeRoundedMinH: Record<FieldSize, string> = {
+  exsmall: 'rounded min-h-6',
+  small: 'rounded-md min-h-7',
+  medium: 'rounded-lg min-h-9',
+  large: 'rounded-xl min-h-11',
+};
+const fieldSizeTextPadding: Record<FieldSize, string> = {
+  exsmall: 'text-xs px-2 py-1',
+  small: 'text-sm px-2 py-1',
+  medium: 'text-base px-3 py-2',
+  large: 'text-lg px-4 py-3',
+};
 const fieldSizeClassNames: Record<FieldSize, string> = {
-  'exsmall': 'text-xs px-2 py-1',
-  'small': 'text-sm px-2 py-1',
-  'medium': 'text-md px-3 py-2',
-  'large': 'text-lg px-4 py-3'
+  exsmall: 'text-xs px-2 py-1 rounded min-h-6',
+  small: 'text-sm px-2 py-1 rounded-md min-h-7',
+  medium: 'text-base px-3 py-2 rounded-lg min-h-9',
+  large: 'text-lg px-4 py-3 rounded-xl min-h-11',
 };
 
 interface InputProps {
@@ -36,7 +50,7 @@ export function Input({ id, name, value, onChange, type = 'text', inputMode = 't
       required={required}
       placeholder={placeholder}
       className={
-        "w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none min-h-10 sm:min-h-0 "
+        "w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 outline-none appearance-none "
         + fieldSizeClassNames[size] + (className ? " " + className : "")
       }
     />
@@ -64,7 +78,7 @@ export function NumberInput({ id, name, min = '0', max = '100', step = '1', valu
   return (
     <div
       className={
-        "flex flex-row w-full shadow-sm focus-within:ring-1 focus-within:ring-violet-500/50 rounded-md overflow-hidden min-h-10 sm:min-h-0 " + (disabled ? 'bg-gray-100 text-gray-500 disabled:bg-zinc-900 ' : 'bg-white dark:bg-black ') + (className ? className : "")
+        "flex flex-row w-full shadow-sm focus-within:ring-1 focus-within:ring-violet-500/50 overflow-hidden " + fieldSizeRoundedMinH[size] + " " + (disabled ? 'bg-gray-100 text-gray-500 dark:bg-zinc-900' : 'bg-white dark:bg-black') + (className ? " " + className : "")
       }
     >
       <input
@@ -80,7 +94,7 @@ export function NumberInput({ id, name, min = '0', max = '100', step = '1', valu
         disabled={disabled}
         required={required}
         placeholder={placeholder}
-        className={"grow outline-none appearance-none " + fieldSizeClassNames[size] /* + " pr-0" */}
+        className={"grow outline-none appearance-none " + fieldSizeTextPadding[size]}
         style={{ WebkitAppearance: 'none' }}
       />
       {/* <div className="ml-1 w-4 flex flex-col items-stretch">
@@ -115,7 +129,7 @@ export function Select({ id, name, value, onChange, disabled = false, required =
         disabled={disabled}
         required={required}
         className={
-          "w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none pr-8 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-zinc-900 min-h-10 sm:min-h-0 "
+          "w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 outline-none appearance-none pr-8 disabled:bg-gray-100 disabled:text-gray-500 dark:disabled:bg-zinc-900 "
           + fieldSizeClassNames[size]
           + (className ? " " + className : "")
         }
@@ -175,24 +189,13 @@ export function MultipleSelect({
   const displayPlaceholder = placeholder ?? (lang === 'ko' ? '없음' : 'None');
   const [isOpen, setIsOpen] = useState(false);
   const [isMobileSheet, setIsMobileSheet] = useState(false);
-  const [sheetVisible, setSheetVisible] = useState(false);
   const [popoverStyle, setPopoverStyle] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
   const [focusedIndex, setFocusedIndex] = useState(0);
-  const [sheetDragY, setSheetDragY] = useState(0);
-  const touchStartY = useRef(0);
-  const touchStartTime = useRef(0);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const closeWithAnimation = () => {
-    if (isMobileSheet) {
-      setSheetVisible(false);
-      window.setTimeout(() => {
-        setIsOpen(false);
-      }, 200);
-      return;
-    }
     setIsOpen(false);
   };
 
@@ -294,16 +297,6 @@ export function MultipleSelect({
       setPopoverStyle(null);
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    if (isOpen && isMobileSheet) {
-      // mount 이후 한 프레임 뒤에 올라오는 애니메이션 시작
-      setSheetVisible(false);
-      const t = window.setTimeout(() => setSheetVisible(true), 10);
-      return () => window.clearTimeout(t);
-    }
-    setSheetVisible(false);
-  }, [isOpen, isMobileSheet]);
 
   // 바깥 클릭 감지 (트리거 + 팝오버 둘 다 제외)
   useEffect(() => {
@@ -430,24 +423,6 @@ export function MultipleSelect({
     setFocusedIndex(index);
   };
 
-  const DRAG_CLOSE_THRESHOLD = 80;
-  const handleSheetTouchStart = (e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchStartTime.current = Date.now();
-  };
-  const handleSheetTouchMove = (e: React.TouchEvent) => {
-    const dy = e.touches[0].clientY - touchStartY.current;
-    if (dy > 0) setSheetDragY(dy);
-  };
-  const handleSheetTouchEnd = () => {
-    const elapsed = Date.now() - touchStartTime.current;
-    const velocity = elapsed > 0 ? sheetDragY / elapsed : 0;
-    if (sheetDragY > DRAG_CLOSE_THRESHOLD || velocity > 0.4) {
-      closeWithAnimation();
-    }
-    setSheetDragY(0);
-  };
-
   return (
     <div className="relative w-full min-w-20">
       <button
@@ -465,7 +440,7 @@ export function MultipleSelect({
         }}
         onKeyDown={handleTriggerKeyDown}
         className={
-          'w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 rounded-md outline-none appearance-none text-left flex items-center gap-2 min-h-10 sm:min-h-0 ' +
+          'w-full bg-white dark:bg-black shadow-sm focus:ring-1 focus:ring-violet-500/50 outline-none appearance-none text-left flex items-center gap-2 ' +
           fieldSizeClassNames[size]
           + " " + className
           + (isOpen ? ' ring-1 ring-violet-500/50' : '')
@@ -502,44 +477,32 @@ export function MultipleSelect({
       {isOpen &&
         popoverStyle &&
         typeof document !== 'undefined' &&
-        createPortal(
-          isMobileSheet ? (
-            <div
-              className={`fixed inset-0 z-[9998] bg-black/50 transition-opacity duration-200 ${sheetVisible ? 'opacity-100' : 'opacity-0'}`}
-              onClick={closeWithAnimation}
-            >
-              <div
-                ref={popoverRef}
-                className={`fixed left-0 right-0 bottom-0 z-[9999] bg-white dark:bg-zinc-900 rounded-t-xl shadow-lg overflow-y-auto overscroll-contain ${sheetDragY > 0 ? 'transition-none' : 'transition-transform duration-200'} ${sheetVisible && sheetDragY === 0 ? 'translate-y-0' : sheetVisible ? '' : 'translate-y-full'}`}
-                style={{
-                  maxHeight: `${popoverStyle.maxHeight}px`,
-                  ...(sheetVisible && sheetDragY > 0 && { transform: `translateY(${sheetDragY}px)` }),
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div
-                  className="sticky top-0 z-10 touch-none cursor-grab active:cursor-grabbing bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-700"
-                  onTouchStart={handleSheetTouchStart}
-                  onTouchMove={handleSheetTouchMove}
-                  onTouchEnd={handleSheetTouchEnd}
-                >
-                  <div className="flex justify-center pt-2 pb-1" aria-hidden>
-                    <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
-                  </div>
-                  <div className="px-3 py-2 flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={allSelected ? handleDeselectAll : handleSelectAll}
-                      className="group/btn text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-10 sm:min-h-0 px-2 -mx-2 rounded-lg active:bg-violet-50 dark:active:bg-violet-900/20 transition-all"
-                    >
-                      <span className="inline-block transition-transform duration-150 group-active/btn:scale-90">{allSelected ? (lang === 'ko' ? '전체 취소' : 'Deselect all') : (lang === 'ko' ? '전체 선택' : 'Select all')}</span>
-                    </button>
-                    <div className="flex items-center gap-2">
-                      {someSelected && (
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {value.length} / {options.length}
-                        </span>
-                      )}
+        (isMobileSheet ? (
+          <BottomSheet
+            open={isOpen}
+            onOpenChange={setIsOpen}
+            zIndex={9998}
+            maxHeight={`${popoverStyle.maxHeight}px`}
+            padded={false}
+            header={
+              <>
+                <div className="flex justify-center pt-2 pb-1" aria-hidden>
+                  <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
+                </div>
+                <div className="px-3 py-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={allSelected ? handleDeselectAll : handleSelectAll}
+                    className="group/btn text-sm text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-medium select-none min-h-10 sm:min-h-0 px-2 -mx-2 rounded-lg active:bg-violet-50 dark:active:bg-violet-900/20 transition-all"
+                  >
+                    <span className="inline-block transition-transform duration-150 group-active/btn:scale-90">{allSelected ? (lang === 'ko' ? '전체 취소' : 'Deselect all') : (lang === 'ko' ? '전체 선택' : 'Select all')}</span>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    {someSelected && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {value.length} / {options.length}
+                      </span>
+                    )}
                     <button
                       type="button"
                       onClick={closeWithAnimation}
@@ -547,17 +510,18 @@ export function MultipleSelect({
                       aria-label="닫기"
                     >
                       <span className="inline-block transition-transform duration-150 group-active/btn:scale-85">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                       </span>
                     </button>
                   </div>
-                  </div>
                 </div>
-
-                {/* 옵션 목록 */}
-                <div
+              </>
+            }
+          >
+            {/* 옵션 목록 */}
+            <div
                   role="listbox"
                   aria-multiselectable
                   onKeyDown={handlePaletteKeyDown}
@@ -596,9 +560,8 @@ export function MultipleSelect({
                     );
                   })}
                 </div>
-              </div>
-            </div>
-          ) : (
+          </BottomSheet>
+        ) : createPortal(
             <div
               ref={popoverRef}
               className="fixed z-[9999] bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-sm rounded-xl shadow-lg overflow-y-auto overscroll-contain border border-black/10 dark:border-white/20"
@@ -665,9 +628,9 @@ export function MultipleSelect({
                   );
                 })}
               </div>
-            </div>
-          ),
+            </div>,
           document.body
+        )
         )}
     </div>
   );

@@ -31,6 +31,8 @@ import { PDFDownloadLink } from '@react-pdf/renderer';
 import GraduationReportPDF from './ReportPDF';
 import DesktopTopBar from '../components/DesktopTopBar';
 import Button from '../components/Button';
+import SegmentedControl from '../components/SegmentedControl';
+import BottomSheet from '../components/BottomSheet';
 
 type Dept = { id: string; name: string };
 
@@ -50,14 +52,14 @@ export default function SimulationPage() {
   const [coursesGrouping, setCoursesGrouping] = useState<'bySemester' | 'byCategory'>('byCategory')
   // 모바일 탭 상태
   const [mobileTab, setMobileTab] = useState<'major' | 'courses' | 'credits' | 'requirements'>('requirements');
-  // 모바일에서, 시나리오 선택 모달 표시 여부?
+  // 모바일 탭 상태 (신 UI)
+  const mobileSegments = [
+    {identifier: 'courses', displayText: '이수 과목'},
+    {identifier: 'requirements', displayText: '졸업 요건'},
+  ]
+  const [mobileSegment, setMobileSegment] = useState(mobileSegments[1].identifier);
+  // 모바일에서, 시나리오 선택 모달 표시 여부
   const [isScenarioModalOpen, setIsScenarioModalOpen] = useState(false);
-  // 모바일에서, 시나리오 선택 모달 애니메이션 제어용 변수?
-  const [scenarioSheetVisible, setScenarioSheetVisible] = useState(false);
-  // 시나리오 시트 드래그로 내린 거리(px)
-  const [scenarioSheetDragY, setScenarioSheetDragY] = useState(0);
-  const scenarioTouchStartY = useRef(0);
-  const scenarioTouchStartTime = useRef(0);
   // 시나리오를 저장할 이름 필드
   const [saveName, setSaveName] = useState('');
   // 보고서 다이얼로그 표시 여부
@@ -225,32 +227,8 @@ export default function SimulationPage() {
   }, [profileEnrollmentsEmpty, enrollmentPromptDismissed]);
 
   const closeScenarioModal = useCallback(() => {
-    setScenarioSheetVisible(false);
-    window.setTimeout(() => setIsScenarioModalOpen(false), 200);
+    setIsScenarioModalOpen(false);
   }, []);
-
-  const SCENARIO_DRAG_CLOSE_THRESHOLD = 80;
-  const handleScenarioSheetTouchStart = useCallback((e: React.TouchEvent) => {
-    scenarioTouchStartY.current = e.touches[0].clientY;
-    scenarioTouchStartTime.current = Date.now();
-  }, []);
-  const handleScenarioSheetTouchMove = useCallback((e: React.TouchEvent) => {
-    if (typeof window === 'undefined' || window.innerWidth >= 640) return;
-    const dy = e.touches[0].clientY - scenarioTouchStartY.current;
-    if (dy > 0) setScenarioSheetDragY(dy);
-  }, []);
-  const handleScenarioSheetTouchEnd = useCallback(() => {
-    if (typeof window !== 'undefined' && window.innerWidth >= 640) {
-      setScenarioSheetDragY(0);
-      return;
-    }
-    const elapsed = Date.now() - scenarioTouchStartTime.current;
-    const velocity = elapsed > 0 ? scenarioSheetDragY / elapsed : 0;
-    if (scenarioSheetDragY > SCENARIO_DRAG_CLOSE_THRESHOLD || velocity > 0.4) {
-      closeScenarioModal();
-    }
-    setScenarioSheetDragY(0);
-  }, [scenarioSheetDragY, closeScenarioModal]);
 
   const handleSaveSimulation = useCallback(async (name: string) => {
     if (!name.trim()) {
@@ -316,15 +294,6 @@ export default function SimulationPage() {
       return false;
     }
   }, [simulationCourses, filters]);
-
-  useEffect(() => {
-    if (isScenarioModalOpen) {
-      setScenarioSheetVisible(false);
-      const t = window.setTimeout(() => setScenarioSheetVisible(true), 10);
-      return () => window.clearTimeout(t);
-    }
-    setScenarioSheetVisible(false);
-  }, [isScenarioModalOpen]);
 
   useEffect(() => {
     Promise.all([
@@ -1924,15 +1893,16 @@ export default function SimulationPage() {
               <div className="flex items-center justify-between gap-4 mb-2 px-6">
                 <h2 className="text-lg font-bold shrink-0">이수한 과목</h2>
                 <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
-                  <Button
-                    size="exsmall"
-                    style="standard"
-                    onClick={() => setGradeBlindMode(!gradeBlindMode)}
-                    title={gradeBlindMode ? '성적 표시' : '성적 숨기기'}
-                    className="shrink-0"
-                  >
-                    {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
-                  </Button>
+                  {coursesGrouping === 'byCategory' && (
+                    <Button
+                      size="exsmall"
+                      style="standard"
+                      onClick={() => setGradeBlindMode(!gradeBlindMode)}
+                      className="min-h-10"
+                    >
+                      {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
+                    </Button>
+                  )}
                   <div className="min-w-0 flex-1 max-w-40">
                     <Select
                       size="exsmall"
@@ -2691,6 +2661,7 @@ export default function SimulationPage() {
               <div className="text-2xl">
                 <Logo />
               </div>
+              // <SegmentedControl activeSegment={mobileSegment} onActiveSegmentChange={(newSegmentIdentifier) => {setMobileSegment(newSegmentIdentifier)}} segments={mobileSegments} />
             }
           right={
               <Link
@@ -2703,30 +2674,17 @@ export default function SimulationPage() {
                 </svg>
               </Link>
             }
-          below={
-            mobileTab === 'requirements' ? (
-              <div className="px-4 py-2 flex flex-row justify-between gap-3">
-                <div>
-                  <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">이수 학점</span>
-                  <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.totalCredit} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ 138</span></p>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">총 AU</span>
-                  <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.totalAu} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ 4</span></p>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">평점</span>
-                  <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.gpa} decimals={2} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ {filters.earlyGraduation ? '3.0' : '2.0'}</span></p>
-                </div>
-                <div>
-                  <span className="text-xs text-gray-500 dark:text-zinc-400 block mb-1">시뮬레이션 결과</span>
-                  <p className={`text-base sm:text-lg font-bold ${canGraduate ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    졸업 {canGraduate ? '가능' : '불가'}
-                  </p>
-                </div>
-              </div>
-            ) : undefined
-          }
+          below={(
+            <div className="px-4 py-2 flex flex-row justify-between gap-3">
+              <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.totalCredit} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ 138 학점</span></p>
+              <p className="text-base sm:text-lg font-semibold"><AnimatedNumber value={totalStats.totalAu} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ 4 AU</span></p>
+              <p className="text-base sm:text-lg font-semibold"><span className="mr-2 text-xs text-gray-400 dark:text-zinc-500">평점</span><AnimatedNumber value={totalStats.gpa} decimals={2} duration={380} /> <span className="text-xs text-gray-400 dark:text-zinc-500">/ {filters.earlyGraduation ? '3.0' : '2.0'}</span></p>
+              <div className="my-1 w-px bg-gray-400 dark:bg-zinc-500" />
+              <p className={`text-base sm:text-lg font-bold ${canGraduate ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                졸업 {canGraduate ? '가능' : '불가'}
+              </p>
+            </div>
+          )}
         />
 
         {/* 본문 영역 */}
@@ -2837,137 +2795,41 @@ export default function SimulationPage() {
             </div>
           )}
 
-          {/* 과목 탭 */}
+          {/* 과목 추가 탭 */}
           {mobileTab === 'courses' && (
-            <div>
-              {/* 모드 전환 */}
-              <div className="sticky top-[48px] backdrop-blur-md z-20 flex items-center gap-2 px-6 py-1">
-                <Button
-                  type="button"
-                  size="medium"
-                  style="standard"
-                  isActive={courseMode === 'add'}
-                  onClick={() => setCourseMode('add')}
-                  className="flex-1 truncate py-2"
-                >
-                  과목 추가
-                </Button>
-                <Button
-                  type="button"
-                  size="medium"
-                  style="standard"
-                  isActive={courseMode === 'view'}
-                  onClick={() => setCourseMode('view')}
-                  className="flex-1 truncate py-2"
-                >
-                  수강한 과목<span className="opacity-40 ml-1">{enrollmentsForList.length}</span>
-                </Button>
-              </div>
-
-              {/* 본문 */}
-              <div className="p-4 relative">
-                {isLoadingSimulation && (
-                  <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로드 중...</p>
-                    </div>
+            <div className="p-4 relative">
+              {isLoadingSimulation && (
+                <div className="absolute inset-0 z-10 bg-gray-50/80 dark:bg-zinc-900/80 backdrop-blur-sm flex items-center justify-center rounded-lg">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 dark:border-violet-400"></div>
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">로드 중...</p>
                   </div>
-                )}
-                {courseMode === 'add' ? (
-                  // <div className="overflow-hidden h-full">
-                    <AddCoursePanel
-                      searchQuery={courseSearchQuery}
-                      onSearchQueryChange={setCourseSearchQuery}
-                      searchResults={searchResults}
-                      isSearching={isSearching}
-                      selectedCourseIds={selectedCourseIds}
-                      onSelectionChange={updateSelectedCourseIds}
-                      addYear={addYear}
-                      onAddYearChange={setAddYear}
-                      addSemester={addSemester}
-                      onAddSemesterChange={setAddSemester}
-                      addGrade={addGrade}
-                      onAddGradeChange={setAddGrade}
-                      addAsPriorCredit={addAsPriorCredit}
-                      onAddAsPriorCreditChange={setAddAsPriorCredit}
-                      onAddSelected={handleAddSelected}
-                      onDragStart={(course) => setDraggedCourse(course)}
-                      filterDepartment={filterDepartment}
-                      onFilterDepartmentChange={setFilterDepartment}
-                      filterCategory={filterCategory}
-                      onFilterCategoryChange={setFilterCategory}
-                      enrolledCourseIds={simulationCourses.map((cs) => cs.courseId)}
-                    />
-                  // </div>
-                ) : (
-                  <div className="space-y-4">
-                    <EnrollmentsList
-                      enrollments={enrollmentsForList}
-                      semesterGroups={semesterGroups}
-                      sortedSemesterKeys={sortedSemesterKeys}
-                      selectedEnrollmentKeys={selectedEnrollmentKeys}
-                      highlightedEnrollmentKeys={highlightedUsedCourseKeys}
-                      onSelectionChange={setSelectedEnrollmentKeys}
-                      onGradeChange={(enrollment, grade) => {
-                        const cs = simulationCourses.find(
-                          (c) =>
-                            c.courseId === enrollment.courseId &&
-                            c.enrolledYear === enrollment.enrolledYear &&
-                            c.enrolledSemester === enrollment.enrolledSemester
-                        );
-                        if (cs) {
-                          handleGradeChange(cs, grade);
-                        }
-                      }}
-                      onMove={(enrollment, newYear, newSemester) => {
-                        const cs = simulationCourses.find(
-                          (c) =>
-                            c.courseId === enrollment.courseId &&
-                            c.enrolledYear === enrollment.enrolledYear &&
-                            c.enrolledSemester === enrollment.enrolledSemester
-                        );
-                        if (cs) {
-                          handleMove(cs, newYear, newSemester);
-                        }
-                      }}
-                      onRemove={(enrollment) => {
-                        const cs = simulationCourses.find(
-                          (c) =>
-                            c.courseId === enrollment.courseId &&
-                            c.enrolledYear === enrollment.enrolledYear &&
-                            c.enrolledSemester === enrollment.enrolledSemester
-                        );
-                        if (cs) {
-                          handleRemove(cs);
-                        }
-                      }}
-                      onRemoveSelected={() => {
-                        // simulation에서는 선택 삭제 기능 사용 안 함
-                        setSelectedEnrollmentKeys(new Set());
-                      }}
-                      onRemoveAll={() => {
-                        // simulation에서는 전체 삭제 기능 사용 안 함
-                        setSelectedEnrollmentKeys(new Set());
-                      }}
-                      onDragStart={(e, enrollment, semesterKey) => {
-                        const cs = simulationCourses.find(
-                          (c) =>
-                            c.courseId === enrollment.courseId &&
-                            c.enrolledYear === enrollment.enrolledYear &&
-                            c.enrolledSemester === enrollment.enrolledSemester
-                        );
-                        if (cs) {
-                          handleDragStart(e, cs, semesterKey);
-                        }
-                      }}
-                      onDrop={handleDrop}
-                      onDropOutside={handleDropOutside}
-                      findNearestPastSemester={findNearestPastSemester}
-                    />
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
+              
+              <AddCoursePanel
+                searchQuery={courseSearchQuery}
+                onSearchQueryChange={setCourseSearchQuery}
+                searchResults={searchResults}
+                isSearching={isSearching}
+                selectedCourseIds={selectedCourseIds}
+                onSelectionChange={updateSelectedCourseIds}
+                addYear={addYear}
+                onAddYearChange={setAddYear}
+                addSemester={addSemester}
+                onAddSemesterChange={setAddSemester}
+                addGrade={addGrade}
+                onAddGradeChange={setAddGrade}
+                addAsPriorCredit={addAsPriorCredit}
+                onAddAsPriorCreditChange={setAddAsPriorCredit}
+                onAddSelected={handleAddSelected}
+                onDragStart={(course) => setDraggedCourse(course)}
+                filterDepartment={filterDepartment}
+                onFilterDepartmentChange={setFilterDepartment}
+                filterCategory={filterCategory}
+                onFilterCategoryChange={setFilterCategory}
+                enrolledCourseIds={simulationCourses.map((cs) => cs.courseId)}
+              />
             </div>
           )}
 
@@ -2982,135 +2844,218 @@ export default function SimulationPage() {
                   </div>
                 </div>
               )}
+
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold">수업별 학점 인정 분야</h2>
-                <Button
-                  size="small"
-                  style="standard"
-                  onClick={() => setGradeBlindMode(!gradeBlindMode)}
-                >
-                  {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
-                </Button>
+                <div />
+                <div className="flex flex-row gap-2 items-center">
+                  {coursesGrouping === 'byCategory' && (
+                    <Button
+                      size="exsmall"
+                      style="standard"
+                      onClick={() => setGradeBlindMode(!gradeBlindMode)}
+                    >
+                      {gradeBlindMode ? '성적 표시' : '성적 숨기기'}
+                    </Button>
+                  )}
+                  <div className="min-w-0 max-w-40">
+                    <Select
+                      size="exsmall"
+                      value={coursesGrouping}
+                      onChange={(value) => setCoursesGrouping(value as 'bySemester' | 'byCategory')}
+                    >
+                      <option value="bySemester">학기별</option>
+                      <option value="byCategory">카테고리별</option>
+                    </Select>
+                  </div>
+                </div>
               </div>
 
-              {sections.length === 0 ? (
-                <p className="text-sm text-gray-500 dark:text-zinc-400 py-4 text-center">
-                  주전공을 선택하면 섹션이 구성됩니다.
-                </p>
-              ) : (
-                <div className="space-y-6">
-                  {/* 기초과목 그룹 */}
-                  {groupedSections.basicGroup.length > 0 && (
-                    <div className="bg-white dark:bg-black rounded-xl overflow-hidden shadow-lg">
-                      {groupedSections.basicGroup.map((s, i) => {
-                        const isCollapsed = collapsedSections.has(s.id);
-                        return (
-                          <div key={s.id}>
-                            <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
-                              <ACTitle>
-                                <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                                <p className="text-gray-600 dark:text-zinc-400 text-sm">{calculateSectionCredits(s.courses)}</p>
-                              </ACTitle>
-                              <ACBody>
-                                <div className="space-y-2">
-                                  {s.courses.length === 0 ? (
-                                    <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
-                                  ) : (
-                                    s.courses.map((c) => (
-                                      <CourseBar
-                                        key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
-                                        course={c}
-                                        gradeBlindMode={gradeBlindMode}
-                                        onClassificationChange={handleClassificationChange}
-                                        substitutionMap={substitutionMap}
-                                        majorDepartment={filters.major}
-                                      />
-                                    ))
-                                  )}
-                                </div>
-                              </ACBody>
-                            </Accordion>
-                            {i < groupedSections.basicGroup.length - 1 && (
-                              <div className="border-t border-gray-200 dark:border-zinc-700"></div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+              {coursesGrouping === 'bySemester' && (
+                <EnrollmentsList
+                  enrollments={enrollmentsForList}
+                  semesterGroups={semesterGroups}
+                  sortedSemesterKeys={sortedSemesterKeys}
+                  selectedEnrollmentKeys={selectedEnrollmentKeys}
+                  highlightedEnrollmentKeys={highlightedUsedCourseKeys}
+                  onSelectionChange={setSelectedEnrollmentKeys}
+                  onGradeChange={(enrollment, grade) => {
+                    const cs = simulationCourses.find(
+                      (c) =>
+                        c.courseId === enrollment.courseId &&
+                        c.enrolledYear === enrollment.enrolledYear &&
+                        c.enrolledSemester === enrollment.enrolledSemester
+                    );
+                    if (cs) {
+                      handleGradeChange(cs, grade);
+                    }
+                  }}
+                  onMove={(enrollment, newYear, newSemester) => {
+                    const cs = simulationCourses.find(
+                      (c) =>
+                        c.courseId === enrollment.courseId &&
+                        c.enrolledYear === enrollment.enrolledYear &&
+                        c.enrolledSemester === enrollment.enrolledSemester
+                    );
+                    if (cs) {
+                      handleMove(cs, newYear, newSemester);
+                    }
+                  }}
+                  onRemove={(enrollment) => {
+                    const cs = simulationCourses.find(
+                      (c) =>
+                        c.courseId === enrollment.courseId &&
+                        c.enrolledYear === enrollment.enrolledYear &&
+                        c.enrolledSemester === enrollment.enrolledSemester
+                    );
+                    if (cs) {
+                      handleRemove(cs);
+                    }
+                  }}
+                  onRemoveSelected={() => {
+                    // simulation에서는 선택 삭제 기능 사용 안 함
+                    setSelectedEnrollmentKeys(new Set());
+                  }}
+                  onRemoveAll={() => {
+                    // simulation에서는 전체 삭제 기능 사용 안 함
+                    setSelectedEnrollmentKeys(new Set());
+                  }}
+                  onDragStart={(e, enrollment, semesterKey) => {
+                    const cs = simulationCourses.find(
+                      (c) =>
+                        c.courseId === enrollment.courseId &&
+                        c.enrolledYear === enrollment.enrolledYear &&
+                        c.enrolledSemester === enrollment.enrolledSemester
+                    );
+                    if (cs) {
+                      handleDragStart(e, cs, semesterKey);
+                    }
+                  }}
+                  onDrop={handleDrop}
+                  onDropOutside={handleDropOutside}
+                  findNearestPastSemester={findNearestPastSemester}
+                />
+              )}
 
-                  {/* 주전공/심화전공/연구 그룹 */}
-                  {groupedSections.majorGroup.length > 0 && (
-                    <div className="bg-white dark:bg-black rounded-xl overflow-hidden shadow-lg">
-                      {groupedSections.majorGroup.map((s, i) => {
-                        const isCollapsed = collapsedSections.has(s.id);
-                        return (
-                          <div key={s.id}>
-                            <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
-                              <ACTitle>
-                                <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                                <p className="text-gray-600 dark:text-zinc-400 text-sm">{calculateSectionCredits(s.courses)}</p>
-                              </ACTitle>
-                              <ACBody>
-                                <div className="space-y-2">
-                                  {s.courses.length === 0 ? (
-                                    <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
-                                  ) : (
-                                    s.courses.map((c) => (
-                                      <CourseBar
-                                        key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
-                                        course={c}
-                                        gradeBlindMode={gradeBlindMode}
-                                        onClassificationChange={handleClassificationChange}
-                                        substitutionMap={substitutionMap}
-                                        majorDepartment={filters.major}
-                                      />
-                                    ))
-                                  )}
-                                </div>
-                              </ACBody>
-                            </Accordion>
-                            {i < groupedSections.majorGroup.length - 1 && (
-                              <div className="border-t border-gray-200 dark:border-zinc-700"></div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* 복전, 부전, 융전, 교필, 인선 */}
-                  {groupedSections.otherSections.map((s) => {
-                    const isCollapsed = collapsedSections.has(s.id);
-                    return (
-                      <div key={s.id} className="bg-white dark:bg-black rounded-xl overflow-hidden shadow-lg">
-                        <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
-                          <ACTitle>
-                            <h3 className="font-medium text-base flex-1">{s.title}</h3>
-                            <p className="text-gray-600 dark:text-zinc-400 text-sm">{calculateSectionCredits(s.courses)}</p>
-                          </ACTitle>
-                          <ACBody>
-                            <div className="space-y-2">
-                              {s.courses.length === 0 ? (
-                                <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
-                              ) : (
-                                s.courses.map((c) => (
-                                  <CourseBar
-                                    key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
-                                    course={c}
-                                    gradeBlindMode={gradeBlindMode}
-                                    onClassificationChange={handleClassificationChange}
-                                    majorDepartment={filters.major}
-                                  />
-                                ))
+              {coursesGrouping === 'byCategory' && (
+                sections.length === 0 ? (
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 py-4 text-center">
+                    주전공을 선택하면 섹션이 구성됩니다.
+                  </p>
+                ) : (
+                  <div className="space-y-6">
+                    {/* 기초과목 그룹 */}
+                    {groupedSections.basicGroup.length > 0 && (
+                      <div className="bg-white dark:bg-black rounded-xl overflow-hidden shadow-lg">
+                        {groupedSections.basicGroup.map((s, i) => {
+                          const isCollapsed = collapsedSections.has(s.id);
+                          return (
+                            <div key={s.id}>
+                              <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
+                                <ACTitle>
+                                  <h3 className="font-medium text-base flex-1">{s.title}</h3>
+                                  <p className="text-gray-600 dark:text-zinc-400 text-sm">{calculateSectionCredits(s.courses)}</p>
+                                </ACTitle>
+                                <ACBody>
+                                  <div className="space-y-2">
+                                    {s.courses.length === 0 ? (
+                                      <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
+                                    ) : (
+                                      s.courses.map((c) => (
+                                        <CourseBar
+                                          key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                          course={c}
+                                          gradeBlindMode={gradeBlindMode}
+                                          onClassificationChange={handleClassificationChange}
+                                          substitutionMap={substitutionMap}
+                                          majorDepartment={filters.major}
+                                        />
+                                      ))
+                                    )}
+                                  </div>
+                                </ACBody>
+                              </Accordion>
+                              {i < groupedSections.basicGroup.length - 1 && (
+                                <div className="border-t border-gray-200 dark:border-zinc-700"></div>
                               )}
                             </div>
-                          </ACBody>
-                        </Accordion>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+                    )}
+
+                    {/* 주전공/심화전공/연구 그룹 */}
+                    {groupedSections.majorGroup.length > 0 && (
+                      <div className="bg-white dark:bg-black rounded-xl overflow-hidden shadow-lg">
+                        {groupedSections.majorGroup.map((s, i) => {
+                          const isCollapsed = collapsedSections.has(s.id);
+                          return (
+                            <div key={s.id}>
+                              <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
+                                <ACTitle>
+                                  <h3 className="font-medium text-base flex-1">{s.title}</h3>
+                                  <p className="text-gray-600 dark:text-zinc-400 text-sm">{calculateSectionCredits(s.courses)}</p>
+                                </ACTitle>
+                                <ACBody>
+                                  <div className="space-y-2">
+                                    {s.courses.length === 0 ? (
+                                      <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
+                                    ) : (
+                                      s.courses.map((c) => (
+                                        <CourseBar
+                                          key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                          course={c}
+                                          gradeBlindMode={gradeBlindMode}
+                                          onClassificationChange={handleClassificationChange}
+                                          substitutionMap={substitutionMap}
+                                          majorDepartment={filters.major}
+                                        />
+                                      ))
+                                    )}
+                                  </div>
+                                </ACBody>
+                              </Accordion>
+                              {i < groupedSections.majorGroup.length - 1 && (
+                                <div className="border-t border-gray-200 dark:border-zinc-700"></div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* 복전, 부전, 융전, 교필, 인선 */}
+                    {groupedSections.otherSections.map((s) => {
+                      const isCollapsed = collapsedSections.has(s.id);
+                      return (
+                        <div key={s.id} className="bg-white dark:bg-black rounded-xl overflow-hidden shadow-lg">
+                          <Accordion isCollapsed={isCollapsed} onTitleClick={() => toggleSection(s.id)} onTitleKeyDown={(e) => keyboardToggleSection(e, s.id)}>
+                            <ACTitle>
+                              <h3 className="font-medium text-base flex-1">{s.title}</h3>
+                              <p className="text-gray-600 dark:text-zinc-400 text-sm">{calculateSectionCredits(s.courses)}</p>
+                            </ACTitle>
+                            <ACBody>
+                              <div className="space-y-2">
+                                {s.courses.length === 0 ? (
+                                  <p className="text-sm text-gray-500 dark:text-zinc-400">인정 과목 없음</p>
+                                ) : (
+                                  s.courses.map((c) => (
+                                    <CourseBar
+                                      key={`${c.enrolledYear}-${c.enrolledSemester}-${c.courseId}`}
+                                      course={c}
+                                      gradeBlindMode={gradeBlindMode}
+                                      onClassificationChange={handleClassificationChange}
+                                      majorDepartment={filters.major}
+                                    />
+                                  ))
+                                )}
+                              </div>
+                            </ACBody>
+                          </Accordion>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
               )}
             </div>
           )}
@@ -3348,7 +3293,7 @@ export default function SimulationPage() {
               <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
-              <span className="text-xs font-medium">과목 담기</span>
+              <span className="text-xs font-medium">과목 추가</span>
             </button>
             <button
               onClick={() => setMobileTab('credits')}
@@ -3361,7 +3306,7 @@ export default function SimulationPage() {
               <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              <span className="text-xs font-medium">학점 분야</span>
+              <span className="text-xs font-medium">이수 과목</span>
             </button>
             <button
               onClick={() => setMobileTab('requirements')}
@@ -3380,67 +3325,81 @@ export default function SimulationPage() {
         </div>
 
         {/* 시나리오 선택 모달 */}
-        {isScenarioModalOpen && (
-          <div
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 dark:bg-black/70"
-            onClick={(e) => {
-              if (e.target === e.currentTarget)
-                closeScenarioModal();
-            }}
-          >
-            <div
-              className={`bg-gray-50 dark:bg-zinc-900 shadow-xl w-full sm:max-w-md sm:mx-4 mx-0 max-h-[80vh] flex flex-col rounded-t-2xl sm:rounded-xl ${scenarioSheetDragY > 0 ? 'transition-none' : 'transition-transform duration-200'} ${
-                scenarioSheetVisible && scenarioSheetDragY === 0 ? 'translate-y-0' : scenarioSheetVisible ? '' : 'translate-y-full sm:translate-y-0'
-              }`}
-              style={{
-                ...(scenarioSheetVisible && scenarioSheetDragY > 0 && { transform: `translateY(${scenarioSheetDragY}px)` }),
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* 드래그 가능한 상단바 영역 전체 (모바일) */}
-              <div
-                className="touch-none cursor-grab active:cursor-grabbing border-b border-gray-200 dark:border-zinc-700 sm:cursor-default sm:touch-auto"
-                onTouchStart={handleScenarioSheetTouchStart}
-                onTouchMove={handleScenarioSheetTouchMove}
-                onTouchEnd={handleScenarioSheetTouchEnd}
-              >
-                <div className="flex justify-center pt-2 pb-1 sm:hidden" aria-hidden>
-                  <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
-                </div>
-                <div className="p-4 flex items-center justify-between">
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">시나리오</h2>
-                  <Button
-                    size="small"
-                    style="simple"
-                    activeScale={85}
-                    onClick={closeScenarioModal}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4">
+        <BottomSheet
+          open={isScenarioModalOpen}
+          onOpenChange={setIsScenarioModalOpen}
+          desktopCenter
+          zIndex={50}
+          maxHeight="80vh"
+          padded={false}
+          footer={
+            <div className="p-4">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">시나리오 저장</h3>
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  value={saveName}
+                  onChange={setSaveName}
+                  placeholder="시나리오 이름"
+                  size="medium"
+                  className="flex-1"
+                />
                 <Button
-                  style="standard"
-                  isActive={currentSimulationId === null}
-                  onClick={() => {
-                    if (profile) {
-                      setCurrentSimulationId(null);
-                      setFilters((prev) => ({ ...prev, earlyGraduation: false }));
-                      initializeSimulationData(profile);
+                  style="prominent"
+                  size="medium"
+                  onClick={async () => {
+                    const success = await handleSaveSimulation(saveName);
+                    if (success) {
+                      closeScenarioModal();
                     }
-                    closeScenarioModal();
                   }}
-                  className="w-full mb-2"
+                  innerClassName="whitespace-nowrap"
                 >
-                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span className="text-sm font-medium">새로운 시나리오</span>
+                  저장
                 </Button>
+              </div>
+            </div>
+          }
+          header={
+            <>
+              <div className="flex justify-center pt-2 pb-1 sm:hidden" aria-hidden>
+                <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
+              </div>
+              <div className="p-4 flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">시나리오</h2>
+                <Button
+                  size="small"
+                  style="simple"
+                  activeScale={85}
+                  onClick={closeScenarioModal}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </Button>
+              </div>
+            </>
+          }
+        >
+          <div className="p-4">
+            <Button
+              style="standard"
+              isActive={currentSimulationId === null}
+              onClick={() => {
+                if (profile) {
+                  setCurrentSimulationId(null);
+                  setFilters((prev) => ({ ...prev, earlyGraduation: false }));
+                  initializeSimulationData(profile);
+                }
+                closeScenarioModal();
+              }}
+              className="w-full mb-2"
+            >
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="text-sm font-medium">새로운 시나리오</span>
+            </Button>
 
                 {previousSimulations.length === 0 ? (
                   <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">저장된 시나리오가 없습니다.</p>
@@ -3507,38 +3466,8 @@ export default function SimulationPage() {
                     ))}
                   </div>
                 )}
-              </div>
-
-              {/* 시나리오 저장 섹션 */}
-              <div className="p-4 border-t border-gray-200 dark:border-zinc-700">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">시나리오 저장</h3>
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    value={saveName}
-                    onChange={setSaveName}
-                    placeholder="시나리오 이름"
-                    size="medium"
-                    className="flex-1"
-                  />
-                  <Button
-                    style="prominent"
-                    size="medium"
-                    onClick={async () => {
-                      const success = await handleSaveSimulation(saveName);
-                      if (success) {
-                        closeScenarioModal();
-                      }
-                    }}
-                    innerClassName="whitespace-nowrap"
-                  >
-                    저장
-                  </Button>
-                </div>
-              </div>
-            </div>
           </div>
-        )}
+        </BottomSheet>
       </div>
 
       {/* Fixed Tooltip (기존 툴팁 - 아래쪽 화살표) */}

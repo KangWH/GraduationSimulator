@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DepartmentDropdown } from '@/app/components/DepartmentDropdown';
 import { Input, NumberInput, Select } from '../../components/formFields';
 import type { Semester, Grade } from './types';
 import { CourseCategoryDropdown } from '@/app/components/CourseCategoryDropdown';
 import { API } from '../../lib/api';
 import Button from '@/app/components/Button';
+import BottomSheet from '@/app/components/BottomSheet';
 
 const VALID_GRADES: Grade[] = ['A+', 'A0', 'A-', 'B+', 'B0', 'B-', 'C+', 'C0', 'C-', 'D+', 'D0', 'D-', 'F', 'S', 'U', 'P', 'NR', 'W'];
 
@@ -115,12 +116,6 @@ export default function AddCoursePanel({
   const [departments, setDepartments] = useState<Array<{ id: string; name: string; nameEn?: string }>>([]);
   const [categories, setCategories] = useState<Array<{ id: string; name: string }>>([]);
   const [addSheetOpenInternal, setAddSheetOpenInternal] = useState(false);
-  const [addSheetVisible, setAddSheetVisible] = useState(false);
-  const [sheetDragY, setSheetDragY] = useState(0);
-  const touchStartY = useRef(0);
-  const touchStartTime = useRef(0);
-  const sheetDragYRef = useRef(0);
-  sheetDragYRef.current = sheetDragY;
 
   const isControlled = addSheetOpenProp !== undefined;
   const addSheetOpen = isControlled ? addSheetOpenProp! : addSheetOpenInternal;
@@ -134,61 +129,6 @@ export default function AddCoursePanel({
     },
     [isControlled, onAddSheetOpenChange]
   );
-
-  const closeSheet = useCallback(() => {
-    setAddSheetVisible(false);
-    window.setTimeout(() => setAddSheetOpen(false), 200);
-  }, [setAddSheetOpen]);
-
-  const SHEET_DRAG_CLOSE_THRESHOLD = 80;
-  const handleSheetTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchStartTime.current = Date.now();
-  }, []);
-  const handleSheetTouchMove = useCallback((e: React.TouchEvent) => {
-    const dy = e.touches[0].clientY - touchStartY.current;
-    if (dy > 0) setSheetDragY(dy);
-  }, []);
-  const handleSheetTouchEnd = useCallback(() => {
-    const currentDrag = sheetDragYRef.current;
-    const elapsed = Date.now() - touchStartTime.current;
-    const velocity = elapsed > 0 ? currentDrag / elapsed : 0;
-    if (currentDrag > SHEET_DRAG_CLOSE_THRESHOLD || velocity > 0.4) {
-      closeSheet();
-    }
-    setSheetDragY(0);
-  }, [closeSheet]);
-
-  const handleSheetMouseDown = useCallback((e: React.MouseEvent) => {
-    touchStartY.current = e.clientY;
-    touchStartTime.current = Date.now();
-    const onMove = (ev: MouseEvent) => {
-      const dy = ev.clientY - touchStartY.current;
-      if (dy > 0) setSheetDragY(dy);
-    };
-    const onUp = () => {
-      const currentDrag = sheetDragYRef.current;
-      const elapsed = Date.now() - touchStartTime.current;
-      const velocity = elapsed > 0 ? currentDrag / elapsed : 0;
-      if (currentDrag > SHEET_DRAG_CLOSE_THRESHOLD || velocity > 0.4) {
-        closeSheet();
-      }
-      setSheetDragY(0);
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  }, [closeSheet]);
-
-  useEffect(() => {
-    if (addSheetOpen) {
-      setAddSheetVisible(false);
-      const t = window.setTimeout(() => setAddSheetVisible(true), 10);
-      return () => window.clearTimeout(t);
-    }
-    setAddSheetVisible(false);
-  }, [addSheetOpen]);
 
   useEffect(() => {
     Promise.all([
@@ -485,119 +425,80 @@ export default function AddCoursePanel({
       )}
 
       {/* 학기/성적 선택 시트 */}
-      {addSheetOpen && (
-        <div className="fixed inset-0 z-[102] flex flex-col justify-end">
-          {/* 시트 바깥 터치 시 닫기 */}
-          <div
-            className="absolute inset-0"
-            onClick={closeSheet}
-            aria-hidden
-          />
-          <div
-            className={`relative ${sheetDragY > 0 ? 'transition-none' : 'transition-transform duration-200'} ${
-              addSheetVisible ? (sheetDragY === 0 ? 'translate-y-0' : '') : 'translate-y-full'
-            }`}
-            style={{
-              ...(addSheetVisible && sheetDragY > 0 && { transform: `translateY(${sheetDragY}px)` }),
-            }}
-          >
-            <div
-              className="bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-lg rounded-t-xl shadow-lg p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] w-full max-w-2xl mx-auto border border-gray-200/50 cursor-grab active:cursor-grabbing"
-              onClick={(e) => e.stopPropagation()}
-              onTouchStart={handleSheetTouchStart}
-              onTouchMove={handleSheetTouchMove}
-              onTouchEnd={handleSheetTouchEnd}
-              onMouseDown={handleSheetMouseDown}
-            >
-            {/* 드래그 핸들 (모바일만 표시) */}
-            <div className="flex justify-center -mt-2 mb-2 sm:hidden" aria-hidden>
-              <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-zinc-600" />
+      <BottomSheet
+        open={addSheetOpen}
+        onOpenChange={setAddSheetOpen}
+        title={lang === 'en' ? 'Add courses' : '과목 추가'}
+        dimmed={false}
+        zIndex={102}
+        contentClassName="bg-gray-50/50 dark:bg-zinc-900/50 backdrop-blur-lg border border-gray-200/50 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+      >
+        <div className="space-y-4">
+          {onAddAsPriorCreditChange && (
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={addAsPriorCredit}
+                onChange={(e) => onAddAsPriorCreditChange(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 dark:border-zinc-600 dark:bg-zinc-800"
+              />
+              <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Prior credit' : '기이수'}</span>
+            </label>
+          )}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Year' : '수강 연도'}</label>
+              <NumberInput
+                min="2000"
+                max="2050"
+                value={String(addYear)}
+                onChange={(v) => onAddYearChange(parseInt(v) || new Date().getFullYear())}
+                disabled={addAsPriorCredit}
+                size="small"
+              />
             </div>
-            {/* 상단: 취소 버튼 + 제목 */}
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                {lang === 'en' ? 'Add courses' : '과목 추가'}
-              </h3>
-              <button
-                type="button"
-                onClick={closeSheet}
-                className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-zinc-800 transition-colors"
-                aria-label={lang === 'en' ? 'Close' : '닫기'}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Semester' : '학기'}</label>
+              <Select
+                value={addSemester}
+                onChange={(v) => onAddSemesterChange(v as Semester)}
+                disabled={addAsPriorCredit}
+                size="small"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                {SEMESTER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </Select>
             </div>
-            <div className="space-y-4">
-              {onAddAsPriorCreditChange && (
-                <label className="flex cursor-pointer items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={addAsPriorCredit}
-                    onChange={(e) => onAddAsPriorCreditChange(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 dark:border-zinc-600 dark:bg-zinc-800"
-                  />
-                  <span className="text-sm font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Prior credit' : '기이수'}</span>
-                </label>
-              )}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Year' : '수강 연도'}</label>
-                  <NumberInput
-                    min="2000"
-                    max="2050"
-                    value={String(addYear)}
-                    onChange={(v) => onAddYearChange(parseInt(v) || new Date().getFullYear())}
-                    disabled={addAsPriorCredit}
-                    size="small"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Semester' : '학기'}</label>
-                  <Select
-                    value={addSemester}
-                    onChange={(v) => onAddSemesterChange(v as Semester)}
-                    disabled={addAsPriorCredit}
-                    size="small"
-                  >
-                    {SEMESTER_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Grade' : '성적'}</label>
-                  <Select
-                    value={addGrade}
-                    onChange={(v) => onAddGradeChange(v as Grade)}
-                    size="small"
-                  >
-                    {VALID_GRADES.map((grade) => (
-                      <option key={grade} value={grade}>
-                        {grade}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-              </div>
-              <Button
-                style="prominent"
-                onClick={() => {
-                  onAddSelected();
-                  closeSheet();
-                }}
-                className="w-full"
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-gray-700 dark:text-zinc-300">{lang === 'en' ? 'Grade' : '성적'}</label>
+              <Select
+                value={addGrade}
+                onChange={(v) => onAddGradeChange(v as Grade)}
+                size="small"
               >
-                {lang === 'en' ? `Add ${selectedCourseIds.size} course(s)` : `${selectedCourseIds.size}과목 추가`}
-              </Button>
+                {VALID_GRADES.map((grade) => (
+                  <option key={grade} value={grade}>
+                    {grade}
+                  </option>
+                ))}
+              </Select>
             </div>
           </div>
+          <Button
+            style="prominent"
+            onClick={() => {
+              onAddSelected();
+              setAddSheetOpen(false);
+            }}
+            className="w-full"
+          >
+            {lang === 'en' ? `Add ${selectedCourseIds.size} course(s)` : `${selectedCourseIds.size}과목 추가`}
+          </Button>
         </div>
-      </div>
-      )}
+      </BottomSheet>
     </div>
   );
 }
