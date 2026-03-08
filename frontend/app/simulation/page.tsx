@@ -3381,7 +3381,7 @@ export default function SimulationPage() {
           onOpenChange={setIsScenarioOptionsModalOpen}
           title="시나리오 설정"
           padded={false}
-          maxHeight='90vh'
+          maxHeight='85vh'
         >
           <>
             {isLoadingSimulation && (
@@ -3498,7 +3498,7 @@ export default function SimulationPage() {
             }
             setIsAddCourseModalOpen(open);
           }}
-          maxHeight='90vh'
+          maxHeight='85vh'
           padded={false}
           contentScroll={false}
           onAfterOpen={() => {
