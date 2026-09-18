@@ -16,7 +16,7 @@ const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 
 app.use(cors({
-  origin: 'http://localhost:3000', // 프론트엔드 주소
+  origin: 'https://grad-log.applemincho.com', // 프론트엔드 주소
   credentials: true, // 쿠키 및 인증 정보 허용
 }));
 app.use(cookieParser());
